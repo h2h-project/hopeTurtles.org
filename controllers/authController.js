@@ -114,9 +114,10 @@ const exchangeAuthorizationCode = async ({ code, codeVerifier }) => {
 const storeSessionFromTokens = async (req, tokens, claims) => {
   const buwanaId = parseBuwanaId(claims.sub);
 
+  // buwana:basic provides given_name; buwana:profile provides family_name
   const rawFullName = (claims.name || claims.full_name || claims.nickname || '').trim();
   const firstNameClaim = (claims.given_name || '').trim();
-  const lastNameClaim = (claims.family_name || '').trim();
+  const lastNameClaim = (claims.family_name || claims.last_name || '').trim();
 
   let derivedFirstName = firstNameClaim;
   let derivedLastName = lastNameClaim;
@@ -129,28 +130,55 @@ const storeSessionFromTokens = async (req, tokens, claims) => {
     }
   }
 
+  // buwana:basic claim — colon in claim name requires bracket notation
+  const earthlingEmoji = claims['buwana:earthlingEmoji'] || null;
+
+  // buwana:profile optional claims
+  const profilePic   = claims.profile_pic && claims.profile_pic !== 'null' ? claims.profile_pic : undefined;
+  const communityId  = claims.community_id != null ? claims.community_id : undefined;
+  const timeZone     = claims.zoneinfo || undefined;
+  const birthDate    = claims.birth_date || undefined;
+
+  // buwana:bioregion optional claims
+  const locationFull      = claims.location_full || undefined;
+  const watershedId       = claims.watershed_id != null ? claims.watershed_id : undefined;
+  const locationWatershed = claims.location_watershed || undefined;
+  const locationLat       = claims.location_lat != null ? claims.location_lat : undefined;
+  const locationLong      = claims.location_long != null ? claims.location_long : undefined;
+
   const user = await usersModel.upsertFromBuwana({
-    buwana_id: buwanaId,
-    email: claims.email || claims.preferred_username,
-    first_name: derivedFirstName || null,
-    last_name: derivedLastName || null,
-    full_name: rawFullName || null,
-    role: claims.role || undefined,
-    last_login: new Date()
+    buwana_id:          buwanaId,
+    email:              claims.email || claims.preferred_username,
+    first_name:         derivedFirstName || null,
+    last_name:          derivedLastName || null,
+    full_name:          rawFullName || null,
+    role:               claims.role || undefined,
+    earthling_emoji:    earthlingEmoji,
+    profile_pic:        profilePic,
+    community_id:       communityId,
+    time_zone:          timeZone,
+    birth_date:         birthDate,
+    location_full:      locationFull,
+    watershed_id:       watershedId,
+    location_watershed: locationWatershed,
+    location_lat:       locationLat,
+    location_long:      locationLong,
+    last_login:         new Date()
   });
 
   const firstName = user.first_name || derivedFirstName || (user.full_name ? user.full_name.split(/\s+/u)[0] : null);
   const lastLogin = user.last_login ? new Date(user.last_login) : null;
 
   req.session.user = {
-    id: user.buwana_id,
-    buwanaId: user.buwana_id,
-    email: user.email,
-    name: user.full_name || firstName || null,
-    firstName: firstName || null,
-    lastLogin: lastLogin ? lastLogin.toISOString() : null,
-    role: user.role,
-    earthlingEmoji: user.earthling_emoji ?? null
+    id:             user.buwana_id,
+    buwanaId:       user.buwana_id,
+    email:          user.email,
+    name:           user.full_name || firstName || null,
+    firstName:      firstName || null,
+    lastLogin:      lastLogin ? lastLogin.toISOString() : null,
+    role:           user.role,
+    earthlingEmoji: user.earthling_emoji ?? null,
+    profilePic:     user.profile_pic && user.profile_pic !== 'null' ? user.profile_pic : null
   };
 
   req.session.tokens = {

@@ -159,20 +159,48 @@ usersModel.upsertFromBuwana = async (user) => {
       updateData.language_id = user.language_id ?? existing.language_id ?? 'EN';
     }
 
+    // buwana:basic — sync emoji if provided
+    if (user.earthling_emoji !== undefined) {
+      updateData.earthling_emoji = user.earthling_emoji;
+    }
+
+    // buwana:profile — sync only when the claim was present in the token
+    if (user.profile_pic !== undefined) updateData.profile_pic = user.profile_pic;
+    if (user.community_id !== undefined) updateData.community_id = user.community_id;
+    if (user.time_zone !== undefined)    updateData.time_zone = user.time_zone;
+    if (user.birth_date !== undefined)   updateData.birth_date = user.birth_date;
+
+    // buwana:bioregion — sync only when the claim was present in the token
+    if (user.location_full !== undefined)      updateData.location_full = user.location_full;
+    if (user.watershed_id !== undefined)       updateData.watershed_id = user.watershed_id;
+    if (user.location_watershed !== undefined) updateData.location_watershed = user.location_watershed;
+    if (user.location_lat !== undefined)       updateData.location_lat = user.location_lat;
+    if (user.location_long !== undefined)      updateData.location_long = user.location_long;
+
     await usersModel.update(user.buwana_id, updateData);
     return usersModel.getById(user.buwana_id);
   }
 
   await usersModel.create({
-    buwana_id: user.buwana_id,
-    email: user.email ?? placeholderEmail,
-    first_name: user.first_name ?? firstName,
-    last_name: user.last_name ?? lastName,
-    full_name: user.full_name ?? fullName,
-    role: user.role ?? 'user',
-    created_at: user.created_at ?? new Date(),
-    last_login: user.last_login ?? new Date(),
-    language_id: user.language_id ?? 'EN'
+    buwana_id:          user.buwana_id,
+    email:              user.email ?? placeholderEmail,
+    first_name:         user.first_name ?? firstName,
+    last_name:          user.last_name ?? lastName,
+    full_name:          user.full_name ?? fullName,
+    role:               user.role ?? 'user',
+    created_at:         user.created_at ?? new Date(),
+    last_login:         user.last_login ?? new Date(),
+    language_id:        user.language_id ?? 'EN',
+    earthling_emoji:    user.earthling_emoji ?? null,
+    profile_pic:        user.profile_pic ?? null,
+    community_id:       user.community_id ?? null,
+    time_zone:          user.time_zone ?? null,
+    birth_date:         user.birth_date ?? null,
+    location_full:      user.location_full ?? null,
+    watershed_id:       user.watershed_id ?? null,
+    location_watershed: user.location_watershed ?? null,
+    location_lat:       user.location_lat ?? null,
+    location_long:      user.location_long ?? null
   });
 
   return usersModel.getById(user.buwana_id);

@@ -70,10 +70,14 @@ export const config = {
     process.env.BUWANA_REDIRECT_URI ||
     'https://hopeturtles.org/auth/callback',
 
-  // Scopes
+  // Scopes — namespaced Buwana scope system
+  // buwana:basic     → buwana_id, email, given_name, buwana:earthlingEmoji
+  // buwana:profile   → family_name, role, profile_pic, community_id, zoneinfo, birth_date, …
+  // buwana:community → buwana:community (community name)
+  // buwana:bioregion → location_full, watershed_id/name, lat/long, …
   buwanaScope:
     process.env.BUWANA_SCOPE ||
-    'openid profile email buwana:earthlingEmoji'
+    'openid buwana:basic buwana:profile buwana:community buwana:bioregion'
 },
 
 
