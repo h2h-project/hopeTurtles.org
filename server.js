@@ -66,7 +66,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 
 // ------------------------------------------------------------
-// Session Configuration (fixes OAuth state loss from Buwana)
+// Session Configuration (fixes OAuth state loss from Buwana v2)
 // ------------------------------------------------------------
 const isProduction = config.env === 'production';
 
