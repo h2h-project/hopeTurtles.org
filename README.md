@@ -1,9 +1,6 @@
 # 🐢 HopeTurtles.org
 
-The **Hope Turtle Project** is a last-mile, regenerative humanitarian technology initiative designed to empower collective action reach humans in need across oceans and borders — powered by **open-source hardware** and **earthen design principles**.
-
-Each **Hope Turtle** is a solar-powered marine drone built from bamboo and recycled materials.  
-They carry serialized bottles of food and medicine, trackable across the seas through this Node.js web platform.
+The **Hope Turtle Project** is developing and deploying regenerative, non-violent, humanitarian technology to deliver food, love and hope to +-5k coastal areas. Our technology is designed from the ground up to be human, ocean, animal and ecosystem friendly by following Earthen principles.  Best of all, we've designed hope turtles to use nothing but easy to find parts and components and open source code, so that anyone anywhere can take action today to deliver light and love to our fellow humans who need it most, with minimal harm and maximum  blessing to our fellow creatures. 
 
 ---
 
