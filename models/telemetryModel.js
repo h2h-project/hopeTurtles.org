@@ -55,6 +55,63 @@ telemetryModel.ingestReading = async ({
   return result.affectedRows === 1;
 };
 
+// Chart-ready trend rows. Sensor values live in raw_data.values (JSON written
+// by deviceApiController), so they are extracted per-row; CAST yields NULL for
+// readings that lack a given sensor, which the charts render as gaps.
+const TREND_VALUE_FIELDS = [
+  'ens_eco2',
+  'ens_tvoc',
+  'ens_aqi',
+  'aht_temp',
+  'rtc_temp',
+  'bme_temp',
+  'aht_humidity',
+  'bme_humidity',
+  'ina_batt_pct',
+  'ina_bus_v',
+  'ina_current_ma'
+];
+
+telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
+  const parsed = Number.parseFloat(hours);
+  const safeHours = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0.25), 721) : 25;
+  const minutes = Math.round(safeHours * 60);
+
+  const valueColumns = TREND_VALUE_FIELDS.map(
+    (field) => `CAST(JSON_EXTRACT(raw_data, '$.values.${field}') AS DOUBLE) AS ${field}`
+  ).join(',\n      ');
+
+  const sql = `
+    SELECT
+      telemetry_id,
+      UNIX_TIMESTAMP(\`timestamp\`) AS ts,
+      latitude,
+      longitude,
+      ${valueColumns}
+    FROM telemetry_tb
+    WHERE turtle_id = ?
+      AND \`timestamp\` >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? MINUTE)
+    ORDER BY \`timestamp\` ASC
+    LIMIT 5000
+  `;
+  return query(sql, [turtleId, minutes]);
+};
+
+telemetryModel.deleteByIdsForTurtle = async (telemetryIds, turtleId) => {
+  const ids = (Array.isArray(telemetryIds) ? telemetryIds : [])
+    .map((id) => Number.parseInt(id, 10))
+    .filter((id) => Number.isFinite(id) && id > 0)
+    .slice(0, 500);
+  if (!ids.length) {
+    return 0;
+  }
+  const placeholders = ids.map(() => '?').join(', ');
+  // Scoping by turtle_id keeps the delete inside the caller-verified turtle.
+  const sql = `DELETE FROM telemetry_tb WHERE turtle_id = ? AND telemetry_id IN (${placeholders})`;
+  const result = await query(sql, [turtleId, ...ids]);
+  return result.affectedRows ?? 0;
+};
+
 telemetryModel.getLatestForTurtle = async (turtleId) => {
   const rows = await query(
     'SELECT * FROM telemetry_tb WHERE turtle_id = ? ORDER BY `timestamp` DESC LIMIT 1',

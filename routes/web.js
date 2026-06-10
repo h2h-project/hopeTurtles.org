@@ -95,6 +95,7 @@ router.get('/login', (req, res) => {
 });
 
 router.get('/dashboard', ensureAuth, dashboardController.renderDashboard);
+router.get('/my-turtle/:id', ensureAuth, dashboardController.renderMyTurtle);
 router.get('/admin', ensureAuth, ensureAdmin, dashboardController.renderAdmin);
 router.get('/admin/users', ensureAuth, ensureAdminOrFounder, renderManagementPage);
 router.get('/profile', ensureAuth, profileController.renderProfilePage);

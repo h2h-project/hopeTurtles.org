@@ -214,6 +214,11 @@
                       <p class="muted turtle-live__status" data-live-status>Loading…</p>
                     </div>
                   </div>
+                  <div class="turtle-live__actions">
+                    <a class="button button-small turtle-live__view" href="/my-turtle/<%= turtle.turtle_id %>">
+                      <%= t.dashboard_view_turtle || 'View Turtle' %> →
+                    </a>
+                  </div>
                 </td>
               </tr>
           <% }) %>
@@ -424,11 +429,8 @@
           <pre class="brand-ascii launch-success-state__ascii-art" data-launch-success-ascii>HopeTurtles</pre>
         </div>
         <h1>Turtle launched!</h1>
-        <p>
-          Your turtle is created. Copy its device configuration below into the
-          <code>config.json</code> on its turtleOS device.
-        </p>
-        <section class="turtle-secret-panel launch-device-config" data-launch-device-config hidden aria-live="polite">
+        <p class="copy-feedback launch-copy-feedback" data-launch-config-feedback role="status" aria-live="polite"></p>
+        <section class="turtle-secret-panel launch-device-config" data-launch-device-config hidden>
           <div class="device-config-fields">
             <div class="device-config-field">
               <span class="device-config-label">api_base</span>
@@ -450,7 +452,6 @@
             ⚠️ This secret is shown only once. If you lose it, open Manage turtle and
             view the secret to generate a new one.
           </p>
-          <p class="copy-feedback muted" data-launch-config-feedback role="status"></p>
         </section>
         <button type="button" class="button launch-got-it-btn" data-launch-success-close>Got it!</button>
       </div>

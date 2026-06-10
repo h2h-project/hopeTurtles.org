@@ -1,0 +1,278 @@
+<% const extraStyles = [
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  '/css/myturtle.css'
+]; %>
+<%- include('partials/header', { pageTitle, theme, extraStyles }) %>
+<%- include('partials/nav') %>
+<%
+  const fmt = (value, decimals = 0) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toFixed(decimals) : '--';
+  };
+  const v = latestValues || {};
+  const initialAqi = Number(v.ens_aqi);
+%>
+<main
+  id="main"
+  class="layout myturtle-layout"
+  data-turtle-id="<%= turtle.turtle_id %>"
+  data-last-lat="<%= turtle.last_lat ?? '' %>"
+  data-last-lng="<%= turtle.last_lng ?? '' %>"
+  data-turtle-name="<%= turtle.name || ('Turtle #' + turtle.turtle_id) %>"
+>
+  <section class="page-header myturtle-header">
+    <div class="myturtle-header__identity">
+      <% if (turtle.profile_photo_thumbnail_url || turtle.profile_photo_url) { %>
+        <img
+          class="myturtle-header__photo"
+          src="<%= turtle.profile_photo_thumbnail_url || turtle.profile_photo_url %>"
+          alt="<%= turtle.name %>"
+        />
+      <% } %>
+      <div>
+        <h1><%= turtle.name || `Turtle #${turtle.turtle_id}` %></h1>
+        <p class="muted myturtle-header__meta">
+          <span class="status-pill status-<%= turtle.status %>"><%= turtle.status %></span>
+          <% if (turtle.mission_name) { %>
+            · <%= t.turtle_mission || 'Mission' %>: <%= turtle.mission_name %>
+          <% } %>
+          <% if (turtle.hub_name) { %>
+            · <%= t.dashboard_hub || 'Hub' %>: <%= turtle.hub_name %>
+          <% } %>
+          <% if (turtle.last_update) { %>
+            · <%= t.myturtle_last_update || 'Last update' %>: <%= turtle.last_update %>
+          <% } %>
+        </p>
+      </div>
+    </div>
+    <a class="button ghost myturtle-header__back" href="/dashboard">
+      ← <%= t.myturtle_back || 'Back to Dashboard' %>
+    </a>
+  </section>
+
+  <!-- 1. Latest Telemetry -->
+  <section class="myturtle-panel" id="latest-telemetry">
+    <h2><%= t.myturtle_latest_telemetry || 'Latest Telemetry' %></h2>
+
+    <div class="aqi-banner" data-aqi-banner <%= Number.isFinite(initialAqi) ? '' : 'hidden' %>>
+      <span class="aqi-banner__emoji" data-aqi-emoji></span>
+      <span class="aqi-banner__label" data-aqi-label></span>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="eco2"><%= fmt(v.ens_eco2, 0) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_co2 || 'CO₂' %> <span class="metric-card__unit">ppm</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="temp"><%= fmt(v.aht_temp ?? v.bme_temp, 1) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_temp || 'Temperature' %> <span class="metric-card__unit">°C</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="humidity"><%= fmt(v.aht_humidity ?? v.bme_humidity, 1) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_humidity || 'Humidity' %> <span class="metric-card__unit">%</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="aqi"><%= fmt(v.ens_aqi, 0) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_aqi || 'AQI' %></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="batt"><%= fmt(v.ina_batt_pct, 0) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_batt_pct || 'Battery' %> <span class="metric-card__unit">%</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="busv"><%= fmt(v.ina_bus_v, 2) %></span></div>
+        <div class="metric-card__label"><%= t.myturtle_bus_v || 'Bus V' %> <span class="metric-card__unit">V</span></div>
+      </div>
+    </div>
+
+    <div class="myturtle-meta muted tiny" data-latest-meta>
+      <% if (latestReading) { %>
+        <span><strong><%= t.turtle_timestamp || 'Recorded' %>:</strong> <%= latestReading.timestamp %></span>
+        <span><strong><%= t.turtle_connection || 'Connection' %>:</strong> <%= latestReading.connection || '—' %></span>
+      <% } else { %>
+        <span><%= t.myturtle_no_data || 'No telemetry received yet for this turtle.' %></span>
+      <% } %>
+    </div>
+  </section>
+
+  <!-- 2. Air Quality Trends -->
+  <section class="myturtle-panel" id="air-trends">
+    <div class="panel-head">
+      <h2><%= t.myturtle_air_trends || 'Air Quality Trends' %></h2>
+      <div class="range-bar" role="group" aria-label="Time range" data-universal-range-bar></div>
+    </div>
+
+    <div class="chart-sub-cards">
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_co2 || 'CO₂' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="eco2" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="eco2" hidden></div>
+        <div class="chart-el" data-chart="eco2"></div>
+      </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_temp || 'Temperature' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="temp" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="temp" hidden></div>
+        <div class="chart-el" data-chart="temp"></div>
+      </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_humidity || 'Humidity' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="humidity" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="humidity" hidden></div>
+        <div class="chart-el" data-chart="humidity"></div>
+      </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_tvoc || 'TVOC' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="tvoc" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="tvoc" hidden></div>
+        <div class="chart-el" data-chart="tvoc"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Battery -->
+  <section class="myturtle-panel" id="battery">
+    <div class="panel-head">
+      <h2><%= t.myturtle_battery || 'Battery' %></h2>
+      <div class="range-bar" role="group" aria-label="Time range" data-universal-range-bar></div>
+    </div>
+
+    <div class="chart-sub-cards">
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_charge_level || 'Charge Level' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="battery" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="battery" hidden></div>
+        <div class="chart-el" data-chart="battery"></div>
+      </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_current || 'Current (+ charging / − discharging)' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="current" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="current" hidden></div>
+        <div class="chart-el" data-chart="current"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Current Location / GPS Route -->
+  <section class="myturtle-panel" id="location">
+    <div class="panel-head">
+      <h2 data-map-title><%= t.myturtle_location || 'Current Location' %></h2>
+      <div class="map-controls">
+        <div class="range-bar" role="group" aria-label="Map view">
+          <button class="range-btn active" type="button" data-gps-mode="location"><%= t.myturtle_mode_location || 'Location' %></button>
+          <button class="range-btn" type="button" data-gps-mode="route"><%= t.myturtle_mode_route || 'Route' %></button>
+        </div>
+        <button class="range-btn expand-btn" type="button" data-expand="map" aria-pressed="true" title="<%= t.myturtle_collapse || 'Collapse map' %>">⊟</button>
+      </div>
+    </div>
+
+    <div class="map-wrapper">
+      <div class="map-outer map-outer--expanded">
+        <div class="map-empty muted" data-map-empty hidden></div>
+        <div id="turtleRouteMap" class="map-el"></div>
+      </div>
+      <div class="map-loading-overlay" data-map-loading hidden>
+        <span class="tiny"><%= t.myturtle_loading || 'Loading…' %></span>
+      </div>
+    </div>
+
+    <div class="location-meta tiny muted" data-map-meta></div>
+
+    <div class="route-slider-wrap" data-route-slider-wrap>
+      <div class="route-slider-head">
+        <span class="tiny muted"><%= t.myturtle_route_window || 'Route range' %></span>
+        <span class="route-slider-value" data-route-slider-value>1h</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="14"
+        step="1"
+        value="2"
+        class="route-slider-input"
+        data-route-slider
+        aria-label="<%= t.myturtle_route_window || 'Route range' %>"
+      />
+      <div class="route-slider-ticks tiny muted">
+        <span>15m</span><span>3h</span><span>12h</span><span>36h</span><span>72h</span><span>5d</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Latest Packets -->
+  <section class="myturtle-panel" id="packets">
+    <div class="panel-head">
+      <div>
+        <h2><%= t.myturtle_packets || 'Latest Packets' %></h2>
+        <span class="tiny muted" data-packet-summary></span>
+      </div>
+      <div class="range-bar" role="group" aria-label="Time range" data-packet-range-bar></div>
+    </div>
+
+    <div class="muted tiny" data-packets-status><%= t.myturtle_loading || 'Loading…' %></div>
+
+    <div data-packets-content hidden>
+      <div class="packet-table-wrap">
+        <table class="packet-table" data-packets-table>
+          <thead>
+            <tr>
+              <th class="check-cell"><input type="checkbox" data-select-all title="Select all on this page" /></th>
+              <th><%= t.myturtle_time || 'Time' %></th>
+              <th>eCO₂</th>
+              <th>AHT °C</th>
+              <th>RTC °C</th>
+              <th>BME °C</th>
+              <th>RH %</th>
+              <th>TVOC</th>
+              <th><%= t.myturtle_batt_pct || 'Batt' %> %</th>
+              <th>Lat</th>
+              <th>Lon</th>
+            </tr>
+          </thead>
+          <tbody data-packets-body></tbody>
+        </table>
+      </div>
+
+      <div class="bulk-actions" data-bulk-actions hidden>
+        <span class="tiny muted" data-selected-count></span>
+        <button class="button danger" type="button" data-delete-selected><%= t.myturtle_delete_selected || 'Delete selected' %></button>
+        <button class="button ghost" type="button" data-clear-selection><%= t.myturtle_deselect || 'Deselect all' %></button>
+        <span class="tiny error-text" data-delete-error hidden></span>
+      </div>
+
+      <div class="pagination-bar">
+        <button class="button ghost" type="button" data-page-prev>‹ <%= t.myturtle_prev || 'Prev' %></button>
+        <span class="pagination-info tiny muted" data-page-info></span>
+        <button class="button ghost" type="button" data-page-next><%= t.myturtle_next || 'Next' %> ›</button>
+        <div class="range-bar pagination-limit" role="group" aria-label="Rows per page">
+          <button class="range-btn active" type="button" data-per-page="10">10</button>
+          <button class="range-btn" type="button" data-per-page="25">25</button>
+          <button class="range-btn" type="button" data-per-page="100">100</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<% const pageScripts = [
+  'https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  '/js/myturtle.js'
+]; %>
+<%- include('partials/footer', { pageScripts }) %>

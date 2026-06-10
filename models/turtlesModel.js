@@ -131,6 +131,32 @@ turtlesModel.getManagedById = async (turtleId, managerId) => {
   return rows[0] ?? null;
 };
 
+turtlesModel.getWithRelationsById = async (turtleId) => {
+  if (!turtleId) {
+    return null;
+  }
+
+  const sql = `
+    SELECT
+      t.*,
+      m.name AS mission_name,
+      h.name AS hub_name,
+      b.name AS boat_name,
+      profile_photo.url AS profile_photo_url,
+      profile_photo.thumbnail_url AS profile_photo_thumbnail_url
+    FROM turtles_tb t
+    LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
+    LEFT JOIN hubs_tb h ON t.hub_id = h.hub_id
+    LEFT JOIN boats_tb b ON t.boat_id = b.boat_id
+    LEFT JOIN photos_tb profile_photo ON profile_photo.photo_id = t.profile_photo_id
+    WHERE t.turtle_id = ?
+    LIMIT 1
+  `;
+
+  const rows = await query(sql, [turtleId]);
+  return rows[0] ?? null;
+};
+
 turtlesModel.touchLiveness = async (turtleId, { lat = null, lng = null, solarCharge = null } = {}) => {
   const assignments = ['last_update = UTC_TIMESTAMP()', "status = IF(status = 'awaiting_serial', 'idle', status)"];
   const params = [];

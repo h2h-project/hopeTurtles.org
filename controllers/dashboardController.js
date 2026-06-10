@@ -95,6 +95,49 @@ export const renderDashboard = async (req, res, next) => {
   }
 };
 
+export const renderMyTurtle = async (req, res, next) => {
+  try {
+    const turtle = await turtlesModel.getWithRelationsById(req.params.id);
+
+    const currentUser = req.session?.user || null;
+    const isAdmin = currentUser?.role === 'admin';
+    const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
+    const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
+    const turtleHasManager =
+      turtle?.turtle_manager !== undefined && turtle?.turtle_manager !== null && turtle?.turtle_manager !== '';
+    const managesTurtle =
+      hasManagerId && turtleHasManager && String(turtle.turtle_manager) === String(managerIdRaw);
+
+    if (!turtle || (!isAdmin && !managesTurtle)) {
+      return res.status(404).render('error', {
+        pageTitle: 'Turtle not found',
+        message: 'This turtle does not exist or is not managed by your account.'
+      });
+    }
+
+    delete turtle.secret_hash;
+
+    const latestReading = await telemetryModel.getLatestForTurtle(turtle.turtle_id);
+    let latestValues = null;
+    if (latestReading?.raw_data) {
+      const raw =
+        typeof latestReading.raw_data === 'string'
+          ? JSON.parse(latestReading.raw_data)
+          : latestReading.raw_data;
+      latestValues = raw?.values ?? raw ?? null;
+    }
+
+    return res.render('myturtle', {
+      pageTitle: turtle.name || `Turtle #${turtle.turtle_id}`,
+      turtle,
+      latestReading,
+      latestValues
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const renderAdmin = async (req, res, next) => {
   try {
     const sessionUser = req.session?.user || null;
@@ -136,5 +179,6 @@ export const renderAdmin = async (req, res, next) => {
 
 export default {
   renderDashboard,
+  renderMyTurtle,
   renderAdmin
 };

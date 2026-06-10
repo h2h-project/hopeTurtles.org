@@ -1233,6 +1233,12 @@ const attachLaunchCopyHandler = (button, getValueFn, label) => {
     const value = getValueFn();
     if (!value) return;
     const copied = await copySecretToClipboard(value);
+    if (copied) {
+      button.textContent = '✓ Copy';
+      window.setTimeout(() => {
+        button.textContent = 'Copy';
+      }, 2000);
+    }
     if (launchConfigFeedback) {
       launchConfigFeedback.textContent = copied
         ? `${label} copied.`
