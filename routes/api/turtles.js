@@ -73,7 +73,7 @@ router.get('/:id/live', ensureAuth, getTurtleLive);
 router.get('/:id', getTurtleById);
 router.post('/', ensureAuth, ensureAdmin, handleProfileUpload, createTurtle);
 router.put('/:id', ensureAuth, ensureAdmin, optionalProfileUpload, updateTurtle);
-router.delete('/:id', ensureAuth, ensureAdmin, deleteTurtle);
+router.delete('/:id', ensureAuth, deleteTurtle);
 router.post('/:id/secret', ensureAuth, regenerateTurtleSecret);
 
 export default router;

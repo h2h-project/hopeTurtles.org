@@ -1303,7 +1303,7 @@ if (deleteTurtleButton) {
       return;
     }
     const confirmed = window.confirm(
-      'Delete this Hope Turtle? This action cannot be undone.'
+      'Delete this Turtle? This action cannot be undone.'
     );
     if (!confirmed) {
       return;

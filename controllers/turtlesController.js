@@ -268,6 +268,24 @@ export const getTurtleLive = async (req, res, next) => {
 
 export const deleteTurtle = async (req, res, next) => {
   try {
+    const turtle = await turtlesModel.getById(req.params.id);
+    if (!turtle) {
+      return res.status(404).json({ success: false, message: 'Turtle not found' });
+    }
+
+    const currentUser = req.session?.user || null;
+    const isAdmin = currentUser?.role === 'admin';
+    const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
+    const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
+    const turtleHasManager =
+      turtle.turtle_manager !== undefined && turtle.turtle_manager !== null && turtle.turtle_manager !== '';
+    const managesTurtle =
+      hasManagerId && turtleHasManager && String(turtle.turtle_manager) === String(managerIdRaw);
+
+    if (!isAdmin && !managesTurtle) {
+      return res.status(403).json({ success: false, message: 'Additional privileges required' });
+    }
+
     await turtlesModel.remove(req.params.id);
     return res.json({ success: true, data: null, message: 'Turtle removed' });
   } catch (error) {
