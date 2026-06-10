@@ -106,104 +106,6 @@
     return turtle && String(turtle.status || '').toLowerCase() !== 'lost';
   }); %>
   <% const myBottles = Array.isArray(userBottles) ? userBottles : []; %>
-  <section class="panel my-bottles-panel" id="my-bottles">
-    <header class="panel-header">
-      <div>
-        <h2>My Aid Bottles</h2>
-        <p class="panel-subtitle">Bottles you've registered and packed for missions.</p>
-      </div>
-      <button type="button" class="button" data-open-register-bottle>+ Register Bottle</button>
-    </header>
-    <p class="form-feedback" role="status" data-my-bottles-feedback hidden></p>
-    <div class="table-wrapper" data-my-bottles-table <%= myBottles.length ? '' : 'hidden' %>>
-      <table class="bottles-table">
-        <thead>
-          <tr>
-            <th scope="col">Aid Bottle</th>
-            <th scope="col">Turtle</th>
-            <th scope="col">Mission</th>
-            <th scope="col">Contents</th>
-            <th scope="col">Weight</th>
-            <th scope="col">Verified</th>
-            <th scope="col">Status</th>
-          </tr>
-        </thead>
-        <tbody data-my-bottles-body>
-          <% myBottles.forEach(function (bottle) { %>
-            <tr
-              data-bottle-row
-              role="button"
-              tabindex="0"
-              aria-label="<%= bottle.serial_number
-                ? 'Open delivery details for aid bottle #' + bottle.serial_number
-                : 'Open delivery details for this aid bottle' %>"
-              data-bottle-id="<%= bottle.bottle_id %>"
-              data-serial-number="<%= bottle.serial_number || '' %>"
-              data-hub-name="<%= bottle.hub_name || '' %>"
-              data-hub-address="<%= bottle.hub_mailing_address || '' %>"
-              data-turtle-id="<%= bottle.turtle_id || '' %>"
-              data-turtle-name="<%= bottle.turtle_name || '' %>"
-              data-hub-id="<%= bottle.hub_id || '' %>"
-            >
-              <td data-label="Aid Bottle">
-                <div class="bottle-cell">
-                  <div class="bottle-photo <%= bottle.basic_photo_url ? '' : 'bottle-photo--placeholder' %>">
-                    <% if (bottle.basic_photo_url) { %>
-                      <img
-                        src="<%= bottle.basic_photo_url %>"
-                        alt="Aid bottle <%= bottle.serial_number ? '#' + bottle.serial_number : 'photo' %>"
-                        loading="lazy"
-                      />
-                    <% } else { %>
-                      <span class="bottle-photo__placeholder">No photo</span>
-                    <% } %>
-                    <span class="bottle-photo__serial">
-                      <%= bottle.serial_number ? '#' + bottle.serial_number : '—' %>
-                    </span>
-                  </div>
-                </div>
-              </td>
-              <td data-label="Turtle">
-                <% const turtleLabel = bottle.turtle_name || 'Assign turtle'; %>
-                <button
-                  type="button"
-                  class="pill-button bottle-turtle-pill"
-                  data-open-reassign-bottle
-                  aria-label="Change turtle connection"
-                >
-                  <%= turtleLabel %>
-                </button>
-              </td>
-              <td data-label="Mission"><%= bottle.mission_name || '—' %></td>
-              <td data-label="Contents">
-                <div class="bottle-contents"><%= bottle.contents || '—' %></div>
-              </td>
-              <td data-label="Weight"><%= formatWeight(bottle.weight_grams) %></td>
-              <td data-label="Verified">
-                <% const isBottleVerified = Number(bottle.verified) === 1 || bottle.verified === true; %>
-                <span class="status-pill verified-pill" data-verified="<%= isBottleVerified ? 'true' : 'false' %>">
-                  <%= isBottleVerified ? 'Verified' : 'Pending' %>
-                </span>
-              </td>
-              <td data-label="Status">
-                <span
-                  class="status-pill bottle-status-pill"
-                  data-status="<%= formatStatusKey(bottle.status) %>"
-                  data-open-delivery-details
-                >
-                  <%= formatBottleStatus(bottle.status) %>
-                </span>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-    <p class="panel-empty" data-my-bottles-empty <%= myBottles.length ? 'hidden' : '' %>>
-      You haven't registered any bottles yet.
-    </p>
-  </section>
-
   <section class="panel my-turtles-panel" id="my-turtles" data-map-token="<%= mapboxToken %>">
     <header class="panel-header">
       <div>
@@ -323,6 +225,104 @@
     <% } %>
   </section>
 
+  <section class="panel my-bottles-panel" id="my-bottles">
+    <header class="panel-header">
+      <div>
+        <h2>My Aid Bottles</h2>
+        <p class="panel-subtitle">Bottles you've registered and packed for missions.</p>
+      </div>
+      <button type="button" class="button" data-open-register-bottle>+ Register Bottle</button>
+    </header>
+    <p class="form-feedback" role="status" data-my-bottles-feedback hidden></p>
+    <div class="table-wrapper" data-my-bottles-table <%= myBottles.length ? '' : 'hidden' %>>
+      <table class="bottles-table">
+        <thead>
+          <tr>
+            <th scope="col">Aid Bottle</th>
+            <th scope="col">Turtle</th>
+            <th scope="col">Mission</th>
+            <th scope="col">Contents</th>
+            <th scope="col">Weight</th>
+            <th scope="col">Verified</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody data-my-bottles-body>
+          <% myBottles.forEach(function (bottle) { %>
+            <tr
+              data-bottle-row
+              role="button"
+              tabindex="0"
+              aria-label="<%= bottle.serial_number
+                ? 'Open delivery details for aid bottle #' + bottle.serial_number
+                : 'Open delivery details for this aid bottle' %>"
+              data-bottle-id="<%= bottle.bottle_id %>"
+              data-serial-number="<%= bottle.serial_number || '' %>"
+              data-hub-name="<%= bottle.hub_name || '' %>"
+              data-hub-address="<%= bottle.hub_mailing_address || '' %>"
+              data-turtle-id="<%= bottle.turtle_id || '' %>"
+              data-turtle-name="<%= bottle.turtle_name || '' %>"
+              data-hub-id="<%= bottle.hub_id || '' %>"
+            >
+              <td data-label="Aid Bottle">
+                <div class="bottle-cell">
+                  <div class="bottle-photo <%= bottle.basic_photo_url ? '' : 'bottle-photo--placeholder' %>">
+                    <% if (bottle.basic_photo_url) { %>
+                      <img
+                        src="<%= bottle.basic_photo_url %>"
+                        alt="Aid bottle <%= bottle.serial_number ? '#' + bottle.serial_number : 'photo' %>"
+                        loading="lazy"
+                      />
+                    <% } else { %>
+                      <span class="bottle-photo__placeholder">No photo</span>
+                    <% } %>
+                    <span class="bottle-photo__serial">
+                      <%= bottle.serial_number ? '#' + bottle.serial_number : '—' %>
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td data-label="Turtle">
+                <% const turtleLabel = bottle.turtle_name || 'Assign turtle'; %>
+                <button
+                  type="button"
+                  class="pill-button bottle-turtle-pill"
+                  data-open-reassign-bottle
+                  aria-label="Change turtle connection"
+                >
+                  <%= turtleLabel %>
+                </button>
+              </td>
+              <td data-label="Mission"><%= bottle.mission_name || '—' %></td>
+              <td data-label="Contents">
+                <div class="bottle-contents"><%= bottle.contents || '—' %></div>
+              </td>
+              <td data-label="Weight"><%= formatWeight(bottle.weight_grams) %></td>
+              <td data-label="Verified">
+                <% const isBottleVerified = Number(bottle.verified) === 1 || bottle.verified === true; %>
+                <span class="status-pill verified-pill" data-verified="<%= isBottleVerified ? 'true' : 'false' %>">
+                  <%= isBottleVerified ? 'Verified' : 'Pending' %>
+                </span>
+              </td>
+              <td data-label="Status">
+                <span
+                  class="status-pill bottle-status-pill"
+                  data-status="<%= formatStatusKey(bottle.status) %>"
+                  data-open-delivery-details
+                >
+                  <%= formatBottleStatus(bottle.status) %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="panel-empty" data-my-bottles-empty <%= myBottles.length ? 'hidden' : '' %>>
+      You haven't registered any bottles yet.
+    </p>
+  </section>
+
   <%- include('partials/manage-turtle-dialog', { turtleStatusOptions, missions, hubs, boats }) %>
 
   <dialog id="turtleBottlesDialog" class="mission-dialog" aria-labelledby="turtleBottlesTitle">
@@ -429,12 +429,22 @@
           <code>config.json</code> on its turtleOS device.
         </p>
         <section class="turtle-secret-panel launch-device-config" data-launch-device-config hidden aria-live="polite">
-          <p class="device-id-row">
-            Device ID: <code data-launch-device-id></code>
-          </p>
-          <div class="device-config-snippet">
-            <pre class="secret-key-value" data-launch-config-snippet></pre>
-            <button type="button" class="button ghost" data-copy-launch-config>Copy config.json</button>
+          <div class="device-config-fields">
+            <div class="device-config-field">
+              <span class="device-config-label">api_base</span>
+              <code class="device-config-value" data-launch-api-base>http://hopeturtles.org</code>
+              <button type="button" class="button ghost small" data-copy-launch-api-base>Copy</button>
+            </div>
+            <div class="device-config-field">
+              <span class="device-config-label">device_id</span>
+              <code class="device-config-value" data-launch-device-id></code>
+              <button type="button" class="button ghost small" data-copy-launch-device-id>Copy</button>
+            </div>
+            <div class="device-config-field">
+              <span class="device-config-label">device_key</span>
+              <code class="device-config-value" data-launch-device-key></code>
+              <button type="button" class="button ghost small" data-copy-launch-device-key>Copy</button>
+            </div>
           </div>
           <p class="muted">
             ⚠️ This secret is shown only once. If you lose it, open Manage turtle and
@@ -442,7 +452,7 @@
           </p>
           <p class="copy-feedback muted" data-launch-config-feedback role="status"></p>
         </section>
-        <button type="button" class="button" data-launch-success-close>Got it!</button>
+        <button type="button" class="button launch-got-it-btn" data-launch-success-close>Got it!</button>
       </div>
     </div>
   </dialog>

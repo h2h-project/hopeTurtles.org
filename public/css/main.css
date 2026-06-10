@@ -3277,6 +3277,54 @@ main.about-page {
   align-items: flex-start;
 }
 
+.device-config-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.device-config-field {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--color-mint, #c0e3cb);
+  border-radius: 6px;
+}
+
+[data-theme='dark'] .device-config-field {
+  background: rgba(192, 227, 203, 0.12);
+}
+
+.device-config-label {
+  font-family: monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  min-width: 76px;
+  flex-shrink: 0;
+  color: var(--color-forest, #1f3b22);
+}
+
+[data-theme='dark'] .device-config-label {
+  color: var(--color-mint, #c0e3cb);
+}
+
+.device-config-value {
+  flex: 1;
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.85rem;
+}
+
+.launch-got-it-btn {
+  display: block;
+  width: 80%;
+  margin: 1.25rem auto 0;
+  text-align: center;
+}
+
 /* My Turtles — expandable live-telemetry rows */
 .turtle-live-toggle {
   cursor: pointer;

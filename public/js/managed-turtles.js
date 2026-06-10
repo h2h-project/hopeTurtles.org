@@ -78,14 +78,23 @@ const launchSuccessCloseButton = launchSuccessState
 const launchDeviceConfig = launchSuccessState
   ? launchSuccessState.querySelector('[data-launch-device-config]')
   : null;
+const launchApiBaseValue = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-api-base]')
+  : null;
 const launchDeviceIdValue = launchSuccessState
   ? launchSuccessState.querySelector('[data-launch-device-id]')
   : null;
-const launchConfigSnippet = launchSuccessState
-  ? launchSuccessState.querySelector('[data-launch-config-snippet]')
+const launchDeviceKeyValue = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-device-key]')
   : null;
-const launchConfigCopyButton = launchSuccessState
-  ? launchSuccessState.querySelector('[data-copy-launch-config]')
+const launchCopyApiBaseButton = launchSuccessState
+  ? launchSuccessState.querySelector('[data-copy-launch-api-base]')
+  : null;
+const launchCopyDeviceIdButton = launchSuccessState
+  ? launchSuccessState.querySelector('[data-copy-launch-device-id]')
+  : null;
+const launchCopyDeviceKeyButton = launchSuccessState
+  ? launchSuccessState.querySelector('[data-copy-launch-device-key]')
   : null;
 const launchConfigFeedback = launchSuccessState
   ? launchSuccessState.querySelector('[data-launch-config-feedback]')
@@ -760,8 +769,8 @@ const clearLaunchDeviceConfig = () => {
   if (launchDeviceIdValue) {
     launchDeviceIdValue.textContent = '';
   }
-  if (launchConfigSnippet) {
-    launchConfigSnippet.textContent = '';
+  if (launchDeviceKeyValue) {
+    launchDeviceKeyValue.textContent = '';
   }
   if (launchConfigFeedback) {
     launchConfigFeedback.textContent = '';
@@ -776,8 +785,8 @@ const showLaunchDeviceConfig = (turtleId, secret) => {
   if (launchDeviceIdValue) {
     launchDeviceIdValue.textContent = String(turtleId);
   }
-  if (launchConfigSnippet) {
-    launchConfigSnippet.textContent = buildDeviceConfigSnippet(turtleId, secret);
+  if (launchDeviceKeyValue) {
+    launchDeviceKeyValue.textContent = secret;
   }
   if (launchDeviceConfig) {
     launchDeviceConfig.hidden = false;
@@ -1217,21 +1226,36 @@ if (secretButton) {
   });
 }
 
-if (launchConfigCopyButton) {
-  launchConfigCopyButton.addEventListener('click', async (event) => {
+const attachLaunchCopyHandler = (button, getValueFn, label) => {
+  if (!button) return;
+  button.addEventListener('click', async (event) => {
     event.preventDefault();
-    const snippet = launchConfigSnippet ? launchConfigSnippet.textContent.trim() : '';
-    if (!snippet) {
-      return;
-    }
-    const copied = await copySecretToClipboard(snippet);
+    const value = getValueFn();
+    if (!value) return;
+    const copied = await copySecretToClipboard(value);
     if (launchConfigFeedback) {
       launchConfigFeedback.textContent = copied
-        ? 'config.json copied to clipboard.'
+        ? `${label} copied.`
         : 'Copy failed. Please copy manually.';
     }
   });
-}
+};
+
+attachLaunchCopyHandler(
+  launchCopyApiBaseButton,
+  () => (launchApiBaseValue ? launchApiBaseValue.textContent.trim() : ''),
+  'api_base'
+);
+attachLaunchCopyHandler(
+  launchCopyDeviceIdButton,
+  () => (launchDeviceIdValue ? launchDeviceIdValue.textContent.trim() : ''),
+  'device_id'
+);
+attachLaunchCopyHandler(
+  launchCopyDeviceKeyButton,
+  () => (launchDeviceKeyValue ? launchDeviceKeyValue.textContent.trim() : ''),
+  'device_key'
+);
 
 if (deviceConfigCopyButton) {
   deviceConfigCopyButton.addEventListener('click', async (event) => {
