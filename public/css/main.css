@@ -3270,6 +3270,13 @@ main.about-page {
   white-space: pre-wrap;
 }
 
+.launch-device-config {
+  width: 100%;
+  margin-top: 0;
+  text-align: left;
+  align-items: flex-start;
+}
+
 /* My Turtles — expandable live-telemetry rows */
 .turtle-live-toggle {
   cursor: pointer;

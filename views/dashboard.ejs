@@ -425,9 +425,23 @@
         </div>
         <h1>Turtle launched!</h1>
         <p>
-          Alright!  Your turtle is created.  Now, open the Manage panel to access this turtle secret key
-          and hard code its rasberry pi config file.
+          Your turtle is created. Copy its device configuration below into the
+          <code>config.json</code> on its turtleOS device.
         </p>
+        <section class="turtle-secret-panel launch-device-config" data-launch-device-config hidden aria-live="polite">
+          <p class="device-id-row">
+            Device ID: <code data-launch-device-id></code>
+          </p>
+          <div class="device-config-snippet">
+            <pre class="secret-key-value" data-launch-config-snippet></pre>
+            <button type="button" class="button ghost" data-copy-launch-config>Copy config.json</button>
+          </div>
+          <p class="muted">
+            ⚠️ This secret is shown only once. If you lose it, open Manage turtle and
+            view the secret to generate a new one.
+          </p>
+          <p class="copy-feedback muted" data-launch-config-feedback role="status"></p>
+        </section>
         <button type="button" class="button" data-launch-success-close>Got it!</button>
       </div>
     </div>

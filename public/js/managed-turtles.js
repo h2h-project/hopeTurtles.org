@@ -75,6 +75,21 @@ const launchSuccessAscii = launchSuccessState
 const launchSuccessCloseButton = launchSuccessState
   ? launchSuccessState.querySelector('[data-launch-success-close]')
   : null;
+const launchDeviceConfig = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-device-config]')
+  : null;
+const launchDeviceIdValue = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-device-id]')
+  : null;
+const launchConfigSnippet = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-config-snippet]')
+  : null;
+const launchConfigCopyButton = launchSuccessState
+  ? launchSuccessState.querySelector('[data-copy-launch-config]')
+  : null;
+const launchConfigFeedback = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-config-feedback]')
+  : null;
 const launchTurtleTriggers = document.querySelectorAll('[data-launch-turtle]');
 
 const turtleAsciiSources = [
@@ -738,10 +753,42 @@ const preparePhotoThumbnail = async (
   }
 };
 
+const clearLaunchDeviceConfig = () => {
+  if (launchDeviceConfig) {
+    launchDeviceConfig.hidden = true;
+  }
+  if (launchDeviceIdValue) {
+    launchDeviceIdValue.textContent = '';
+  }
+  if (launchConfigSnippet) {
+    launchConfigSnippet.textContent = '';
+  }
+  if (launchConfigFeedback) {
+    launchConfigFeedback.textContent = '';
+  }
+};
+
+const showLaunchDeviceConfig = (turtleId, secret) => {
+  if (!turtleId || !secret) {
+    clearLaunchDeviceConfig();
+    return;
+  }
+  if (launchDeviceIdValue) {
+    launchDeviceIdValue.textContent = String(turtleId);
+  }
+  if (launchConfigSnippet) {
+    launchConfigSnippet.textContent = buildDeviceConfigSnippet(turtleId, secret);
+  }
+  if (launchDeviceConfig) {
+    launchDeviceConfig.hidden = false;
+  }
+};
+
 const resetLaunchDialog = () => {
   if (launchTurtleForm && typeof launchTurtleForm.reset === 'function') {
     launchTurtleForm.reset();
   }
+  clearLaunchDeviceConfig();
   if (launchSubmitButton) {
     launchSubmitButton.disabled = false;
     launchSubmitButton.textContent = 'Launch turtle';
@@ -1049,6 +1096,10 @@ if (launchTurtleForm) {
       if (launchTurtleForm && typeof launchTurtleForm.reset === 'function') {
         launchTurtleForm.reset();
       }
+      // The plaintext secret is only ever returned by this response —
+      // surface the device config now instead of sending the user to
+      // the manage dialog (which would rotate the secret again).
+      showLaunchDeviceConfig(json.data?.turtle_id, json.secret);
       toggleLaunchSuccessState(true);
       if (launchSubmitButton) {
         launchSubmitButton.disabled = false;
@@ -1162,6 +1213,22 @@ if (secretButton) {
     }
     if (!secretButton.disabled) {
       requestSecret();
+    }
+  });
+}
+
+if (launchConfigCopyButton) {
+  launchConfigCopyButton.addEventListener('click', async (event) => {
+    event.preventDefault();
+    const snippet = launchConfigSnippet ? launchConfigSnippet.textContent.trim() : '';
+    if (!snippet) {
+      return;
+    }
+    const copied = await copySecretToClipboard(snippet);
+    if (launchConfigFeedback) {
+      launchConfigFeedback.textContent = copied
+        ? 'config.json copied to clipboard.'
+        : 'Copy failed. Please copy manually.';
     }
   });
 }
