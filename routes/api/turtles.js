@@ -11,7 +11,8 @@ import {
   launchManagedTurtle,
   updateTurtle,
   deleteTurtle,
-  regenerateTurtleSecret
+  regenerateTurtleSecret,
+  getTurtleLive
 } from '../../controllers/turtlesController.js';
 import { ensureAdmin, ensureAuth } from '../../middleware/auth.js';
 
@@ -68,6 +69,7 @@ const optionalProfileUpload = (req, res, next) => {
 router.get('/', getTurtles);
 router.post('/launch', ensureAuth, optionalProfileUpload, launchManagedTurtle);
 router.get('/:id/bottles', ensureAuth, ensureAdmin, listBottlesForTurtleAdmin);
+router.get('/:id/live', ensureAuth, getTurtleLive);
 router.get('/:id', getTurtleById);
 router.post('/', ensureAuth, ensureAdmin, handleProfileUpload, createTurtle);
 router.put('/:id', ensureAuth, ensureAdmin, optionalProfileUpload, updateTurtle);

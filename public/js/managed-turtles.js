@@ -18,6 +18,18 @@ const secretValue = manageTurtleDialog
 const secretFeedback = manageTurtleDialog
   ? manageTurtleDialog.querySelector('[data-managed-secret-feedback]')
   : null;
+const deviceIdValue = manageTurtleDialog
+  ? manageTurtleDialog.querySelector('[data-managed-turtle-device-id]')
+  : null;
+const deviceConfigBlock = manageTurtleDialog
+  ? manageTurtleDialog.querySelector('[data-device-config-block]')
+  : null;
+const deviceConfigSnippet = manageTurtleDialog
+  ? manageTurtleDialog.querySelector('[data-device-config-snippet]')
+  : null;
+const deviceConfigCopyButton = manageTurtleDialog
+  ? manageTurtleDialog.querySelector('[data-copy-device-config]')
+  : null;
 const formFeedback = manageTurtleDialog
   ? manageTurtleDialog.querySelector('[data-managed-turtle-feedback]')
   : null;
@@ -565,7 +577,24 @@ const resetSecretState = () => {
   if (secretFeedback) {
     secretFeedback.textContent = '';
   }
+  if (deviceConfigBlock) {
+    deviceConfigBlock.hidden = true;
+  }
+  if (deviceConfigSnippet) {
+    deviceConfigSnippet.textContent = '';
+  }
 };
+
+const buildDeviceConfigSnippet = (turtleId, secret) =>
+  JSON.stringify(
+    {
+      api_base: 'http://hopeturtles.org',
+      device_id: String(turtleId),
+      device_key: secret
+    },
+    null,
+    2
+  );
 
 const updateFeaturePhotoPreview = (url) => {
   if (!featurePhotoPreview || !featurePhotoImage) {
@@ -788,6 +817,9 @@ const openManageTurtleDialog = (sourceElement) => {
   };
 
   manageTurtleForm.dataset.endpoint = `/api/turtles/${encodeURIComponent(currentTurtleId)}`;
+  if (deviceIdValue) {
+    deviceIdValue.textContent = String(currentTurtleId);
+  }
   resetSecretState();
   populateManageForm(turtleData);
 
@@ -1085,6 +1117,12 @@ const requestSecret = async () => {
     if (secretCard) {
       secretCard.hidden = false;
     }
+    if (deviceConfigSnippet && currentTurtleId) {
+      deviceConfigSnippet.textContent = buildDeviceConfigSnippet(currentTurtleId, json.secret);
+    }
+    if (deviceConfigBlock) {
+      deviceConfigBlock.hidden = false;
+    }
     if (secretFeedback) {
       secretFeedback.textContent = 'Secret ready to copy.';
     }
@@ -1124,6 +1162,22 @@ if (secretButton) {
     }
     if (!secretButton.disabled) {
       requestSecret();
+    }
+  });
+}
+
+if (deviceConfigCopyButton) {
+  deviceConfigCopyButton.addEventListener('click', async (event) => {
+    event.preventDefault();
+    const snippet = deviceConfigSnippet ? deviceConfigSnippet.textContent.trim() : '';
+    if (!snippet) {
+      return;
+    }
+    const copied = await copySecretToClipboard(snippet);
+    if (secretFeedback) {
+      secretFeedback.textContent = copied
+        ? 'config.json copied to clipboard.'
+        : 'Copy failed. Please copy manually.';
     }
   });
 }

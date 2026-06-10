@@ -15,6 +15,7 @@ import themeMiddleware from './middleware/theme.js';
 import { notFoundHandler, errorHandler } from './middleware/errorHandlers.js';
 import webRouter from './routes/web.js';
 import apiRouter from './routes/api/index.js';
+import deviceV1Router from './routes/api/v1/index.js';
 import authRouter from './routes/api/auth.js';
 import { loadLocales } from './utils/localization.js';
 
@@ -126,6 +127,9 @@ app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/auth', authRouter);
+// turtleOS device API — also aliased at /v1 because the firmware's
+// time-sync screen requests <api_base>/v1/device without the /api prefix.
+app.use(['/api/v1', '/v1'], deviceV1Router);
 app.use('/api', apiRouter);
 app.use('/', webRouter);
 

@@ -131,6 +131,42 @@ turtlesModel.getManagedById = async (turtleId, managerId) => {
   return rows[0] ?? null;
 };
 
+turtlesModel.touchLiveness = async (turtleId, { lat = null, lng = null, solarCharge = null } = {}) => {
+  const assignments = ['last_update = UTC_TIMESTAMP()', "status = IF(status = 'awaiting_serial', 'idle', status)"];
+  const params = [];
+
+  if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+    assignments.push('last_lat = ?', 'last_lng = ?');
+    params.push(Number(lat), Number(lng));
+  }
+  if (Number.isFinite(Number(solarCharge))) {
+    assignments.push('solar_charge = ?');
+    params.push(Number(solarCharge));
+  }
+
+  params.push(turtleId);
+  await query(`UPDATE turtles_tb SET ${assignments.join(', ')} WHERE turtle_id = ?`, params);
+};
+
+turtlesModel.getDeviceInfo = async (turtleId) => {
+  const sql = `
+    SELECT
+      t.turtle_id,
+      t.name,
+      m.name AS mission_name,
+      h.name AS hub_name,
+      u.time_zone
+    FROM turtles_tb t
+    LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
+    LEFT JOIN hubs_tb h ON t.hub_id = h.hub_id
+    LEFT JOIN users_tb u ON t.turtle_manager = u.buwana_id
+    WHERE t.turtle_id = ?
+    LIMIT 1
+  `;
+  const rows = await query(sql, [turtleId]);
+  return rows[0] ?? null;
+};
+
 turtlesModel.getTelemetrySummary = async () => {
   const latestTimestamps = await query(
     `SELECT turtle_id, MAX(timestamp) AS last_contact FROM telemetry_tb GROUP BY turtle_id`

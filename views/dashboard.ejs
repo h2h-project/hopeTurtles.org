@@ -1,4 +1,4 @@
-<%- include('partials/header', { pageTitle, theme }) %>
+<%- include('partials/header', { pageTitle, theme, extraStyles: ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'] }) %>
 <%- include('partials/nav') %>
 <% const formatStatusKey = (value) => (value ? value.toLowerCase().replace(/[^a-z0-9]+/gu, '-') : ''); %>
 <% const formatTurtleStatus = (value) => {
@@ -204,7 +204,7 @@
     </p>
   </section>
 
-  <section class="panel my-turtles-panel" id="my-turtles">
+  <section class="panel my-turtles-panel" id="my-turtles" data-map-token="<%= mapboxToken %>">
     <header class="panel-header">
       <div>
         <h2>My Turtles</h2>
@@ -223,6 +223,7 @@
               <th scope="col">Boat</th>
               <th scope="col" class="turtle-bottles-column">Bottles</th>
               <th scope="col" class="turtle-status-column">Status</th>
+              <th scope="col" class="turtle-live-column">Live</th>
             </tr>
           </thead>
           <tbody>
@@ -288,6 +289,29 @@
                     <span aria-hidden="true">⚙️</span>
                     <span><%= formatTurtleStatus(turtle.status) %></span>
                   </button>
+                </td>
+                <td data-label="Live" class="turtle-live-column">
+                  <button
+                    type="button"
+                    class="status-pill turtle-live-toggle"
+                    data-toggle-turtle-live
+                    data-turtle-id="<%= turtle.turtle_id %>"
+                    aria-expanded="false"
+                    aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
+                  >
+                    <span class="chevron" aria-hidden="true">▾</span>
+                  </button>
+                </td>
+              </tr>
+              <tr class="turtle-live-row" hidden data-turtle-live-row data-turtle-id="<%= turtle.turtle_id %>">
+                <td colspan="7">
+                  <div class="turtle-live">
+                    <div class="turtle-live__map" data-live-map></div>
+                    <div class="turtle-live__details">
+                      <dl class="turtle-live__readout" data-live-readout></dl>
+                      <p class="muted turtle-live__status" data-live-status>Loading…</p>
+                    </div>
+                  </div>
                 </td>
               </tr>
           <% }) %>
@@ -640,7 +664,9 @@
 </main>
 <% const pageScripts = [
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   '/js/dashboard.js',
-  '/js/managed-turtles.js'
+  '/js/managed-turtles.js',
+  '/js/turtle-live.js'
 ]; %>
 <%- include('partials/footer', { pageScripts }) %>

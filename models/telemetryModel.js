@@ -23,6 +23,46 @@ telemetryModel.getByTurtleId = async (turtleId, limit = 50) => {
   return query(sql, [turtleId]);
 };
 
+// Device clock time arrives as Unix seconds; convert in JS rather than
+// FROM_UNIXTIME() because the MySQL session timezone is not pinned to UTC.
+const unixSecondsToUtcDatetime = (unixSeconds) =>
+  new Date(unixSeconds * 1000).toISOString().slice(0, 19).replace('T', ' ');
+
+telemetryModel.ingestReading = async ({
+  turtleId,
+  recordedAtUnix,
+  lat = null,
+  lon = null,
+  batteryVoltage = null,
+  tempC = null,
+  rawData
+}) => {
+  // INSERT IGNORE + uq_telemetry_turtle_ts keeps queued-retry duplicates idempotent.
+  const sql = `
+    INSERT IGNORE INTO telemetry_tb
+      (turtle_id, \`timestamp\`, latitude, longitude, battery_voltage, temp_c, connection, raw_data, recorded_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'wifi', ?, UTC_TIMESTAMP())
+  `;
+  const result = await query(sql, [
+    turtleId,
+    unixSecondsToUtcDatetime(recordedAtUnix),
+    lat,
+    lon,
+    batteryVoltage,
+    tempC,
+    rawData
+  ]);
+  return result.affectedRows === 1;
+};
+
+telemetryModel.getLatestForTurtle = async (turtleId) => {
+  const rows = await query(
+    'SELECT * FROM telemetry_tb WHERE turtle_id = ? ORDER BY `timestamp` DESC LIMIT 1',
+    [turtleId]
+  );
+  return rows[0] ?? null;
+};
+
 telemetryModel.getLatest = async () => {
   const sql = `
     SELECT t1.*

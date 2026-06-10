@@ -18,6 +18,7 @@
       <label class="full-width">
         Turtle name
         <input name="name" />
+        <span class="muted">Shown on the turtle's screen as its device name.</span>
       </label>
       <label>
         Status
@@ -66,12 +67,25 @@
       </label>
     </div>
     <section class="turtle-secret-panel" aria-live="polite">
-      <h3>Secret key</h3>
-      <p class="muted">Share this secret only with the turtle it belongs to.</p>
+      <h3>Device configuration</h3>
+      <p class="muted">
+        These values go into the turtle's <code>config.json</code> on its turtleOS device.
+      </p>
+      <p class="device-id-row">
+        Device ID: <code data-managed-turtle-device-id></code>
+      </p>
       <div class="secret-key-card" data-secret-card hidden>
         <pre class="secret-key-value" data-managed-turtle-secret></pre>
       </div>
       <button type="button" class="button ghost" data-secret-action>View secret</button>
+      <p class="muted">
+        Viewing generates a new secret (device key) — re-flash the turtle's
+        <code>config.json</code> after viewing.
+      </p>
+      <div class="device-config-snippet" data-device-config-block hidden>
+        <pre class="secret-key-value" data-device-config-snippet></pre>
+        <button type="button" class="button ghost" data-copy-device-config>Copy config.json</button>
+      </div>
       <p class="copy-feedback muted" data-managed-secret-feedback role="status"></p>
     </section>
     <div class="mission-dialog__actions mission-dialog__actions--split">

@@ -207,6 +207,65 @@ export const regenerateTurtleSecret = async (req, res, next) => {
   }
 };
 
+export const getTurtleLive = async (req, res, next) => {
+  try {
+    const turtleId = req.params.id;
+    const turtle = await turtlesModel.getById(turtleId);
+    if (!turtle) {
+      return res.status(404).json({ success: false, message: 'Turtle not found' });
+    }
+
+    const currentUser = req.session?.user || null;
+    const isAdmin = currentUser?.role === 'admin';
+    const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
+    const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
+    const turtleHasManager =
+      turtle.turtle_manager !== undefined && turtle.turtle_manager !== null && turtle.turtle_manager !== '';
+    const managesTurtle =
+      hasManagerId && turtleHasManager && String(turtle.turtle_manager) === String(managerIdRaw);
+
+    if (!isAdmin && !managesTurtle) {
+      return res.status(403).json({ success: false, message: 'Additional privileges required' });
+    }
+
+    const reading = await telemetryModel.getLatestForTurtle(turtleId);
+    let values = null;
+    if (reading?.raw_data) {
+      const raw =
+        typeof reading.raw_data === 'string' ? JSON.parse(reading.raw_data) : reading.raw_data;
+      values = raw?.values ?? raw ?? null;
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        turtle: {
+          turtle_id: turtle.turtle_id,
+          name: turtle.name,
+          status: turtle.status,
+          last_lat: turtle.last_lat,
+          last_lng: turtle.last_lng,
+          last_update: turtle.last_update,
+          solar_charge: turtle.solar_charge
+        },
+        reading: reading
+          ? {
+              timestamp: reading.timestamp,
+              latitude: reading.latitude,
+              longitude: reading.longitude,
+              battery_voltage: reading.battery_voltage,
+              temp_c: reading.temp_c,
+              connection: reading.connection,
+              values
+            }
+          : null
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const deleteTurtle = async (req, res, next) => {
   try {
     await turtlesModel.remove(req.params.id);
@@ -249,6 +308,7 @@ export default {
   launchManagedTurtle,
   updateTurtle,
   regenerateTurtleSecret,
+  getTurtleLive,
   deleteTurtle,
   renderTurtlePage
 };

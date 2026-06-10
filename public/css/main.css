@@ -3243,6 +3243,104 @@ main.about-page {
   width: 100%;
 }
 
+.device-id-row {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.device-id-row code {
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+  background: var(--color-mint, #c0e3cb);
+  font-weight: 600;
+}
+
+[data-theme='dark'] .device-id-row code {
+  background: rgba(192, 227, 203, 0.18);
+}
+
+.device-config-snippet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.device-config-snippet .secret-key-value {
+  white-space: pre-wrap;
+}
+
+/* My Turtles — expandable live-telemetry rows */
+.turtle-live-toggle {
+  cursor: pointer;
+}
+
+.turtle-live-toggle .chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.turtle-live-toggle[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
+}
+
+.turtle-live-row > td {
+  padding: 1rem;
+  background: var(--color-mist, #f2f9f3);
+}
+
+[data-theme='dark'] .turtle-live-row > td {
+  background: rgba(192, 227, 203, 0.06);
+}
+
+.turtle-live {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.turtle-live__map {
+  height: 260px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.turtle-live__readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.turtle-live__metric dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.turtle-live__metric dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.turtle-live__status {
+  margin: 0.5rem 0 0;
+}
+
+@media (max-width: 768px) {
+  .turtle-live {
+    grid-template-columns: 1fr;
+  }
+
+  .turtle-live__map {
+    height: 220px;
+  }
+}
+
 @media (max-width: 768px) {
   .site-header {
     display: grid;
