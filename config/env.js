@@ -87,7 +87,7 @@ export const config = {
     supportedThemes: (process.env.SUPPORTED_THEMES || 'light,dark').split(','),
     defaultLang: process.env.DEFAULT_LANG || 'en',
     supportedLangs: (
-      process.env.SUPPORTED_LANGS || 'en,ms,id,he,ar,de,zh'
+      process.env.SUPPORTED_LANGS || 'en,ms,id,he,ar,de,zh,tr'
     )
       .split(',')
       .map((code) => code.trim())

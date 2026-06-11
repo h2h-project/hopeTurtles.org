@@ -48,7 +48,7 @@
     </header>
     <div class="contribute-panel__grid">
       <% const contributeButtons = [
-        { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github' },
+        { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS' },
         { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle' },
         { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs' },
         {
@@ -59,14 +59,26 @@
         { title: t.contribute_buy_title || 'Buy', subtitle: t.contribute_buy_body || 'Purchase food orders for our hubs to fill aid bottles' }
       ]; %>
       <% contributeButtons.forEach(function (button) { %>
-        <button
-          type="button"
-          class="contribute-panel__button"
-          data-contribute-action="<%= button.title %>"
-        >
-          <span class="contribute-panel__title"><%= button.title %></span>
-          <span class="contribute-panel__subtitle"><%= button.subtitle %></span>
-        </button>
+        <% if (button.url) { %>
+          <a
+            href="<%= button.url %>"
+            target="_blank"
+            rel="noreferrer"
+            class="contribute-panel__button"
+          >
+            <span class="contribute-panel__title"><%= button.title %></span>
+            <span class="contribute-panel__subtitle"><%= button.subtitle %></span>
+          </a>
+        <% } else { %>
+          <button
+            type="button"
+            class="contribute-panel__button"
+            data-contribute-action="<%= button.title %>"
+          >
+            <span class="contribute-panel__title"><%= button.title %></span>
+            <span class="contribute-panel__subtitle"><%= button.subtitle %></span>
+          </button>
+        <% } %>
       <% }) %>
     </div>
   </section>
