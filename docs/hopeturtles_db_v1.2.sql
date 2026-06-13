@@ -126,6 +126,9 @@ CREATE TABLE `turtles_tb` (
   `hub_id` BIGINT UNSIGNED,
   `boat_id` BIGINT UNSIGNED,
   `status` ENUM('awaiting_serial','idle','en_route','arrived','lost') DEFAULT 'awaiting_serial',
+  -- Latest firmware autonomy state from telemetry (independent of the
+  -- mission-lifecycle `status` above). See 20260611_add_machine_state.sql.
+  `last_machine_state` ENUM('BOOT','ACQUIRE','SAIL_NAV','ARRIVAL','SAFE') NULL DEFAULT NULL,
   `solar_charge` DECIMAL(5,2),
   `last_lat` DECIMAL(10,7),
   `last_lng` DECIMAL(10,7),
@@ -179,6 +182,9 @@ CREATE TABLE `telemetry_tb` (
   `battery_voltage` DECIMAL(5,2),
   `temp_c` DECIMAL(4,1),
   `connection` ENUM('wifi','gsm','satellite'),
+  -- Firmware autonomy state at the time of the reading (NULL for airOS
+  -- devices). See 20260611_add_machine_state.sql.
+  `machine_state` ENUM('BOOT','ACQUIRE','SAIL_NAV','ARRIVAL','SAFE') NULL DEFAULT NULL,
   `raw_data` JSON,
   `recorded_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`telemetry_id`),

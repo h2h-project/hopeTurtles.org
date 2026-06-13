@@ -28,6 +28,16 @@ const firstFinite = (...values) => {
 
 const serverNow = () => Math.floor(Date.now() / 1000);
 
+// turtleOS autonomy states (src/nav/state_machine.py). Lenient by design:
+// an unknown value is stored as NULL rather than rejecting the reading.
+const MACHINE_STATES = new Set(['BOOT', 'ACQUIRE', 'SAIL_NAV', 'ARRIVAL', 'SAFE']);
+
+const normalizeMachineState = (value) => {
+  if (typeof value !== 'string') return null;
+  const state = value.trim().toUpperCase().replace(/-/g, '_');
+  return MACHINE_STATES.has(state) ? state : null;
+};
+
 // ------------------------------------------------------------
 // Validation (mirrors turtleAPI src/routes/v1/telemetry.js)
 // ------------------------------------------------------------
@@ -115,6 +125,7 @@ const buildIngestArgs = (turtleId, body) => {
     lon: finiteOrNull(body.lon),
     batteryVoltage: finiteOrNull(values.ina_bus_v),
     tempC: tempC === null ? null : Math.round(tempC * 10) / 10,
+    machineState: normalizeMachineState(body.machine_state),
     rawData: JSON.stringify({
       values,
       flags: body.flags ?? null,
@@ -147,7 +158,8 @@ export const postTelemetry = async (req, res) => {
     await turtlesModel.touchLiveness(turtleId, {
       lat: args.lat,
       lng: args.lon,
-      solarCharge: finiteOrNull(req.body.values.ina_batt_pct)
+      solarCharge: finiteOrNull(req.body.values.ina_batt_pct),
+      machineState: args.machineState
     });
 
     return res.status(200).json({ ok: true, server_now: serverNow() });
@@ -211,6 +223,7 @@ export const postTelemetryBatch = async (req, res) => {
   try {
     let accepted = 0;
     let liveness = null;
+    let newestState = null;
 
     for (const reading of toInsert) {
       const args = buildIngestArgs(turtleId, reading);
@@ -232,9 +245,20 @@ export const postTelemetryBatch = async (req, res) => {
           solarCharge: finiteOrNull(reading.values.ina_batt_pct)
         };
       }
+      // Machine state comes from the newest reading overall (a queued
+      // backlog may end on readings without a GPS fix).
+      if (
+        args.machineState !== null &&
+        (!newestState || reading.recorded_at > newestState.recordedAt)
+      ) {
+        newestState = { recordedAt: reading.recorded_at, machineState: args.machineState };
+      }
     }
 
-    await turtlesModel.touchLiveness(turtleId, liveness ?? {});
+    await turtlesModel.touchLiveness(turtleId, {
+      ...(liveness ?? {}),
+      machineState: newestState?.machineState ?? null
+    });
 
     console.log(
       `telemetry batch: turtle=${turtleId} accepted=${accepted} ignored=${ignored} total=${readings.length}`

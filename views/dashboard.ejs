@@ -191,6 +191,15 @@
                     <span aria-hidden="true">⚙️</span>
                     <span><%= formatTurtleStatus(turtle.status) %></span>
                   </button>
+                  <% if (turtle.last_machine_state) { %>
+                    <span
+                      class="status-pill machine-state-pill"
+                      data-state="<%= turtle.last_machine_state %>"
+                      title="Device machine state reported with the latest telemetry"
+                    >
+                      <%= String(turtle.last_machine_state).replace(/_/g, '-') %>
+                    </span>
+                  <% } %>
                 </td>
                 <td data-label="Live" class="turtle-live-column">
                   <button

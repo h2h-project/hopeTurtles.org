@@ -243,6 +243,7 @@ export const getTurtleLive = async (req, res, next) => {
           turtle_id: turtle.turtle_id,
           name: turtle.name,
           status: turtle.status,
+          last_machine_state: turtle.last_machine_state ?? null,
           last_lat: turtle.last_lat,
           last_lng: turtle.last_lng,
           last_update: turtle.last_update,
@@ -256,6 +257,7 @@ export const getTurtleLive = async (req, res, next) => {
               battery_voltage: reading.battery_voltage,
               temp_c: reading.temp_c,
               connection: reading.connection,
+              machine_state: reading.machine_state ?? null,
               values
             }
           : null

@@ -75,6 +75,11 @@
       }
     });
 
+    const machineState = reading?.machine_state || data.turtle?.last_machine_state;
+    if (machineState) {
+      entries.push(['State', String(machineState).replace(/_/g, '-')]);
+    }
+
     const lastSeen = formatRelativeTime(reading?.timestamp || data.turtle?.last_update);
     if (lastSeen) {
       entries.push(['Last seen', lastSeen]);

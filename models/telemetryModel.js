@@ -35,13 +35,14 @@ telemetryModel.ingestReading = async ({
   lon = null,
   batteryVoltage = null,
   tempC = null,
+  machineState = null,
   rawData
 }) => {
   // INSERT IGNORE + uq_telemetry_turtle_ts keeps queued-retry duplicates idempotent.
   const sql = `
     INSERT IGNORE INTO telemetry_tb
-      (turtle_id, \`timestamp\`, latitude, longitude, battery_voltage, temp_c, connection, raw_data, recorded_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'wifi', ?, UTC_TIMESTAMP())
+      (turtle_id, \`timestamp\`, latitude, longitude, battery_voltage, temp_c, connection, machine_state, raw_data, recorded_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'wifi', ?, ?, UTC_TIMESTAMP())
   `;
   const result = await query(sql, [
     turtleId,
@@ -50,6 +51,7 @@ telemetryModel.ingestReading = async ({
     lon,
     batteryVoltage,
     tempC,
+    machineState,
     rawData
   ]);
   return result.affectedRows === 1;

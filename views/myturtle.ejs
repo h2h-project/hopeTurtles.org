@@ -33,6 +33,15 @@
         <h1><%= turtle.name || `Turtle #${turtle.turtle_id}` %></h1>
         <p class="muted myturtle-header__meta">
           <span class="status-pill status-<%= turtle.status %>"><%= turtle.status %></span>
+          <% if (turtle.last_machine_state) { %>
+            <span
+              class="status-pill machine-state-pill"
+              data-state="<%= turtle.last_machine_state %>"
+              title="Device machine state reported with the latest telemetry"
+            >
+              <%= String(turtle.last_machine_state).replace(/_/g, '-') %>
+            </span>
+          <% } %>
           <% if (turtle.mission_name) { %>
             · <%= t.turtle_mission || 'Mission' %>: <%= turtle.mission_name %>
           <% } %>

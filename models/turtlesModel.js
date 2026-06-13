@@ -74,6 +74,8 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
       t.turtle_id,
       t.name,
       t.status,
+      t.last_machine_state,
+      t.last_update,
       t.profile_photo_id,
       t.mission_id,
       t.hub_id,
@@ -157,7 +159,10 @@ turtlesModel.getWithRelationsById = async (turtleId) => {
   return rows[0] ?? null;
 };
 
-turtlesModel.touchLiveness = async (turtleId, { lat = null, lng = null, solarCharge = null } = {}) => {
+turtlesModel.touchLiveness = async (
+  turtleId,
+  { lat = null, lng = null, solarCharge = null, machineState = null } = {}
+) => {
   const assignments = ['last_update = UTC_TIMESTAMP()', "status = IF(status = 'awaiting_serial', 'idle', status)"];
   const params = [];
 
@@ -168,6 +173,12 @@ turtlesModel.touchLiveness = async (turtleId, { lat = null, lng = null, solarCha
   if (Number.isFinite(Number(solarCharge))) {
     assignments.push('solar_charge = ?');
     params.push(Number(solarCharge));
+  }
+  // Firmware autonomy state from the newest reading. Deliberately does NOT
+  // touch the mission-lifecycle `status` column — the two are independent.
+  if (typeof machineState === 'string' && machineState.length) {
+    assignments.push('last_machine_state = ?');
+    params.push(machineState);
   }
 
   params.push(turtleId);

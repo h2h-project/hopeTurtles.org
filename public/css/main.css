@@ -726,6 +726,8 @@ body.mobile-menu-open {
   background: rgba(1, 121, 25, 0.06);
   box-shadow: var(--shadow-elevated);
   cursor: pointer;
+  font: inherit;
+  text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -734,6 +736,7 @@ body.mobile-menu-open {
   transform: translateY(-2px);
   box-shadow: 0 14px 28px rgba(1, 121, 25, 0.18);
   border-color: rgba(1, 121, 25, 0.35);
+  text-decoration: none;
 }
 
 .contribute-panel__title {
@@ -1669,6 +1672,65 @@ body.mobile-menu-open {
   background: rgba(1, 121, 25, 0.08);
   cursor: pointer;
   text-decoration: none;
+}
+
+/* Device machine state (turtleOS autonomy: BOOT/ACQUIRE/SAIL-NAV/ARRIVAL/SAFE).
+   Independent of the mission-lifecycle status pill it sits next to. */
+.machine-state-pill {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  background: rgba(107, 114, 128, 0.16);
+  color: #374151;
+}
+
+.machine-state-pill[data-state='BOOT'] {
+  background: rgba(107, 114, 128, 0.18);
+  color: #374151;
+}
+
+.machine-state-pill[data-state='ACQUIRE'] {
+  background: rgba(249, 191, 59, 0.24);
+  color: #8a5b00;
+}
+
+.machine-state-pill[data-state='SAIL_NAV'] {
+  background: rgba(35, 176, 83, 0.2);
+  color: #0f5225;
+}
+
+.machine-state-pill[data-state='ARRIVAL'] {
+  background: var(--color-mint);
+  color: var(--color-forest);
+}
+
+.machine-state-pill[data-state='SAFE'] {
+  background: rgba(205, 52, 52, 0.2);
+  color: #6b1515;
+}
+
+[data-theme='dark'] .machine-state-pill {
+  background: rgba(156, 163, 175, 0.25);
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .machine-state-pill[data-state='ACQUIRE'] {
+  background: rgba(253, 224, 71, 0.24);
+  color: #fef9c3;
+}
+
+[data-theme='dark'] .machine-state-pill[data-state='SAIL_NAV'] {
+  background: rgba(74, 222, 128, 0.28);
+  color: #ecfdf5;
+}
+
+[data-theme='dark'] .machine-state-pill[data-state='ARRIVAL'] {
+  background: rgba(74, 222, 128, 0.2);
+  color: #d9ffe5;
+}
+
+[data-theme='dark'] .machine-state-pill[data-state='SAFE'] {
+  background: rgba(248, 113, 113, 0.28);
+  color: #fee2e2;
 }
 
 .turtle-bottles-pill {
