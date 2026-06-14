@@ -102,7 +102,7 @@
         aria-controls="languageMenu"
       >
         <span class="sr-only"><%= t.nav_change_language || 'Change language' %></span>
-        <span aria-hidden="true" class="lang-button-icon">🌐</span>
+        <i class="fa-solid fa-globe lang-button-icon" aria-hidden="true"></i>
       </button>
       <ul id="languageMenu" class="lang-options" role="listbox" hidden>
         <% languages.forEach(function (option) { %>
@@ -128,7 +128,13 @@
       aria-pressed="<%= theme === 'dark' ? 'true' : 'false' %>"
       type="button"
     >
-      <span class="theme-icon" aria-hidden="true"><%= theme === 'dark' ? '☀️' : '🌙' %></span>
+      <span class="theme-icon" aria-hidden="true">
+        <% if (theme === 'dark') { %>
+          <i class="fa-solid fa-sun"></i>
+        <% } else { %>
+          <i class="fa-solid fa-moon"></i>
+        <% } %>
+      </span>
       <span class="sr-only"><%= theme === 'dark' ? t.nav_theme_light || 'Activate light theme' : t.nav_theme_dark || 'Activate dark theme' %></span>
     </button>
     <button
@@ -144,7 +150,7 @@
     </button>
     <% if (currentUser) { %>
       <% if (!onDashboardPage) { %>
-        <a class="button" href="/dashboard">🎮 <%= t.nav_dashboard || 'Dash' %></a>
+        <a class="button" href="/dashboard"><i class="fa-solid fa-house" aria-hidden="true"></i> <%= t.nav_dashboard || 'Dash' %></a>
       <% } %>
     <% } else { %>
       <a class="button nav-auth" href="<%= loginUrl %>"><%= t.nav_login || 'Login' %></a>
