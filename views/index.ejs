@@ -10,24 +10,7 @@
         loading="lazy"
       />
     </div>
-    <div class="hero-metrics">
-      <div class="metric-card">
-        <span class="metric-value"><%= summary.missions %></span>
-        <span class="metric-label"><%= t.metric_missions || 'Missions' %></span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-value"><%= summary.turtles %></span>
-        <span class="metric-label"><%= t.metric_turtles || 'Hope Turtles' %></span>
-      </div>
-      <div class="metric-card">
-        <span class="metric-value"><%= summary.successes %></span>
-        <span class="metric-label"><%= t.metric_success || 'Successful Landfalls' %></span>
-      </div>
-    </div>
-  </section>
-
-  <section class="landing-intro">
-    <div class="landing-intro__content">
+    <div class="hero-intro">
       <h1><%- t.landing_welcome_title %></h1>
       <p><%= t.landing_intro_paragraph1 %></p>
       <p><%= t.landing_intro_paragraph2 %></p>
@@ -87,6 +70,21 @@
           </button>
         <% } %>
       <% }) %>
+    </div>
+  </section>
+
+  <section class="landing-metrics">
+    <div class="metric-card">
+      <span class="metric-value"><%= summary.missions %></span>
+      <span class="metric-label"><%= t.metric_missions || 'Missions' %></span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-value"><%= summary.turtles %></span>
+      <span class="metric-label"><%= t.metric_turtles || 'Hope Turtles' %></span>
+    </div>
+    <div class="metric-card">
+      <span class="metric-value"><%= summary.successes %></span>
+      <span class="metric-label"><%= t.metric_success || 'Successful Landfalls' %></span>
     </div>
   </section>
 </main>
