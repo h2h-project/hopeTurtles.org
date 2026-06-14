@@ -70,6 +70,9 @@ web_modules/
 .env.*
 !.env.example
 
+# Deployment scripts (may contain server addresses or sensitive config)
+scripts/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

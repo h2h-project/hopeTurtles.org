@@ -12,8 +12,7 @@
     </div>
     <div class="hero-intro">
       <h1><%- t.landing_welcome_title %></h1>
-      <p><%= t.landing_intro_paragraph1 %></p>
-      <p><%= t.landing_intro_paragraph2 %></p>
+      <p><%- t.landing_intro_paragraph1 %></p>
     </div>
   </section>
 
@@ -29,15 +28,19 @@
     <% contributeCards.forEach(function (card) { %>
       <% if (card.url) { %>
         <a href="<%= card.url %>" target="_blank" rel="noreferrer" class="contribute-card">
-          <% if (card.icon) { %><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i><% } %>
-          <span class="contribute-card__title"><%= card.title %></span>
-          <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+          <% if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <div class="contribute-card__body">
+            <span class="contribute-card__title"><%= card.title %></span>
+            <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+          </div>
         </a>
       <% } else { %>
         <button type="button" class="contribute-card" data-contribute-action="<%= card.title %>">
-          <% if (card.icon) { %><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i><% } %>
-          <span class="contribute-card__title"><%= card.title %></span>
-          <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+          <% if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <div class="contribute-card__body">
+            <span class="contribute-card__title"><%= card.title %></span>
+            <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+          </div>
         </button>
       <% } %>
     <% }) %>

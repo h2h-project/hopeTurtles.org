@@ -9,7 +9,9 @@ const updateThemeToggleVisuals = (theme) => {
   themeToggle.setAttribute('aria-pressed', String(isDark));
   themeToggle.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
   if (icon) {
-    icon.textContent = isDark ? '☀️' : '🌙';
+    icon.innerHTML = isDark
+      ? '<i class="fa-regular fa-sun" aria-hidden="true"></i>'
+      : '<i class="fa-regular fa-moon" aria-hidden="true"></i>';
   }
 };
 
@@ -157,6 +159,14 @@ document.addEventListener('click', (event) => {
     }
   }
 });
+
+// Compact header on scroll
+const siteHeader = document.querySelector('.site-header');
+if (siteHeader) {
+  const onScroll = () => siteHeader.classList.toggle('is-scrolled', window.scrollY > 50);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
 
 // Page fade-in effect
 requestAnimationFrame(() => {
