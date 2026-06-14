@@ -17,61 +17,31 @@
     </div>
   </section>
 
-  <section class="panel contribute-panel" id="contribute">
-    <header class="panel-header">
-      <div>
-        <h2><%= t.contribute_title || 'Contribute & Collaborate' %></h2>
-        <p class="panel-subtitle">
-          <%=
-            t.contribute_subtitle ||
-              'The HopeTurtle project is 100% open source and collaboration powered!  You can get involved in a bunch of ways.'
-          %>
-        </p>
-      </div>
-    </header>
-    <div class="contribute-panel__grid">
-      <% const contributeButtons = [
-        { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS', icon: 'fa-code' },
-        { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', icon: 'fa-screwdriver-wrench' },
-        { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', icon: 'fa-bottle-water' },
-        {
-          title: t.contribute_commission_title || 'Commission',
-          subtitle: t.contribute_commission_body || 'Commission the deployment of a HopeTurtle and become its captain',
-          icon: 'fa-compass'
-        },
-        { title: t.contribute_deploy_title || 'Deploy', subtitle: t.contribute_deploy_body || 'Help deploy a hub or boat that can receive and release Hope Turtles', icon: 'fa-ship' },
-        { title: t.contribute_buy_title || 'Buy', subtitle: t.contribute_buy_body || 'Purchase food orders for our hubs to fill aid bottles', icon: 'fa-bag-shopping' }
-      ]; %>
-      <% contributeButtons.forEach(function (button) { %>
-        <% if (button.url) { %>
-          <a
-            href="<%= button.url %>"
-            target="_blank"
-            rel="noreferrer"
-            class="contribute-panel__button"
-          >
-            <span class="contribute-panel__title">
-              <% if (button.icon) { %><i class="fa-solid <%= button.icon %>" aria-hidden="true"></i><% } %>
-              <%= button.title %>
-            </span>
-            <span class="contribute-panel__subtitle"><%= button.subtitle %></span>
-          </a>
-        <% } else { %>
-          <button
-            type="button"
-            class="contribute-panel__button"
-            data-contribute-action="<%= button.title %>"
-          >
-            <span class="contribute-panel__title">
-              <% if (button.icon) { %><i class="fa-solid <%= button.icon %>" aria-hidden="true"></i><% } %>
-              <%= button.title %>
-            </span>
-            <span class="contribute-panel__subtitle"><%= button.subtitle %></span>
-          </button>
-        <% } %>
-      <% }) %>
-    </div>
-  </section>
+  <% const contributeCards = [
+    { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS', icon: 'fa-code' },
+    { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', icon: 'fa-screwdriver-wrench' },
+    { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', icon: 'fa-bottle-water' },
+    { title: t.contribute_commission_title || 'Commission', subtitle: t.contribute_commission_body || 'Commission the deployment of a HopeTurtle and become its captain', icon: 'fa-compass' },
+    { title: t.contribute_deploy_title || 'Deploy', subtitle: t.contribute_deploy_body || 'Help deploy a hub or boat that can receive and release Hope Turtles', icon: 'fa-ship' },
+    { title: t.contribute_buy_title || 'Buy', subtitle: t.contribute_buy_body || 'Purchase food orders for our hubs to fill aid bottles', icon: 'fa-bag-shopping' }
+  ]; %>
+  <div class="contribute-grid" id="contribute">
+    <% contributeCards.forEach(function (card) { %>
+      <% if (card.url) { %>
+        <a href="<%= card.url %>" target="_blank" rel="noreferrer" class="contribute-card">
+          <% if (card.icon) { %><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i><% } %>
+          <span class="contribute-card__title"><%= card.title %></span>
+          <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+        </a>
+      <% } else { %>
+        <button type="button" class="contribute-card" data-contribute-action="<%= card.title %>">
+          <% if (card.icon) { %><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i><% } %>
+          <span class="contribute-card__title"><%= card.title %></span>
+          <span class="contribute-card__subtitle"><%= card.subtitle %></span>
+        </button>
+      <% } %>
+    <% }) %>
+  </div>
 
   <section class="landing-metrics">
     <div class="metric-card">
