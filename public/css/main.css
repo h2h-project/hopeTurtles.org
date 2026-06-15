@@ -138,19 +138,19 @@ a:hover {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  padding: 1.5rem clamp(1rem, 5vw, 3rem);
+  padding: 1.32rem clamp(1rem, 5vw, 3rem);
   position: sticky;
   top: 0;
   z-index: 10;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(1, 121, 25, 0.12);
-  transition: padding 0.25s ease, box-shadow 0.25s ease;
+  transition: padding 0.3s ease, box-shadow 0.3s ease;
 }
 
 .site-header.is-scrolled {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-top: 0.44rem;
+  padding-bottom: 0.44rem;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
 }
 
@@ -173,6 +173,11 @@ a:hover {
   align-items: flex-start;
   gap: 0.75rem;
   text-decoration: none;
+  transition: gap 0.3s ease;
+}
+
+.site-header.is-scrolled .brand-link {
+  gap: 0;
 }
 
 .brand-link,
@@ -201,11 +206,20 @@ a:hover {
   white-space: pre;
   display: inline-block;
   line-height: 1.1;
-  font-size: calc(0.6 * var(--hw));
+  font-size: calc(0.558 * var(--hw));
   font-weight: 700;
   text-decoration: none !important;
   direction: ltr;
   unicode-bidi: isolate;
+  max-width: 400px;
+  overflow: hidden;
+  transition: max-width 0.35s ease, opacity 0.3s ease, transform 0.3s ease;
+}
+
+.site-header.is-scrolled .brand-ascii {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-1rem);
 }
 
 .brand-wordmark-text {
@@ -3636,7 +3650,7 @@ main.about-page {
   }
 
   .brand-ascii {
-    font-size: calc(0.48 * var(--hw));
+    font-size: calc(0.446 * var(--hw));
   }
 
   .brand-wordmark-text {
