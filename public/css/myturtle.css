@@ -388,6 +388,11 @@
 .check-cell {
   width: 36px;
   text-align: center;
+  display: none;
+}
+
+#packets.packets-manage-mode .check-cell {
+  display: table-cell;
 }
 
 .packet-time {

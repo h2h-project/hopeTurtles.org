@@ -291,10 +291,14 @@
           axisLabel: {
             color: c.axisLabel,
             fontSize: 11,
+            hideOverlap: true,
             formatter: (val) => {
               const hours = RANGE_HOURS[range] ?? 1;
+              const narrow = window.innerWidth < 480;
               if (hours >= 168) return fmtAxisDay.format(new Date(val));
-              if (hours >= 24) return fmtAxisDayTime.format(new Date(val));
+              // On narrow screens drop the date portion for sub-7d ranges so
+              // HH:mm labels don't collide; hideOverlap cleans up any remainder.
+              if (hours >= 24) return narrow ? fmtAxisTime.format(new Date(val)) : fmtAxisDayTime.format(new Date(val));
               return fmtAxisTime.format(new Date(val));
             }
           },
@@ -785,6 +789,8 @@
 
   // ── Packet detail modal ───────────────────────────────────────────────────
 
+  const manageTelemetryBtn = packetsSection.querySelector('[data-manage-telemetry]');
+
   const packetDetailDialog = document.getElementById('packetDetailDialog');
   const packetDetailBody = packetDetailDialog && packetDetailDialog.querySelector('[data-packet-detail-body]');
   const packetDetailTime = packetDetailDialog && packetDetailDialog.querySelector('[data-packet-detail-time]');
@@ -860,6 +866,15 @@
     const closeBtn = packetDetailDialog.querySelector('[data-close-packet-detail]');
     if (closeBtn) closeBtn.addEventListener('click', () => packetDetailDialog.close());
   }
+
+  manageTelemetryBtn.addEventListener('click', () => {
+    const managing = packetsSection.classList.toggle('packets-manage-mode');
+    manageTelemetryBtn.textContent = managing ? 'Done' : 'Manage Telemetry';
+    if (!managing) {
+      selectedPacketIds.clear();
+      renderPackets();
+    }
+  });
 
   buildRangeBar(packetRangeBar, PACKET_RANGE_KEYS, packetRange, (key) => {
     packetRange = key;

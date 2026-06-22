@@ -267,9 +267,10 @@
       </div>
 
       <div class="pagination-bar">
-        <button class="button ghost" type="button" data-page-prev>‹ <%= t.myturtle_prev || 'Prev' %></button>
+        <button class="button ghost" type="button" data-manage-telemetry>Manage Telemetry</button>
+        <button class="button ghost" type="button" data-page-prev><i class="fa-solid fa-chevron-left"></i> <%= t.myturtle_prev || 'Prev' %></button>
         <span class="pagination-info tiny muted" data-page-info></span>
-        <button class="button ghost" type="button" data-page-next><%= t.myturtle_next || 'Next' %> ›</button>
+        <button class="button ghost" type="button" data-page-next><%= t.myturtle_next || 'Next' %> <i class="fa-solid fa-chevron-right"></i></button>
         <div class="range-bar pagination-limit" role="group" aria-label="Rows per page">
           <button class="range-btn active" type="button" data-per-page="10">10</button>
           <button class="range-btn" type="button" data-per-page="25">25</button>
