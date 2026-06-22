@@ -743,8 +743,9 @@
     updateAqiBanner(values.ens_aqi);
 
     if (reading) {
+      const recordedAt = reading.timestamp ? fmtTimeFull.format(new Date(reading.timestamp)) : '—';
       latestMetaEl.innerHTML =
-        `<span><strong>Recorded:</strong> ${reading.timestamp || '—'}</span> ` +
+        `<span><strong>Recorded:</strong> ${recordedAt}</span> ` +
         `<span><strong>Connection:</strong> ${reading.connection || '—'}</span>`;
       const coords = parseLocation(reading.latitude, reading.longitude) ||
         parseLocation(data.turtle && data.turtle.last_lat, data.turtle && data.turtle.last_lng);
@@ -782,6 +783,84 @@
   let allPackets = [];
   const selectedPacketIds = new Set();
 
+  // ── Packet detail modal ───────────────────────────────────────────────────
+
+  const packetDetailDialog = document.getElementById('packetDetailDialog');
+  const packetDetailBody = packetDetailDialog && packetDetailDialog.querySelector('[data-packet-detail-body]');
+  const packetDetailTime = packetDetailDialog && packetDetailDialog.querySelector('[data-packet-detail-time]');
+
+  const PACKET_FIELD_LABELS = {
+    ens_eco2: { label: 'eCO₂', unit: 'ppm', decimals: 0 },
+    ens_tvoc: { label: 'TVOC', unit: 'ppb', decimals: 0 },
+    ens_aqi: { label: 'AQI', unit: '', decimals: 0 },
+    aht_temp: { label: 'AHT Temp', unit: '°C', decimals: 1 },
+    aht_humidity: { label: 'AHT Humidity', unit: '%', decimals: 1 },
+    bme_temp: { label: 'BME Temp', unit: '°C', decimals: 1 },
+    bme_humidity: { label: 'BME Humidity', unit: '%', decimals: 1 },
+    bme_pressure: { label: 'Pressure', unit: 'hPa', decimals: 1 },
+    rtc_temp: { label: 'RTC Temp', unit: '°C', decimals: 1 },
+    scd_temp: { label: 'SCD Temp', unit: '°C', decimals: 1 },
+    scd_humidity: { label: 'SCD Humidity', unit: '%', decimals: 1 },
+    scd_co2: { label: 'SCD CO₂', unit: 'ppm', decimals: 0 },
+    ina_bus_v: { label: 'Bus Voltage', unit: 'V', decimals: 2 },
+    ina_batt_pct: { label: 'Battery', unit: '%', decimals: 0 },
+    ina_current_ma: { label: 'Current', unit: 'mA', decimals: 1 },
+    ina_power_mw: { label: 'Power', unit: 'mW', decimals: 1 }
+  };
+
+  function openPacketModal(pkt) {
+    if (!packetDetailDialog) return;
+
+    if (packetDetailTime) {
+      packetDetailTime.textContent = Number.isFinite(Number(pkt.ts))
+        ? fmtTimeFull.format(new Date(Number(pkt.ts) * 1000))
+        : '—';
+    }
+
+    const values = (pkt.rawData && pkt.rawData.values) || {};
+    const rows = [];
+
+    if (pkt.lat != null || pkt.lon != null) {
+      rows.push({ label: 'GPS', value: `${pkt.lat != null ? Number(pkt.lat).toFixed(6) : '—'}°, ${pkt.lon != null ? Number(pkt.lon).toFixed(6) : '—'}°` });
+    }
+
+    Object.entries(PACKET_FIELD_LABELS).forEach(([key, meta]) => {
+      const raw = values[key];
+      if (raw == null) return;
+      const n = Number(raw);
+      if (!Number.isFinite(n)) return;
+      rows.push({ label: meta.label, value: `${n.toFixed(meta.decimals)}${meta.unit ? ' ' + meta.unit : ''}` });
+    });
+
+    // Any extra keys not in our label map
+    Object.entries(values).forEach(([key, raw]) => {
+      if (PACKET_FIELD_LABELS[key]) return;
+      if (raw == null) return;
+      rows.push({ label: key.replace(/_/g, ' '), value: String(raw) });
+    });
+
+    if (packetDetailBody) {
+      if (rows.length) {
+        packetDetailBody.innerHTML = rows
+          .map(r => `<div class="packet-detail-row"><span class="packet-detail-label">${r.label}</span><span class="packet-detail-value">${r.value}</span></div>`)
+          .join('');
+      } else {
+        packetDetailBody.innerHTML = '<p class="muted">No sensor values recorded in this packet.</p>';
+      }
+    }
+
+    if (packetDetailDialog.showModal) packetDetailDialog.showModal();
+    else packetDetailDialog.setAttribute('open', '');
+  }
+
+  if (packetDetailDialog) {
+    packetDetailDialog.addEventListener('click', (e) => {
+      if (e.target === packetDetailDialog) packetDetailDialog.close();
+    });
+    const closeBtn = packetDetailDialog.querySelector('[data-close-packet-detail]');
+    if (closeBtn) closeBtn.addEventListener('click', () => packetDetailDialog.close());
+  }
+
   buildRangeBar(packetRangeBar, PACKET_RANGE_KEYS, packetRange, (key) => {
     packetRange = key;
     packetPage = 0;
@@ -806,7 +885,8 @@
         tvoc: trends.ensTvocs && trends.ensTvocs[i],
         battPct: trends.inaBattPcts && trends.inaBattPcts[i],
         lat: trends.lats && trends.lats[i],
-        lon: trends.lons && trends.lons[i]
+        lon: trends.lons && trends.lons[i],
+        rawData: trends.rawDatas ? trends.rawDatas[i] : null
       });
     }
     packets.reverse(); // newest first
@@ -849,8 +929,19 @@
       checkTd.appendChild(box);
       tr.appendChild(checkTd);
 
+      // Time cell — rendered as a button so users can click to see the full record.
+      const timeTd = document.createElement('td');
+      timeTd.className = 'packet-time';
+      const timeBtn = document.createElement('button');
+      timeBtn.type = 'button';
+      timeBtn.className = 'packet-time-btn';
+      timeBtn.textContent = formatPacketTimeShort(pkt.ts);
+      timeBtn.title = formatPacketTime(pkt.ts);
+      timeBtn.addEventListener('click', (e) => { e.stopPropagation(); openPacketModal(pkt); });
+      timeTd.appendChild(timeBtn);
+      tr.appendChild(timeTd);
+
       const cells = [
-        { text: formatPacketTimeShort(pkt.ts), cls: 'packet-time', title: formatPacketTime(pkt.ts) },
         { text: formatPacketValue(pkt.ensEco2, 0) },
         { text: formatPacketValue(pkt.ahtTemp, 1) },
         { text: formatPacketValue(pkt.rtcTemp, 1) },
@@ -865,7 +956,6 @@
         const td = document.createElement('td');
         td.textContent = cell.text;
         if (cell.cls) td.className = cell.cls;
-        if (cell.title) td.title = cell.title;
         tr.appendChild(td);
       });
       packetsBody.appendChild(tr);
@@ -986,6 +1076,13 @@
   // ── Init ─────────────────────────────────────────────────────────────────
 
   mapTitleEl.dataset.locationLabel = mapTitleEl.textContent.trim();
+
+  // Format any server-rendered UTC timestamps into browser local time.
+  document.querySelectorAll('[data-utc-time]').forEach((el) => {
+    const iso = el.dataset.utcTime;
+    if (iso) el.textContent = fmtTimeFull.format(new Date(iso));
+  });
+
   refreshTrends();
   renderMap();
   refreshLive();

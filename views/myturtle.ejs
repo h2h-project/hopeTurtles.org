@@ -97,7 +97,7 @@
 
     <div class="myturtle-meta muted tiny" data-latest-meta>
       <% if (latestReading) { %>
-        <span><strong><%= t.turtle_timestamp || 'Recorded' %>:</strong> <%= latestReading.timestamp %></span>
+        <span><strong><%= t.turtle_timestamp || 'Recorded' %>:</strong> <time data-utc-time="<%= latestReading.timestamp instanceof Date ? latestReading.timestamp.toISOString() : latestReading.timestamp %>"></time></span>
         <span><strong><%= t.turtle_connection || 'Connection' %>:</strong> <%= latestReading.connection || '—' %></span>
       <% } else { %>
         <span><%= t.myturtle_no_data || 'No telemetry received yet for this turtle.' %></span>
@@ -279,6 +279,19 @@
     </div>
   </section>
 </main>
+<dialog id="packetDetailDialog" class="packet-detail-dialog" aria-labelledby="packetDetailTitle" aria-modal="true">
+  <div class="packet-detail-card">
+    <header class="packet-detail-header">
+      <div>
+        <h2 id="packetDetailTitle" class="packet-detail-title">Telemetry Packet</h2>
+        <p class="packet-detail-subtitle muted tiny" data-packet-detail-time></p>
+      </div>
+      <button type="button" class="dialog-close" data-close-packet-detail aria-label="Close">&times;</button>
+    </header>
+    <div class="packet-detail-body" data-packet-detail-body></div>
+  </div>
+</dialog>
+
 <% const pageScripts = [
   'https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

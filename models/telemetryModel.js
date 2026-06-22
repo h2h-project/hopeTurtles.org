@@ -83,12 +83,15 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
     (field) => `CAST(JSON_EXTRACT(raw_data, '$.values.${field}') AS DOUBLE) AS ${field}`
   ).join(',\n      ');
 
+  // TIMESTAMPDIFF is pure arithmetic and ignores @@session.time_zone, unlike
+  // UNIX_TIMESTAMP() which interprets the stored UTC datetime as local time.
   const sql = `
     SELECT
       telemetry_id,
-      UNIX_TIMESTAMP(\`timestamp\`) AS ts,
+      TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
       latitude,
       longitude,
+      raw_data,
       ${valueColumns}
     FROM telemetry_tb
     WHERE turtle_id = ?
