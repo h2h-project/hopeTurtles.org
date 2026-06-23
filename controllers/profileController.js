@@ -7,6 +7,27 @@ const BUWANA_API = config.auth.buwanaApiUrl;
 const getCurrentUserId = (req) => req.session?.user?.buwanaId ?? req.session?.user?.id ?? null;
 const getAccessToken = (req) => req.session?.tokens?.accessToken || null;
 
+// "private" flag is stored as a token inside the users_tb.notes free-text field.
+const NOTE_PRIVATE = 'private';
+const accountIsPrivate = (notes) =>
+  new RegExp(`(^|[\\s,;])${NOTE_PRIVATE}([\\s,;]|$)`, 'i').test(notes || '');
+const setNotesPrivate = (notes, makePrivate) => {
+  const current = (notes || '').trim();
+  const has = accountIsPrivate(current);
+  if (makePrivate && !has) {
+    return current ? `${current} ${NOTE_PRIVATE}` : NOTE_PRIVATE;
+  }
+  if (!makePrivate && has) {
+    const cleaned = current
+      .split(/[\s,;]+/)
+      .filter((t) => t.toLowerCase() !== NOTE_PRIVATE)
+      .join(' ')
+      .trim();
+    return cleaned || null;
+  }
+  return current || null;
+};
+
 const getProfileFeedback = (req) => {
   const feedback = req.session?.profileFeedback || null;
   if (req.session) {
@@ -31,14 +52,26 @@ const setProfileFeedback = (req, type, message) => {
  */
 const fetchBuwanaProfile = async (req) => {
   const token = getAccessToken(req);
-  if (!token) return null;
+  if (!token) {
+    console.warn('[profile] No access token in session — cannot reach Buwana profile API.');
+    return null;
+  }
   try {
     const res = await fetch(`${BUWANA_API}/api/profile.php`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      // Surfaces 403 insufficient_scope (app/scope not registered) or 401
+      // token_expired (user needs to re-login) in the server logs.
+      const text = await res.text().catch(() => '');
+      console.warn(`[profile] Buwana profile API HTTP ${res.status}: ${text.slice(0, 300)}`);
+      return null;
+    }
     const data = await res.json();
-    if (data.status !== 'succeeded' || !data.profile) return null;
+    if (data.status !== 'succeeded' || !data.profile) {
+      console.warn('[profile] Buwana profile API unexpected payload:', JSON.stringify(data).slice(0, 300));
+      return null;
+    }
     return {
       profile: data.profile,
       reference: data.reference || { languages: [], timezones: {} }
@@ -70,6 +103,7 @@ export const renderProfilePage = async (req, res, next) => {
       buwanaProfile: buwana?.profile || null,
       buwanaReference: buwana?.reference || { languages: [], timezones: {} },
       buwanaEditable: Boolean(buwana),
+      isPrivate: accountIsPrivate(profileUser.notes),
       profileFeedback
     });
   } catch (error) {
@@ -199,8 +233,31 @@ export const updateBuwanaProfile = async (req, res) => {
   }
 };
 
+/**
+ * Toggle public visibility by adding/removing the "private" token in users_tb.notes.
+ * Called via AJAX from the profile page; returns JSON.
+ */
+export const updatePrivacy = async (req, res) => {
+  try {
+    const userId = getCurrentUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Not logged in.' });
+    }
+    const makePrivate = req.body?.private === true || req.body?.private === 'true';
+    const user = await usersModel.findByBuwanaId(userId);
+    const newNotes = setNotesPrivate(user?.notes, makePrivate);
+    await usersModel.update(userId, { notes: newNotes });
+    return res.json({ success: true, isPrivate: makePrivate });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: error.message || 'Unable to update privacy.' });
+  }
+};
+
 export default {
   renderProfilePage,
   updateProfile,
-  updateBuwanaProfile
+  updateBuwanaProfile,
+  updatePrivacy
 };

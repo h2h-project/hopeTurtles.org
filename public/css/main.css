@@ -3513,6 +3513,82 @@ main.about-page {
   margin: 2.5rem 0 1rem;
 }
 
+.profile-card__notice {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Privacy panel + toggle switch */
+.profile-privacy-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.profile-privacy__text h2 {
+  margin: 0 0 0.25rem;
+}
+
+.profile-privacy__text p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.privacy-status {
+  font-size: 0.85rem;
+  margin-top: 0.4rem;
+}
+
+.ht-toggle {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.ht-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ht-toggle__slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: var(--color-mint, #c0e3cb);
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+
+.ht-toggle__slider::before {
+  content: '';
+  position: absolute;
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.ht-toggle input:checked + .ht-toggle__slider {
+  background: var(--color-primary, #017919);
+}
+
+.ht-toggle input:checked + .ht-toggle__slider::before {
+  transform: translateX(24px);
+}
+
+.ht-toggle input:focus-visible + .ht-toggle__slider {
+  outline: 2px solid var(--color-accent, #23b053);
+  outline-offset: 2px;
+}
+
 .launch-success-state__ascii-art {
   font-size: 1.22rem;
 }

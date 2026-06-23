@@ -101,6 +101,7 @@ router.get('/admin/users', ensureAuth, ensureAdminOrFounder, renderManagementPag
 router.get('/profile', ensureAuth, profileController.renderProfilePage);
 router.post('/profile', ensureAuth, profileUpload.single('profile_pic'), profileController.updateProfile);
 router.post('/profile/buwana', ensureAuth, profileController.updateBuwanaProfile);
+router.post('/profile/privacy', ensureAuth, profileController.updatePrivacy);
 
 router.post('/theme', (req, res) => {
   const { theme } = req.body;

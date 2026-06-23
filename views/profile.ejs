@@ -4,7 +4,7 @@
   <section class="page-header profile-page__header">
     <div>
       <h1>Your profile</h1>
-      <p>Review your Earthling identity and keep your details current.</p>
+      <p>Your identity on HopeTurtles.org is set from the details of your Buwana account. Manage your profile here on Hopeturtles.</p>
     </div>
   </section>
 
@@ -21,10 +21,10 @@
     const fullName = b.full_name || profileUser.full_name || profileUser.first_name || 'Crew member';
     const email = b.email || profileUser.email || '—';
     const community = b.community_name || '—';
-    const country = b.country_name || (profileUser.country_id ? String(profileUser.country_id) : '—');
+    const country = b.country_name || '—';
     const locationFull = b.location_full || profileUser.location_full || '—';
     const watershed = b.location_watershed || profileUser.location_watershed || '—';
-    const language = b.language_name || profileUser.language_id || '—';
+    const language = b.language_name || '—';
     const timezone = b.time_zone || profileUser.time_zone || '—';
     const lat = (b.location_lat != null) ? b.location_lat : profileUser.location_lat;
     const lon = (b.location_long != null) ? b.location_long : profileUser.location_long;
@@ -39,14 +39,69 @@
 
   <section class="profile-grid">
 
-    <!-- ============================ BUWANA ACCOUNT ============================ -->
+    <!-- =========================== HOPETURTLE PROFILE (left) =========================== -->
+    <article class="form-card profile-card" id="ht-card">
+      <div class="profile-card__header">
+        <% const hasProfilePhoto = profileUser.profile_pic && profileUser.profile_pic !== 'null'; %>
+        <div class="profile-avatar <%= hasProfilePhoto ? '' : 'profile-avatar--placeholder' %>">
+          <% if (hasProfilePhoto) { %>
+            <img src="<%= profileUser.profile_pic %>" alt="Profile photo for <%= fullName %>" loading="lazy" />
+          <% } else { %>
+            <span aria-hidden="true"><%= emoji %></span>
+          <% } %>
+        </div>
+        <div>
+          <h2><%= fullName %></h2>
+          <p class="profile-card__meta">
+            Joined <%= profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—' %>
+          </p>
+        </div>
+      </div>
+
+      <div class="profile-card__title-row">
+        <h2>HopeTurtle profile</h2>
+        <button type="button" class="button ghost small" data-edit-toggle="ht">Edit</button>
+      </div>
+
+      <!-- VIEW MODE -->
+      <dl class="profile-readonly-grid" data-view="ht">
+        <div class="readonly-field"><dt>Profile title</dt><dd><%= profileUser.team_title || '—' %></dd></div>
+        <div class="readonly-field readonly-field--wide"><dt>Profile bio</dt><dd><%= profileUser.profile_txt || '—' %></dd></div>
+      </dl>
+
+      <!-- EDIT MODE -->
+      <form class="profile-edit-form" data-edit="ht" method="POST" action="/profile" enctype="multipart/form-data" hidden>
+        <label>Profile title
+          <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="e.g. Turtle master" />
+        </label>
+        <label>Profile bio
+          <textarea name="profile_txt" rows="5" placeholder="Share a short update about you, your mission, or your watershed community"><%= profileUser.profile_txt || '' %></textarea>
+        </label>
+        <label>Profile photo
+          <input type="file" name="profile_pic" accept="image/*" />
+          <span class="muted">Supported formats: JPG, PNG, or WebP.</span>
+        </label>
+        <div class="profile-form__actions">
+          <button type="submit" class="button">Save profile</button>
+          <button type="button" class="button ghost" data-edit-cancel="ht">Cancel</button>
+        </div>
+      </form>
+    </article>
+
+    <!-- ============================ BUWANA ACCOUNT (right) ============================ -->
     <article class="form-card profile-card" id="buwana-card">
       <div class="profile-card__title-row">
         <h2>Buwana account</h2>
         <% if (buwanaEditable) { %>
           <button type="button" class="button ghost small" data-edit-toggle="buwana">Edit</button>
+        <% } else { %>
+          <a class="button ghost small" href="/auth/login" title="Re-authenticate to enable editing">Log in to edit</a>
         <% } %>
       </div>
+
+      <% if (!buwanaEditable) { %>
+        <p class="muted profile-card__notice">Buwana editing is unavailable right now — log out and back in to refresh your session.</p>
+      <% } %>
 
       <!-- VIEW MODE -->
       <dl class="profile-readonly-grid" data-view="buwana">
@@ -108,55 +163,19 @@
       </form>
       <% } %>
     </article>
+  </section>
 
-    <!-- =========================== HOPETURTLE PROFILE =========================== -->
-    <article class="form-card profile-card" id="ht-card">
-      <div class="profile-card__header">
-        <% const hasProfilePhoto = profileUser.profile_pic && profileUser.profile_pic !== 'null'; %>
-        <div class="profile-avatar <%= hasProfilePhoto ? '' : 'profile-avatar--placeholder' %>">
-          <% if (hasProfilePhoto) { %>
-            <img src="<%= profileUser.profile_pic %>" alt="Profile photo for <%= fullName %>" loading="lazy" />
-          <% } else { %>
-            <span aria-hidden="true"><%= emoji %></span>
-          <% } %>
-        </div>
-        <div>
-          <h2><%= fullName %></h2>
-          <p class="profile-card__meta">
-            Joined <%= profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—' %>
-          </p>
-        </div>
-      </div>
-
-      <div class="profile-card__title-row">
-        <h2>HopeTurtle profile</h2>
-        <button type="button" class="button ghost small" data-edit-toggle="ht">Edit</button>
-      </div>
-
-      <!-- VIEW MODE -->
-      <dl class="profile-readonly-grid" data-view="ht">
-        <div class="readonly-field"><dt>Profile title</dt><dd><%= profileUser.team_title || '—' %></dd></div>
-        <div class="readonly-field readonly-field--wide"><dt>Profile bio</dt><dd><%= profileUser.profile_txt || '—' %></dd></div>
-      </dl>
-
-      <!-- EDIT MODE -->
-      <form class="profile-edit-form" data-edit="ht" method="POST" action="/profile" enctype="multipart/form-data" hidden>
-        <label>Profile title
-          <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="e.g. Turtle master" />
-        </label>
-        <label>Profile bio
-          <textarea name="profile_txt" rows="5" placeholder="Share a short update about you, your mission, or your watershed community"><%= profileUser.profile_txt || '' %></textarea>
-        </label>
-        <label>Profile photo
-          <input type="file" name="profile_pic" accept="image/*" />
-          <span class="muted">Supported formats: JPG, PNG, or WebP.</span>
-        </label>
-        <div class="profile-form__actions">
-          <button type="submit" class="button">Save profile</button>
-          <button type="button" class="button ghost" data-edit-cancel="ht">Cancel</button>
-        </div>
-      </form>
-    </article>
+  <!-- Privacy -->
+  <section class="form-card profile-privacy-card">
+    <div class="profile-privacy__text">
+      <h2>Make this account private</h2>
+      <p>Set this account so that it is not visible publicly on hopeturtles.org.</p>
+      <p class="privacy-status muted" id="privacy-status" role="status"></p>
+    </div>
+    <label class="ht-toggle" title="Toggle public visibility">
+      <input type="checkbox" id="privacy-toggle" <%= isPrivate ? 'checked' : '' %> />
+      <span class="ht-toggle__slider" aria-hidden="true"></span>
+    </label>
   </section>
 
   <!-- Out-of-the-way account links -->
@@ -207,8 +226,6 @@
       async function search(q) {
         if (spinner) spinner.hidden = false;
         try {
-          // accept-language=en so the trailing country name matches Buwana's
-          // countries_tb for its server-side country/continent derivation.
           const url = 'https://nominatim.openstreetmap.org/search?format=json&accept-language=en&limit=6&q=' + encodeURIComponent(q);
           const res = await fetch(url);
           const data = await res.json();
@@ -235,6 +252,36 @@
           if (spinner) spinner.hidden = true;
         }
       }
+    }
+
+    // ── Make account private toggle ───────────────────────────────────────
+    const privacyToggle = document.getElementById('privacy-toggle');
+    if (privacyToggle) {
+      const status = document.getElementById('privacy-status');
+      const render = (isPrivate) => {
+        if (status) status.textContent = isPrivate ? 'Your account is private.' : 'Your account is public.';
+      };
+      render(privacyToggle.checked);
+      privacyToggle.addEventListener('change', async () => {
+        const desired = privacyToggle.checked;
+        privacyToggle.disabled = true;
+        try {
+          const res = await fetch('/profile/privacy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ private: desired })
+          });
+          const data = await res.json();
+          if (!data.success) throw new Error(data.message || 'Failed');
+          privacyToggle.checked = data.isPrivate;
+          render(data.isPrivate);
+        } catch (e) {
+          privacyToggle.checked = !desired; // revert on failure
+          if (status) status.textContent = 'Could not update privacy. Please try again.';
+        } finally {
+          privacyToggle.disabled = false;
+        }
+      });
     }
   })();
 </script>
