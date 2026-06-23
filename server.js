@@ -57,7 +57,10 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(
   helmet({
     contentSecurityPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    // strict-origin-when-cross-origin sends the origin (e.g. https://hopeturtles.org)
+    // as Referer on cross-origin HTTPS→HTTPS requests. Required by OSM tile servers.
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
   })
 );
 app.use(compression());

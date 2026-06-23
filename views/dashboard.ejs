@@ -177,7 +177,7 @@
                     data-trigger-manage-bottles
                     aria-label="View bottles linked to <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
                   >
-                    <span aria-hidden="true">🔗</span>
+                    <i class="fa-solid fa-link" aria-hidden="true"></i>
                     <span><%= Number(turtle.bottle_count || 0).toLocaleString() %></span>
                   </button>
                 </td>
@@ -188,7 +188,7 @@
                     data-status="<%= formatStatusKey(turtle.status) %>"
                     data-trigger-manage-turtle
                   >
-                    <span aria-hidden="true">⚙️</span>
+                    <i class="fa-solid fa-gear" aria-hidden="true"></i>
                     <span><%= formatTurtleStatus(turtle.status) %></span>
                   </button>
                   <% if (turtle.last_machine_state) { %>
@@ -210,7 +210,7 @@
                     aria-expanded="false"
                     aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
                   >
-                    <span class="chevron" aria-hidden="true">▾</span>
+                    <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
                   </button>
                 </td>
               </tr>

@@ -51,9 +51,9 @@
     { label: 'Battery %', keys: ['ina_batt_pct'], unit: '%' },
     { label: 'Current', keys: ['ina_current_ma'], unit: ' mA' },
     { label: 'Power', keys: ['ina_power_mw'], unit: ' mW' },
-    { label: 'Temp', keys: ['aht_temp', 'scd_temp', 'bme_temp'], unit: ' °C' },
-    { label: 'RTC temp', keys: ['rtc_temp'], unit: ' °C' },
-    { label: 'Humidity', keys: ['aht_humidity', 'scd_humidity', 'bme_humidity'], unit: '%' },
+    { label: 'Temp', keys: ['aht_temp', 'scd_temp', 'bme_temp'], unit: ' °C', decimals: 1 },
+    { label: 'RTC temp', keys: ['rtc_temp'], unit: ' °C', decimals: 1 },
+    { label: 'Humidity', keys: ['aht_humidity', 'scd_humidity', 'bme_humidity'], unit: '%', decimals: 1 },
     { label: 'eCO₂', keys: ['ens_eco2', 'scd_co2'], unit: ' ppm' },
     { label: 'TVOC', keys: ['ens_tvoc'], unit: ' ppb' },
     { label: 'AQI', keys: ['ens_aqi'], unit: '' },
@@ -69,7 +69,8 @@
       for (const key of field.keys) {
         const n = toFinite(values[key]);
         if (n !== null) {
-          entries.push([field.label, `${n}${field.unit}`]);
+          const display = field.decimals != null ? n.toFixed(field.decimals) : n;
+          entries.push([field.label, `${display}${field.unit}`]);
           return;
         }
       }

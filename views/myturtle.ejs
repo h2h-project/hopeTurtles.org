@@ -97,7 +97,7 @@
 
     <div class="myturtle-meta muted tiny" data-latest-meta>
       <% if (latestReading) { %>
-        <span><strong><%= t.turtle_timestamp || 'Recorded' %>:</strong> <%= latestReading.timestamp %></span>
+        <span><strong><%= t.turtle_timestamp || 'Recorded' %>:</strong> <time data-utc-time="<%= latestReading.timestamp instanceof Date ? latestReading.timestamp.toISOString() : latestReading.timestamp %>"></time></span>
         <span><strong><%= t.turtle_connection || 'Connection' %>:</strong> <%= latestReading.connection || '—' %></span>
       <% } else { %>
         <span><%= t.myturtle_no_data || 'No telemetry received yet for this turtle.' %></span>
@@ -267,9 +267,10 @@
       </div>
 
       <div class="pagination-bar">
-        <button class="button ghost" type="button" data-page-prev>‹ <%= t.myturtle_prev || 'Prev' %></button>
+        <button class="button ghost" type="button" data-manage-telemetry>Manage Telemetry</button>
+        <button class="button ghost" type="button" data-page-prev><i class="fa-solid fa-chevron-left"></i> <%= t.myturtle_prev || 'Prev' %></button>
         <span class="pagination-info tiny muted" data-page-info></span>
-        <button class="button ghost" type="button" data-page-next><%= t.myturtle_next || 'Next' %> ›</button>
+        <button class="button ghost" type="button" data-page-next><%= t.myturtle_next || 'Next' %> <i class="fa-solid fa-chevron-right"></i></button>
         <div class="range-bar pagination-limit" role="group" aria-label="Rows per page">
           <button class="range-btn active" type="button" data-per-page="10">10</button>
           <button class="range-btn" type="button" data-per-page="25">25</button>
@@ -279,6 +280,19 @@
     </div>
   </section>
 </main>
+<dialog id="packetDetailDialog" class="packet-detail-dialog" aria-labelledby="packetDetailTitle" aria-modal="true">
+  <div class="packet-detail-card">
+    <header class="packet-detail-header">
+      <div>
+        <h2 id="packetDetailTitle" class="packet-detail-title">Telemetry Packet</h2>
+        <p class="packet-detail-subtitle muted tiny" data-packet-detail-time></p>
+      </div>
+      <button type="button" class="dialog-close" data-close-packet-detail aria-label="Close">&times;</button>
+    </header>
+    <div class="packet-detail-body" data-packet-detail-body></div>
+  </div>
+</dialog>
+
 <% const pageScripts = [
   'https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',

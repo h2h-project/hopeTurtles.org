@@ -75,6 +75,7 @@ export const getTurtleTrends = async (req, res, next) => {
         timestamps: pick('ts'),
         lats: pick('latitude'),
         lons: pick('longitude'),
+        rawDatas: rows.map((row) => row.raw_data ?? null),
         ensEco2s: pick('ens_eco2'),
         ensTvocs: pick('ens_tvoc'),
         ensAqis: pick('ens_aqi'),
