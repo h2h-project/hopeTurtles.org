@@ -100,6 +100,7 @@ router.get('/admin', ensureAuth, ensureAdmin, dashboardController.renderAdmin);
 router.get('/admin/users', ensureAuth, ensureAdminOrFounder, renderManagementPage);
 router.get('/profile', ensureAuth, profileController.renderProfilePage);
 router.post('/profile', ensureAuth, profileUpload.single('profile_pic'), profileController.updateProfile);
+router.post('/profile/buwana', ensureAuth, profileController.updateBuwanaProfile);
 
 router.post('/theme', (req, res) => {
   const { theme } = req.body;

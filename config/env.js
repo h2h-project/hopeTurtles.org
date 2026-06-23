@@ -75,9 +75,10 @@ export const config = {
   // buwana:profile   → family_name, role, profile_pic, community_id, zoneinfo, birth_date, …
   // buwana:community → buwana:community (community name)
   // buwana:bioregion → location_full, watershed_id/name, lat/long, …
+  // buwana:profile.read / .write → read + update the profile via the Buwana API
   buwanaScope:
     process.env.BUWANA_SCOPE ||
-    'openid buwana:basic buwana:profile buwana:community buwana:bioregion'
+    'openid buwana:basic buwana:profile buwana:community buwana:bioregion buwana:profile.read buwana:profile.write'
 },
 
 

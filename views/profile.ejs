@@ -4,157 +4,238 @@
   <section class="page-header profile-page__header">
     <div>
       <h1>Your profile</h1>
-      <p>Review your Earthling identity and keep your public details current.</p>
+      <p>Review your Earthling identity and keep your details current.</p>
     </div>
   </section>
 
+  <% if (profileFeedback && profileFeedback.message) { %>
+    <p class="form-feedback <%= profileFeedback.type === 'error' ? 'is-error' : 'is-success' %>" role="status">
+      <%= profileFeedback.message %>
+    </p>
+  <% } %>
+
+  <%
+    // Prefer the authoritative Buwana profile; fall back to the local mirror.
+    const b = buwanaProfile || {};
+    const emoji = b.earthling_emoji || profileUser.earthling_emoji || '👤';
+    const fullName = b.full_name || profileUser.full_name || profileUser.first_name || 'Crew member';
+    const email = b.email || profileUser.email || '—';
+    const community = b.community_name || '—';
+    const country = b.country_name || (profileUser.country_id ? String(profileUser.country_id) : '—');
+    const locationFull = b.location_full || profileUser.location_full || '—';
+    const watershed = b.location_watershed || profileUser.location_watershed || '—';
+    const language = b.language_name || profileUser.language_id || '—';
+    const timezone = b.time_zone || profileUser.time_zone || '—';
+    const lat = (b.location_lat != null) ? b.location_lat : profileUser.location_lat;
+    const lon = (b.location_long != null) ? b.location_long : profileUser.location_long;
+    const continentCode = (b.continent_code || profileUser.continent_code || '').toUpperCase();
+    const continentNames = {
+      AF: '🌍 Africa', AN: '🌏 Antarctica', AS: '🌏 Asia', EU: '🌍 Europe',
+      NA: '🌎 North America', SA: '🌎 South America', OC: '🌊 Oceania', AU: '🌏 Australia'
+    };
+    const continent = b.continent_name || (continentCode ? (continentNames[continentCode] || continentCode) : '—');
+    const buwanaId = profileUser.buwana_id || profileUser.user_id || profileUser.id || '';
+  %>
+
   <section class="profile-grid">
-    <article class="form-card profile-card">
+
+    <!-- ============================ BUWANA ACCOUNT ============================ -->
+    <article class="form-card profile-card" id="buwana-card">
+      <div class="profile-card__title-row">
+        <h2>Buwana account</h2>
+        <% if (buwanaEditable) { %>
+          <button type="button" class="button ghost small" data-edit-toggle="buwana">Edit</button>
+        <% } %>
+      </div>
+
+      <!-- VIEW MODE -->
+      <dl class="profile-readonly-grid" data-view="buwana">
+        <div class="readonly-field"><dt>Emoji</dt><dd><%= emoji %></dd></div>
+        <div class="readonly-field"><dt>Name</dt><dd><%= fullName %></dd></div>
+        <div class="readonly-field"><dt>Email</dt><dd><%= email %></dd></div>
+        <div class="readonly-field"><dt>Location</dt><dd><%= locationFull %></dd></div>
+        <div class="readonly-field"><dt>Watershed</dt><dd><%= watershed %></dd></div>
+        <div class="readonly-field"><dt>Coordinates</dt><dd><%= (lat != null && lon != null) ? `${lat}, ${lon}` : '—' %></dd></div>
+        <div class="readonly-field"><dt>Community</dt><dd><%= community %></dd></div>
+        <div class="readonly-field"><dt>Continent</dt><dd><%= continent %></dd></div>
+        <div class="readonly-field"><dt>Country</dt><dd><%= country %></dd></div>
+        <div class="readonly-field"><dt>Language</dt><dd><%= language %></dd></div>
+        <div class="readonly-field"><dt>Time zone</dt><dd><%= timezone %></dd></div>
+      </dl>
+
+      <!-- EDIT MODE -->
+      <% if (buwanaEditable) { %>
+      <form class="profile-edit-form" data-edit="buwana" method="POST" action="/profile/buwana" hidden>
+        <p class="profile-form__intro">
+          Country &amp; continent are set automatically from your location. Name, email and community stay managed by the main registry.
+        </p>
+        <label>Earthling emoji
+          <input name="earthling_emoji" value="<%= b.earthling_emoji || '' %>" maxlength="8" />
+        </label>
+        <label>Location
+          <div class="location-input-wrap">
+            <span class="loc-spinner" id="buwana-loc-spinner" hidden aria-hidden="true"></span>
+            <input type="text" id="buwana-location-input" name="location_full" autocomplete="off"
+                   value="<%= b.location_full || '' %>" placeholder="Search your location…" />
+          </div>
+          <div id="buwana-location-suggestions" class="location-suggestions"></div>
+          <input type="hidden" id="buwana-lat" name="latitude" value="<%= (b.location_lat != null) ? b.location_lat : '' %>" />
+          <input type="hidden" id="buwana-lon" name="longitude" value="<%= (b.location_long != null) ? b.location_long : '' %>" />
+        </label>
+        <label>Watershed
+          <input name="location_watershed" value="<%= b.location_watershed || '' %>" />
+        </label>
+        <label>Preferred language
+          <select name="language_id">
+            <% (buwanaReference.languages || []).forEach((l) => { %>
+              <option value="<%= l.language_id %>" <%= String(l.language_id) === String(b.language_id) ? 'selected' : '' %>>
+                <%= l.languages_native_name || l.language_name_en || l.language_id %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Time zone
+          <select name="time_zone">
+            <% Object.entries(buwanaReference.timezones || {}).forEach(([value, label]) => { %>
+              <option value="<%= value %>" <%= value === b.time_zone ? 'selected' : '' %>><%= label %></option>
+            <% }) %>
+          </select>
+        </label>
+        <div class="profile-form__actions">
+          <button type="submit" class="button">Save Buwana account</button>
+          <button type="button" class="button ghost" data-edit-cancel="buwana">Cancel</button>
+        </div>
+      </form>
+      <% } %>
+    </article>
+
+    <!-- =========================== HOPETURTLE PROFILE =========================== -->
+    <article class="form-card profile-card" id="ht-card">
       <div class="profile-card__header">
         <% const hasProfilePhoto = profileUser.profile_pic && profileUser.profile_pic !== 'null'; %>
         <div class="profile-avatar <%= hasProfilePhoto ? '' : 'profile-avatar--placeholder' %>">
           <% if (hasProfilePhoto) { %>
-            <img
-              src="<%= profileUser.profile_pic %>"
-              alt="Profile photo for <%= profileUser.full_name || profileUser.first_name || 'your profile' %>"
-              loading="lazy"
-            />
+            <img src="<%= profileUser.profile_pic %>" alt="Profile photo for <%= fullName %>" loading="lazy" />
           <% } else { %>
-            <span aria-hidden="true"><%= profileUser.earthling_emoji || '👤' %></span>
+            <span aria-hidden="true"><%= emoji %></span>
           <% } %>
         </div>
         <div>
-          <h2><%= profileUser.full_name || profileUser.first_name || 'Crew member' %></h2>
+          <h2><%= fullName %></h2>
           <p class="profile-card__meta">
-            Joined
-            <%= profileUser.created_at
-              ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })
-              : '—' %>
+            Joined <%= profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—' %>
           </p>
         </div>
       </div>
-      <dl class="profile-readonly-grid">
-        <div class="readonly-field">
-          <dt>First name</dt>
-          <dd><%= profileUser.first_name || '—' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Last name</dt>
-          <dd><%= profileUser.last_name || '—' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Username</dt>
-          <dd><%= profileUser.username || '—' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Email</dt>
-          <dd><%= profileUser.email || '—' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Role</dt>
-          <dd><%= profileUser.role || 'user' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Account status</dt>
-          <dd><%= profileUser.account_status || 'active' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Last login</dt>
-          <dd>
-            <%= profileUser.last_login
-              ? new Date(profileUser.last_login).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-              : 'Never' %>
-          </dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Login count</dt>
-          <dd><%= Number(profileUser.login_count || 0).toLocaleString() %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Country / region</dt>
-          <dd><%= profileUser.location_full || profileUser.country_id || '—' %></dd>
-        </div>
-        <div class="readonly-field">
-          <dt>Watershed</dt>
-          <dd><%= profileUser.location_watershed || '—' %></dd>
-        </div>
-        <% const continentCode = (profileUser.continent_code || '').toUpperCase(); %>
-        <% const continentNames = {
-             AF: '🌍 Africa',
-             AN: '🌏 Antarctica',
-             AS: '🌏 Asia',
-             EU: '🌍 Europe',
-             NA: '🌎 North America',
-             SA: '🌎 South America',
-             OC: '🌊 Oceania',
-             AU: '🌏 Australia'
-           }; %>
-        <% const continentLabel = continentCode ? (continentNames[continentCode] || continentCode) : '—'; %>
-        <div class="readonly-field">
-          <dt>Continent</dt>
-          <dd><%= continentLabel %></dd>
-        </div>
-      </dl>
-      <% const buwanaId = profileUser.buwana_id || profileUser.user_id || profileUser.id || ''; %>
-      <% const hasBuwanaId = Boolean(buwanaId); %>
-      <div class="profile-card__actions">
-        <a
-          class="button ghost"
-          href="<%= hasBuwanaId
-            ? `https://buwana.ecobricks.org/en/edit-profile.php?buwana=${encodeURIComponent(buwanaId)}&app=hope_8fc3caabded4`
-            : '#' %>"
-          <%= hasBuwanaId ? 'target="_blank" rel="noreferrer"' : 'aria-disabled="true"' %>
-        >
-          Edit Buwana Profile
-        </a>
-        <a
-          class="button ghost"
-          href="<%= `https://buwana.ecobricks.org/en/feedback.php?app=hope_8fc3caabded4${
-            hasBuwanaId ? `&buwana=${encodeURIComponent(buwanaId)}` : ''
-          }` %>"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Bugs &amp; System Support
-        </a>
-      </div>
-    </article>
 
-    <form class="form-card profile-form" method="POST" action="/profile" enctype="multipart/form-data">
-      <h2>Edit your public details</h2>
-      <p class="profile-form__intro">
-        Update the information other Buwana crew members see. Core identity fields such as your name and email are
-        managed by the main registry.
-      </p>
-      <label>
-        Profile title
-        <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="e.g. Turtle master" />
-      </label>
-      <label>
-        Profile bio
-        <textarea
-          name="profile_txt"
-          rows="5"
-          placeholder="Share a short update about you, your mission, or your watershed community"
-        ><%= profileUser.profile_txt || '' %></textarea>
-      </label>
-      <label>
-        Profile photo
-        <input type="file" name="profile_pic" accept="image/*" />
-        <span class="muted">Supported formats: JPG, PNG, or WebP.</span>
-      </label>
-      <% if (profileFeedback && profileFeedback.message) { %>
-        <p
-          class="form-feedback <%= profileFeedback.type === 'error' ? 'is-error' : 'is-success' %>"
-          role="status"
-        >
-          <%= profileFeedback.message %>
-        </p>
-      <% } %>
-      <div class="mission-dialog__actions">
-        <button type="submit" class="button">Save profile</button>
+      <div class="profile-card__title-row">
+        <h2>HopeTurtle profile</h2>
+        <button type="button" class="button ghost small" data-edit-toggle="ht">Edit</button>
       </div>
-    </form>
+
+      <!-- VIEW MODE -->
+      <dl class="profile-readonly-grid" data-view="ht">
+        <div class="readonly-field"><dt>Profile title</dt><dd><%= profileUser.team_title || '—' %></dd></div>
+        <div class="readonly-field readonly-field--wide"><dt>Profile bio</dt><dd><%= profileUser.profile_txt || '—' %></dd></div>
+      </dl>
+
+      <!-- EDIT MODE -->
+      <form class="profile-edit-form" data-edit="ht" method="POST" action="/profile" enctype="multipart/form-data" hidden>
+        <label>Profile title
+          <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="e.g. Turtle master" />
+        </label>
+        <label>Profile bio
+          <textarea name="profile_txt" rows="5" placeholder="Share a short update about you, your mission, or your watershed community"><%= profileUser.profile_txt || '' %></textarea>
+        </label>
+        <label>Profile photo
+          <input type="file" name="profile_pic" accept="image/*" />
+          <span class="muted">Supported formats: JPG, PNG, or WebP.</span>
+        </label>
+        <div class="profile-form__actions">
+          <button type="submit" class="button">Save profile</button>
+          <button type="button" class="button ghost" data-edit-cancel="ht">Cancel</button>
+        </div>
+      </form>
+    </article>
+  </section>
+
+  <!-- Out-of-the-way account links -->
+  <section class="profile-bottom-actions">
+    <a class="button ghost small"
+       href="https://buwana.ecobricks.org/en/edit-profile.php?app=hope_8fc3caabded4"
+       target="_blank" rel="noreferrer">Update Buwana Account</a>
+    <a class="button ghost small"
+       href="https://buwana.ecobricks.org/en/feedback.php?app=hope_8fc3caabded4<%= buwanaId ? `&buwana=${encodeURIComponent(buwanaId)}` : '' %>"
+       target="_blank" rel="noreferrer">Bugs &amp; Support</a>
   </section>
 </main>
+
+<script>
+  (function () {
+    // ── Per-section edit toggles ──────────────────────────────────────────
+    function setMode(section, editing) {
+      const view = document.querySelector('[data-view="' + section + '"]');
+      const form = document.querySelector('[data-edit="' + section + '"]');
+      const toggle = document.querySelector('[data-edit-toggle="' + section + '"]');
+      if (view) view.hidden = editing;
+      if (form) form.hidden = !editing;
+      if (toggle) toggle.hidden = editing;
+    }
+    document.querySelectorAll('[data-edit-toggle]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-edit-toggle'), true));
+    });
+    document.querySelectorAll('[data-edit-cancel]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-edit-cancel'), false));
+    });
+
+    // ── Buwana location search (OpenStreetMap Nominatim), like EarthCal ────
+    const input = document.getElementById('buwana-location-input');
+    if (input) {
+      const suggestions = document.getElementById('buwana-location-suggestions');
+      const spinner = document.getElementById('buwana-loc-spinner');
+      const latEl = document.getElementById('buwana-lat');
+      const lonEl = document.getElementById('buwana-lon');
+      let timer = null;
+
+      input.addEventListener('input', () => {
+        const q = input.value.trim();
+        clearTimeout(timer);
+        if (q.length < 3) { suggestions.innerHTML = ''; return; }
+        timer = setTimeout(() => search(q), 300);
+      });
+
+      async function search(q) {
+        if (spinner) spinner.hidden = false;
+        try {
+          // accept-language=en so the trailing country name matches Buwana's
+          // countries_tb for its server-side country/continent derivation.
+          const url = 'https://nominatim.openstreetmap.org/search?format=json&accept-language=en&limit=6&q=' + encodeURIComponent(q);
+          const res = await fetch(url);
+          const data = await res.json();
+          suggestions.innerHTML = '';
+          if (!Array.isArray(data) || data.length === 0) {
+            suggestions.innerHTML = '<div class="location-suggestion-empty">No matches found.</div>';
+            return;
+          }
+          data.forEach((item) => {
+            const div = document.createElement('div');
+            div.className = 'location-suggestion';
+            div.textContent = item.display_name;
+            div.addEventListener('click', () => {
+              input.value = item.display_name;
+              if (latEl) latEl.value = item.lat;
+              if (lonEl) lonEl.value = item.lon;
+              suggestions.innerHTML = '';
+            });
+            suggestions.appendChild(div);
+          });
+        } catch (e) {
+          suggestions.innerHTML = '<div class="location-suggestion-empty">Search failed. Please try again.</div>';
+        } finally {
+          if (spinner) spinner.hidden = true;
+        }
+      }
+    }
+  })();
+</script>
 <%- include('partials/footer') %>
