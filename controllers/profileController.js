@@ -63,8 +63,9 @@ const fetchBuwanaProfile = async (req) => {
     console.warn(`[profile] ${error}`);
     return { profile: null, reference: EMPTY_REFERENCE, error };
   }
+  const url = `${BUWANA_API}/api/profile.php`;
   try {
-    const res = await fetch(`${BUWANA_API}/api/profile.php`, {
+    const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
@@ -88,7 +89,11 @@ const fetchBuwanaProfile = async (req) => {
       error: null
     };
   } catch (err) {
-    const error = `Could not reach the Buwana profile API: ${err.message}`;
+    // "fetch failed" is undici's generic wrapper; the real reason (DNS ENOTFOUND,
+    // ECONNREFUSED, TLS, timeout, …) lives on err.cause. Surface it plus the URL
+    // we actually tried so a misconfigured BUWANA_API_URL is obvious.
+    const cause = err.cause ? ` (${err.cause.code || err.cause.message || err.cause})` : '';
+    const error = `Could not reach the Buwana profile API at ${url}: ${err.message}${cause}`;
     console.warn(`[profile] ${error}`);
     return { profile: null, reference: EMPTY_REFERENCE, error };
   }
