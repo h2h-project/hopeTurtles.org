@@ -100,7 +100,11 @@
       </div>
 
       <% if (!buwanaEditable) { %>
-        <p class="muted profile-card__notice">Buwana editing is unavailable right now — log out and back in to refresh your session.</p>
+        <p class="form-feedback is-error profile-card__notice" role="status">
+          Buwana account couldn’t be loaded, so country, community &amp; language are blank.
+          <% if (buwanaError) { %><br><strong>Reason:</strong> <%= buwanaError %><% } %>
+          <br>Log out and back in to refresh your session, then reload this page.
+        </p>
       <% } %>
 
       <!-- VIEW MODE -->

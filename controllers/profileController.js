@@ -45,40 +45,52 @@ const setProfileFeedback = (req, type, message) => {
 
 /**
  * Fetch the authoritative Buwana profile + form reference (languages, timezones)
- * via the Buwana profile API, using the session's access token. Returns
- * { profile, reference } or null when unavailable (no token, expired, or the
- * app lacks the buwana:profile.read scope) — callers fall back to the local
- * mirror and disable Buwana editing.
+ * via the Buwana profile API, using the session's access token. ALWAYS returns
+ * an object: { profile, reference, error }. On failure profile is null and error
+ * holds a human-readable reason (no token, 401 token_expired, 403
+ * insufficient_scope / not_connected, …). The page surfaces `error` so a failed
+ * read is visible rather than silently showing blank country/community/language.
+ *
+ * Note: this call is server-to-server (Node → Buwana), so CORS never applies —
+ * any failure here is an auth/scope/connection problem, not a CORS one.
  */
+const EMPTY_REFERENCE = { languages: [], timezones: {} };
+
 const fetchBuwanaProfile = async (req) => {
   const token = getAccessToken(req);
   if (!token) {
-    console.warn('[profile] No access token in session — cannot reach Buwana profile API.');
-    return null;
+    const error = 'No Buwana access token in your session — please log out and back in.';
+    console.warn(`[profile] ${error}`);
+    return { profile: null, reference: EMPTY_REFERENCE, error };
   }
   try {
     const res = await fetch(`${BUWANA_API}/api/profile.php`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (!res.ok) {
-      // Surfaces 403 insufficient_scope (app/scope not registered) or 401
-      // token_expired (user needs to re-login) in the server logs.
+      // e.g. 401 token_expired (re-login) or 403 insufficient_scope / not_connected.
       const text = await res.text().catch(() => '');
-      console.warn(`[profile] Buwana profile API HTTP ${res.status}: ${text.slice(0, 300)}`);
-      return null;
+      let code = '';
+      try { code = (JSON.parse(text).error) || ''; } catch (_) { /* non-JSON body */ }
+      const error = `Buwana profile API returned HTTP ${res.status}${code ? ` (${code})` : ''}.`;
+      console.warn(`[profile] ${error} Body: ${text.slice(0, 300)}`);
+      return { profile: null, reference: EMPTY_REFERENCE, error };
     }
     const data = await res.json();
     if (data.status !== 'succeeded' || !data.profile) {
-      console.warn('[profile] Buwana profile API unexpected payload:', JSON.stringify(data).slice(0, 300));
-      return null;
+      const error = `Buwana profile API returned an unexpected payload (status: ${data.status || 'none'}).`;
+      console.warn(`[profile] ${error}`, JSON.stringify(data).slice(0, 300));
+      return { profile: null, reference: EMPTY_REFERENCE, error };
     }
     return {
       profile: data.profile,
-      reference: data.reference || { languages: [], timezones: {} }
+      reference: data.reference || EMPTY_REFERENCE,
+      error: null
     };
   } catch (err) {
-    console.warn('[profile] Buwana profile fetch failed:', err.message);
-    return null;
+    const error = `Could not reach the Buwana profile API: ${err.message}`;
+    console.warn(`[profile] ${error}`);
+    return { profile: null, reference: EMPTY_REFERENCE, error };
   }
 };
 
@@ -100,9 +112,10 @@ export const renderProfilePage = async (req, res, next) => {
     return res.render('profile', {
       pageTitle: 'Your Profile',
       profileUser,
-      buwanaProfile: buwana?.profile || null,
-      buwanaReference: buwana?.reference || { languages: [], timezones: {} },
-      buwanaEditable: Boolean(buwana),
+      buwanaProfile: buwana.profile,
+      buwanaReference: buwana.reference,
+      buwanaEditable: Boolean(buwana.profile),
+      buwanaError: buwana.error,
       isPrivate: accountIsPrivate(profileUser.notes),
       profileFeedback
     });
@@ -174,8 +187,8 @@ export const updateBuwanaProfile = async (req, res) => {
 
     // 1) Authoritative current profile — needed so we can resubmit every required field.
     const current = await fetchBuwanaProfile(req);
-    if (!current) {
-      setProfileFeedback(req, 'error', 'Could not reach your Buwana account. Please log in again.');
+    if (!current.profile) {
+      setProfileFeedback(req, 'error', current.error || 'Could not reach your Buwana account. Please log in again.');
       return res.redirect('/profile');
     }
     const cur = current.profile;
