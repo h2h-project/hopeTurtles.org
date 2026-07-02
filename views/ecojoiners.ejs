@@ -4,7 +4,8 @@
   { src: '/images/ecojoiners/cube-777px.webp', alt: 'A completed bamboo ecojoiner cube' },
   { src: '/images/ecojoiners/ecojoiners-and-briks-777px.webp', alt: 'Bamboo ecojoiners connecting ecobricks' },
   { src: '/images/ecojoiners/cube-table-777px.webp', alt: 'A table built from cubed ecobricks and ecojoiners' },
-  { src: '/images/ecojoiners/coffee-table-777px.webp', alt: 'A coffee table made with bamboo ecojoiners' }
+  { src: '/images/ecojoiners/coffee-table-777px.webp', alt: 'A coffee table made with bamboo ecojoiners' },
+  { src: '/images/ecojoiners/singapore-festival-777px.webp', alt: 'Bamboo ecojoiners on display at a Singapore festival' }
 ]; %>
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
@@ -84,6 +85,17 @@
             <i class="fa-brands fa-github" aria-hidden="true"></i> turtle_Shells source files
           </a>
         </div>
+
+        <section class="eco-gallery-section">
+          <h2>The original bamboo ecojoiners</h2>
+          <div class="eco-gallery">
+            <% bambooGallery.forEach(function (image) { %>
+              <figure class="eco-gallery__item">
+                <img src="<%= image.src %>" alt="<%= image.alt %>" loading="lazy" />
+              </figure>
+            <% }) %>
+          </div>
+        </section>
       </div>
 
       <aside class="page-split__aside">
@@ -94,17 +106,6 @@
           <img src="/images/help-build.webp" alt="Building a Hope Turtle with wood-slat ecojoiners" loading="lazy" />
         </figure>
       </aside>
-    </section>
-
-    <section class="eco-gallery-section">
-      <h2>The original bamboo ecojoiners</h2>
-      <div class="eco-gallery">
-        <% bambooGallery.forEach(function (image) { %>
-          <figure class="eco-gallery__item">
-            <img src="<%= image.src %>" alt="<%= image.alt %>" loading="lazy" />
-          </figure>
-        <% }) %>
-      </div>
     </section>
   </div>
 </main>

@@ -150,13 +150,17 @@ const start = async () => {
     const connection = await pool.getConnection();
     await connection.ping();
     connection.release();
-    app.listen(config.port, config.host, () => {
-      console.log(`🌊 HopeTurtles.org landing page ready at http://127.0.0.1:${config.port}`);
-    });
+    console.log('✅ Database connection established');
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    process.exit(1);
+    console.warn(
+      `⚠️  Starting without a database connection: ${error.message}\n` +
+        '   Pages that query the database will error until it is reachable.'
+    );
   }
+
+  app.listen(config.port, config.host, () => {
+    console.log(`🌊 HopeTurtles.org landing page ready at http://127.0.0.1:${config.port}`);
+  });
 };
 
 start();
