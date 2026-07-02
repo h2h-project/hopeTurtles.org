@@ -877,6 +877,22 @@ body.mobile-menu-open {
   color: var(--color-primary);
 }
 
+.contribute-card__image-wrap {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.contribute-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .contribute-card__title {
   font-weight: 700;
   font-size: 1.1rem;
@@ -911,9 +927,15 @@ body.mobile-menu-open {
     gap: 1rem;
   }
 
-  .contribute-card__icon-wrap {
+  .contribute-card__icon-wrap,
+  .contribute-card__image-wrap {
     flex-shrink: 0;
     margin-bottom: 0;
+  }
+
+  .contribute-card__image-wrap {
+    width: 3.5rem;
+    height: 3.5rem;
   }
 
   .contribute-card__body {
@@ -3383,10 +3405,30 @@ main.about-page {
   color: var(--color-text-muted);
 }
 
+.readonly-field dt i {
+  width: 1em;
+  margin-right: 0.4em;
+  text-align: center;
+  color: var(--color-primary);
+  opacity: 0.8;
+}
+
 .readonly-field dd {
   margin: 0;
   font-weight: 600;
   color: var(--color-text);
+}
+
+/* Panel heading with a leading emoji (e.g. Buwana account avatar) */
+.profile-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-card__heading-emoji {
+  font-size: 1.4em;
+  line-height: 1;
 }
 
 .profile-form__intro {
@@ -3541,18 +3583,39 @@ main.about-page {
   margin-top: 0.4rem;
 }
 
-.ht-toggle {
+/* ──────────────────────────────────────────────────────────────────────────
+   Toggle switch — universal, site-wide component. Use anywhere:
+
+     <label class="ht-toggle">
+       <input type="checkbox" />
+       <span class="ht-toggle__slider" aria-hidden="true"></span>
+     </label>
+
+   Self-contained: the selectors carry enough specificity (and explicit resets)
+   to keep their fixed pill shape even inside a .form-card, whose generic
+   `.form-card label { width:100% }` / `.form-card input { width:100%; padding }`
+   rules would otherwise stretch the control.
+   ────────────────────────────────────────────────────────────────────────── */
+.ht-toggle,
+label.ht-toggle {
   position: relative;
   display: inline-block;
+  flex: 0 0 auto;
   width: 52px;
   height: 28px;
-  flex-shrink: 0;
+  min-width: 0;
+  padding: 0;
 }
 
-.ht-toggle input {
+.ht-toggle input,
+.form-card .ht-toggle input {
+  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .ht-toggle__slider {

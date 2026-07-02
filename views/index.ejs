@@ -5,7 +5,7 @@
   <section class="hero">
     <div class="hero-image">
       <img
-        src="/images/marmaris-hopeturtle.webp"
+        src="/images/landing-arrival.webp"
         alt="<%= t.hero_image_alt || 'Illustration of a Hope Turtle floating in the ocean' %>"
         loading="lazy"
       />
@@ -17,18 +17,18 @@
   </section>
 
   <% const contributeCards = [
-    { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS', icon: 'fa-code' },
-    { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', icon: 'fa-screwdriver-wrench' },
-    { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', icon: 'fa-bottle-water' },
-    { title: t.contribute_commission_title || 'Commission', subtitle: t.contribute_commission_body || 'Commission the deployment of a HopeTurtle and become its captain', icon: 'fa-compass' },
-    { title: t.contribute_deploy_title || 'Deploy', subtitle: t.contribute_deploy_body || 'Help deploy a hub or boat that can receive and release Hope Turtles', icon: 'fa-ship' },
-    { title: t.contribute_buy_title || 'Buy', subtitle: t.contribute_buy_body || 'Purchase food orders for our hubs to fill aid bottles', icon: 'fa-bag-shopping' }
+    { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS', image: '/images/help-code.webp' },
+    { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', image: '/images/help-build.webp' },
+    { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', image: '/images/help-food.webp' },
+    { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', icon: 'fa-compass' },
+    { title: t.contribute_deploy_title || 'Print', subtitle: t.contribute_deploy_body || 'Print (or help engineer!) our 3D designed components', icon: 'fa-cube' },
+    { title: t.contribute_buy_title || 'Contribute', subtitle: t.contribute_buy_body || 'Make a financial contribution to the project', icon: 'fa-hand-holding-heart' }
   ]; %>
   <div class="contribute-grid" id="contribute">
     <% contributeCards.forEach(function (card) { %>
       <% if (card.url) { %>
         <a href="<%= card.url %>" target="_blank" rel="noreferrer" class="contribute-card">
-          <% if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
           <div class="contribute-card__body">
             <span class="contribute-card__title"><%= card.title %></span>
             <span class="contribute-card__subtitle"><%= card.subtitle %></span>
@@ -36,7 +36,7 @@
         </a>
       <% } else { %>
         <button type="button" class="contribute-card" data-contribute-action="<%= card.title %>">
-          <% if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
           <div class="contribute-card__body">
             <span class="contribute-card__title"><%= card.title %></span>
             <span class="contribute-card__subtitle"><%= card.subtitle %></span>

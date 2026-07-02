@@ -91,7 +91,10 @@
     <!-- ============================ BUWANA ACCOUNT (right) ============================ -->
     <article class="form-card profile-card" id="buwana-card">
       <div class="profile-card__title-row">
-        <h2>Buwana account</h2>
+        <h2 class="profile-card__heading">
+          <span class="profile-card__heading-emoji" aria-hidden="true"><%= emoji %></span>
+          Buwana account
+        </h2>
         <% if (buwanaEditable) { %>
           <button type="button" class="button ghost small" data-edit-toggle="buwana">Edit</button>
         <% } else { %>
@@ -109,17 +112,16 @@
 
       <!-- VIEW MODE -->
       <dl class="profile-readonly-grid" data-view="buwana">
-        <div class="readonly-field"><dt>Emoji</dt><dd><%= emoji %></dd></div>
-        <div class="readonly-field"><dt>Name</dt><dd><%= fullName %></dd></div>
-        <div class="readonly-field"><dt>Email</dt><dd><%= email %></dd></div>
-        <div class="readonly-field"><dt>Location</dt><dd><%= locationFull %></dd></div>
-        <div class="readonly-field"><dt>Watershed</dt><dd><%= watershed %></dd></div>
-        <div class="readonly-field"><dt>Coordinates</dt><dd><%= (lat != null && lon != null) ? `${lat}, ${lon}` : '—' %></dd></div>
-        <div class="readonly-field"><dt>Community</dt><dd><%= community %></dd></div>
-        <div class="readonly-field"><dt>Continent</dt><dd><%= continent %></dd></div>
-        <div class="readonly-field"><dt>Country</dt><dd><%= country %></dd></div>
-        <div class="readonly-field"><dt>Language</dt><dd><%= language %></dd></div>
-        <div class="readonly-field"><dt>Time zone</dt><dd><%= timezone %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-user" aria-hidden="true"></i> Name</dt><dd><%= fullName %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-envelope" aria-hidden="true"></i> Email</dt><dd><%= email %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Location</dt><dd><%= locationFull %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-droplet" aria-hidden="true"></i> Watershed</dt><dd><%= watershed %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-crosshairs" aria-hidden="true"></i> Coordinates</dt><dd><%= (lat != null && lon != null) ? `${lat}, ${lon}` : '—' %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-people-group" aria-hidden="true"></i> Community</dt><dd><%= community %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-earth-americas" aria-hidden="true"></i> Continent</dt><dd><%= continent %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-flag" aria-hidden="true"></i> Country</dt><dd><%= country %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-language" aria-hidden="true"></i> Language</dt><dd><%= language %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-clock" aria-hidden="true"></i> Time zone</dt><dd><%= timezone %></dd></div>
       </dl>
 
       <!-- EDIT MODE -->
