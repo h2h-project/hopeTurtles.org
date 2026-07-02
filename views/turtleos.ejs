@@ -1,0 +1,150 @@
+<% const githubRepo = 'https://github.com/h2h-project/turtleOS'; %>
+<% const installCommand = 'curl -sSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/install_turtleOS.sh | bash'; %>
+<% const syncCommand = 'curl -sSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/sync_turtleOS.sh | bash'; %>
+<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
+<%- include('partials/nav') %>
+<main id="main" class="turtleos-page layout">
+  <section class="turtleos-hero">
+    <div class="turtleos-hero__body">
+      <h1>TurtleOS</h1>
+      <p class="turtleos-hero__lead">
+        Access our TurtleOS code repository. Download and flash your turtle with the
+        latest navigation system.
+      </p>
+      <div class="turtleos-hero__actions">
+        <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-github" aria-hidden="true"></i> View the code on GitHub
+        </a>
+      </div>
+    </div>
+    <div class="turtleos-hero__media">
+      <img
+        src="/images/turtle-floating.webp"
+        alt="A Hope Turtle floating on the open sea"
+        loading="lazy"
+      />
+    </div>
+  </section>
+
+  <section class="turtleos-content">
+    <p>
+      Inspired by other great autonomous marine vehicle projects around the world, we've
+      developed the navigation system for the Hope Turtles from scratch to be fundamentally
+      different from “drone” technology. Traditional drone technology is all about achieving
+      great precision and control — with little thought for the ecosystems, animals, and
+      humans in the environments where they are manufactured, navigated, and discarded. This
+      is precisely why you won't find the word “drone” anywhere else on this site.
+    </p>
+
+    <p class="turtleos-aside">And it's why we call our babies “turtles”!</p>
+
+    <figure class="turtleos-figure">
+      <img src="/images/circuit-dev.webp" alt="TurtleOS circuit development on the Xiao ESP32-S3" loading="lazy" />
+    </figure>
+
+    <p>
+      TurtleOS is the brains embedded in each one. Coded in MicroPython, we explored a whole
+      range of microprocessors and settled on developing specifically for the Xiao ESP32-S3.
+      However, we build on a hardware abstraction layer — which means you can still operate
+      and develop TurtleOS on a Raspberry Pi or an Arduino.
+    </p>
+
+    <p>
+      TurtleOS provides not only the navigation algorithm for the deployment of a turtle in
+      the open sea, but also the means to recover detailed sensory telemetry for testing,
+      improvement, and tracking. That said, first and foremost TurtleOS is designed to
+      navigate without an internet connection on the open seas. Using the simplest sensory
+      setup — a GPS and a gyroscope — the turtle can control its sail servo to self-navigate
+      toward a heading.
+    </p>
+
+    <p>
+      Unlike a drone, this simple system is not about precision. It's about arrival on coastal
+      zones within a range of plus or minus 5 kilometers. Because of this, turtles can be
+      random and powerful blessings when they arrive and are discovered by our fellow humans —
+      but they can never be precise delivery systems or weapons.
+    </p>
+
+    <h2>Get going with TurtleOS</h2>
+
+    <p>
+      To get going with TurtleOS, you can access our code on our GitHub repository.
+    </p>
+
+    <div class="turtleos-actions">
+      <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-github" aria-hidden="true"></i> Open the GitHub repository
+      </a>
+    </div>
+
+    <figure class="turtleos-figure">
+      <img src="/images/help-code.webp" alt="Developing and contributing to the TurtleOS code" loading="lazy" />
+    </figure>
+
+    <p>
+      To make things easy, plug in your Xiao ESP32-S3, open a terminal, and run our installer
+      script:
+    </p>
+
+    <p class="code-copy__caption">Install TurtleOS</p>
+    <div class="code-copy" data-code-copy>
+      <code class="code-copy__text"><%= installCommand %></code>
+      <button type="button" class="code-copy__button" data-copy-target aria-label="Copy install command">
+        <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        <span class="code-copy__label">Copy</span>
+      </button>
+    </div>
+
+    <p>
+      Already flashed? Pull the latest navigation system onto your turtle at any time with the
+      sync script:
+    </p>
+
+    <p class="code-copy__caption">Sync to the latest TurtleOS</p>
+    <div class="code-copy" data-code-copy>
+      <code class="code-copy__text"><%= syncCommand %></code>
+      <button type="button" class="code-copy__button" data-copy-target aria-label="Copy sync command">
+        <i class="fa-regular fa-copy" aria-hidden="true"></i>
+        <span class="code-copy__label">Copy</span>
+      </button>
+    </div>
+  </section>
+</main>
+<script>
+  (function () {
+    document.querySelectorAll('[data-code-copy]').forEach(function (box) {
+      const button = box.querySelector('[data-copy-target]');
+      const text = box.querySelector('.code-copy__text');
+      const label = button && button.querySelector('.code-copy__label');
+      if (!button || !text) return;
+      button.addEventListener('click', function () {
+        const value = text.textContent.trim();
+        const done = function () {
+          if (!label) return;
+          const original = label.textContent;
+          label.textContent = 'Copied!';
+          window.setTimeout(function () {
+            label.textContent = original;
+          }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(value).then(done).catch(function () {});
+        } else {
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          try {
+            document.execCommand('copy');
+            done();
+          } catch (error) {
+            /* no-op */
+          }
+          selection.removeAllRanges();
+        }
+      });
+    });
+  })();
+</script>
+<%- include('partials/footer') %>

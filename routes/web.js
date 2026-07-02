@@ -85,6 +85,18 @@ router.get('/about', async (req, res, next) => {
   }
 });
 
+router.get('/turtleos', (req, res) => {
+  res.render('turtleos', {
+    pageTitle: 'TurtleOS — Hope Turtle Navigation System'
+  });
+});
+
+router.get('/ecojoiners', (req, res) => {
+  res.render('ecojoiners', {
+    pageTitle: 'Turtle Ecojoiners — Hope Turtle Structure'
+  });
+});
+
 router.get('/missions', missionsController.renderExplorer);
 router.get('/team', teamController.renderTeamPage);
 router.get('/turtles/:id', turtlesController.renderTurtlePage);

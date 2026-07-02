@@ -17,8 +17,8 @@
   </section>
 
   <% const contributeCards = [
-    { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: 'https://github.com/h2h-project/turtleOS', image: '/images/help-code.webp' },
-    { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', image: '/images/help-build.webp' },
+    { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: '/turtleos', image: '/images/help-code.webp' },
+    { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', url: '/ecojoiners', image: '/images/help-build.webp' },
     { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', image: '/images/help-food.webp' },
     { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', icon: 'fa-compass' },
     { title: t.contribute_deploy_title || 'Print', subtitle: t.contribute_deploy_body || 'Print (or help engineer!) our 3D designed components', icon: 'fa-cube' },
@@ -27,7 +27,8 @@
   <div class="contribute-grid" id="contribute">
     <% contributeCards.forEach(function (card) { %>
       <% if (card.url) { %>
-        <a href="<%= card.url %>" target="_blank" rel="noreferrer" class="contribute-card">
+        <% const isExternal = /^https?:\/\//u.test(card.url); %>
+        <a href="<%= card.url %>"<% if (isExternal) { %> target="_blank" rel="noreferrer"<% } %> class="contribute-card">
           <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
           <div class="contribute-card__body">
             <span class="contribute-card__title"><%= card.title %></span>

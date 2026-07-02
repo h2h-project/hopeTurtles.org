@@ -1,0 +1,94 @@
+<% const shellsRepo = 'https://github.com/h2h-project/turtle_Shells'; %>
+<% const bambooGallery = [
+  { src: '/images/ecojoiners/assembly-777px.webp', alt: 'Assembling a bamboo ecojoiner' },
+  { src: '/images/ecojoiners/cube-777px.webp', alt: 'A completed bamboo ecojoiner cube' },
+  { src: '/images/ecojoiners/ecojoiners-and-briks-777px.webp', alt: 'Bamboo ecojoiners connecting ecobricks' },
+  { src: '/images/ecojoiners/cube-table-777px.webp', alt: 'A table built from cubed ecobricks and ecojoiners' },
+  { src: '/images/ecojoiners/coffee-table-777px.webp', alt: 'A coffee table made with bamboo ecojoiners' }
+]; %>
+<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
+<%- include('partials/nav') %>
+<main id="main" class="ecojoiners-page layout">
+  <section class="ecojoiners-hero">
+    <div class="ecojoiners-hero__body">
+      <h1>Turtle Ecojoiner</h1>
+      <p class="ecojoiners-hero__lead">
+        The heart of the turtle is something we call an “ecojoiner”.
+        <a href="https://ecobricks.org/en/ecojoiners" target="_blank" rel="noopener noreferrer">Ecojoiners</a>
+        were originally developed by the Global Ecobrick Alliance as a means to connect
+        ecobricks into super-practical cubic matrixes. Arranged this way, cubes of ecobricks
+        can be built into chairs, tables, shelves, and all sorts of furniture — and they can
+        also serve as the substructure for
+        <a href="https://ecobricks.org/en/earth.php" target="_blank" rel="noopener noreferrer">earth and ecobrick walls</a>.
+      </p>
+    </div>
+    <div class="ecojoiners-hero__media">
+      <img
+        src="/images/wood-ecojoiner.webp"
+        alt="A wood-slat turtle ecojoiner holding food bottles together"
+        loading="lazy"
+      />
+    </div>
+  </section>
+
+  <section class="ecojoiners-content">
+    <p>
+      The human2human project has put ecojoiners to use for a new purpose: holding
+      hope-bottles together. It turns out that just as PET bottles are fantastic for
+      containing unrecyclable plastic to make ecobricks, they're also great for containing dry
+      food of all kinds in marine conditions!
+    </p>
+
+    <p>
+      Using ecojoiners, a Hope Turtle can hold five to six 1.5-litre bottles packed with food.
+      We've tested it — and because bottles seal so well, even in the ocean, they can preserve
+      their contents for weeks! Optionally, the sixth bottle can be what we call a
+      <em>control bottle</em>: a cut 1.5L PET bottle that houses our specially designed sail
+      mechanism, microcontroller unit, and power system.
+    </p>
+
+    <figure class="ecojoiners-figure">
+      <img src="/images/help-build.webp" alt="Building a Hope Turtle with wood-slat ecojoiners" loading="lazy" />
+    </figure>
+
+    <p>
+      The Global Ecobrick Alliance first tried making ecojoiners out of recycled plastic
+      (failure!), then bamboo (way better!), and finally settled on a design that uses wood
+      slats. Unlike bamboo, wood can be sourced just about anywhere in the world. As long as
+      it's the right size — slats from shipping pallets, plywood, or thin boards — it can be
+      transformed with a band saw into a set of flat slats that assemble into our hexa-cube
+      ecojoiner.
+    </p>
+
+    <aside class="ecojoiners-note">
+      <h2>Special note on 1.5L bottles</h2>
+      <p>
+        Did you know you can find 85mm 1.5L bottles just about anywhere in the world? Yep —
+        our team has researched it! The brand may vary, but without fail, 1.5L water bottles
+        tend toward a diameter of 85mm. So far we've been able to find matching bottles in
+        pretty much every country we've needed to. This is important: consequently, we've
+        designed our ecojoiners to be compatible with 1.5L bottles with short bottle necks.
+      </p>
+    </aside>
+
+    <h2>Build your own</h2>
+    <p>
+      Access the latest source files for the ecojoiner flatpack:
+    </p>
+    <div class="ecojoiners-actions">
+      <a class="button" href="<%= shellsRepo %>" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-github" aria-hidden="true"></i> turtle_Shells source files
+      </a>
+    </div>
+
+    <h2>The original bamboo ecojoiners</h2>
+    <div class="eco-gallery">
+      <% bambooGallery.forEach(function (image) { %>
+        <figure class="eco-gallery__item">
+          <img src="<%= image.src %>" alt="<%= image.alt %>" loading="lazy" />
+        </figure>
+      <% }) %>
+    </div>
+  </section>
+</main>
+<%- include('partials/footer') %>
