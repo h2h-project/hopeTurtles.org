@@ -84,9 +84,9 @@
     </a>
   </div>
   <nav class="primary-nav" aria-label="<%= t.nav_primary || 'Primary' %>">
-    <a href="/missions"><%= t.nav_missions || t.nav_mission || 'Missions' %></a>
+    <a href="/ecojoiners"><%= t.nav_ecojoiners || 'Ecojoiners' %></a>
     <a href="/about"><%= t.nav_about || 'About' %></a>
-    <a href="/team"><%= t.nav_team || 'Team' %></a>
+    <a href="/turtleos"><%= t.nav_turtleos || 'TurtleOS' %></a>
     <% if (currentUser && currentUser.role === 'admin') { %>
       <a href="/admin"><%= t.nav_admin || 'Admin' %></a>
     <% } %>
@@ -178,9 +178,9 @@
     </button>
     <nav class="mobile-menu__nav" aria-label="<%= t.nav_primary || 'Mobile primary' %>">
       <a href="/dashboard"><%= t.nav_dashboard || 'Dashboard' %></a>
-      <a href="/missions"><%= t.nav_missions || t.nav_mission || 'Missions' %></a>
+      <a href="/ecojoiners"><%= t.nav_ecojoiners || 'Ecojoiners' %></a>
       <a href="/about"><%= t.nav_about || 'About' %></a>
-      <a href="/team"><%= t.nav_team || 'Team' %></a>
+      <a href="/turtleos"><%= t.nav_turtleos || 'TurtleOS' %></a>
       <% if (currentUser && currentUser.role === 'admin') { %>
         <a href="/admin"><%= t.nav_admin || 'Admin' %></a>
       <% } %>

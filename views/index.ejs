@@ -20,9 +20,9 @@
     { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: '/turtleos', image: '/images/help-code.webp' },
     { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Assemble the hardware for a Hope Turtle', url: '/ecojoiners', image: '/images/help-build.webp' },
     { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', image: '/images/help-food.webp' },
-    { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', icon: 'fa-compass' },
-    { title: t.contribute_deploy_title || 'Print', subtitle: t.contribute_deploy_body || 'Print (or help engineer!) our 3D designed components', icon: 'fa-cube' },
-    { title: t.contribute_buy_title || 'Contribute', subtitle: t.contribute_buy_body || 'Make a financial contribution to the project', icon: 'fa-hand-holding-heart' }
+    { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', url: '/about', image: '/images/turtle-floating2.webp' },
+    { title: t.contribute_deploy_title || 'Print', subtitle: t.contribute_deploy_body || 'Print (or help engineer!) our 3D designed components', image: '/images/help-3d.webp' },
+    { title: t.contribute_buy_title || 'Contribute', subtitle: t.contribute_buy_body || 'Contribute financially to the project to help realize our vision', image: '/images/help-realize.webp' }
   ]; %>
   <div class="contribute-grid" id="contribute">
     <% contributeCards.forEach(function (card) { %>
@@ -47,6 +47,7 @@
     <% }) %>
   </div>
 
+  <% if (false) { /* landing metrics hidden for now */ %>
   <section class="landing-metrics">
     <div class="metric-card">
       <span class="metric-value"><%= summary.missions %></span>
@@ -61,6 +62,7 @@
       <span class="metric-label"><%= t.metric_success || 'Successful Landfalls' %></span>
     </div>
   </section>
+  <% } %>
 </main>
 <% const pageScripts = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
