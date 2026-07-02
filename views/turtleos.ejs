@@ -4,15 +4,17 @@
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
 <main id="main" class="turtleos-page">
-  <section class="turtleos-banner">
-    <img class="turtleos-banner__bg" src="/images/help-code.webp" alt="" aria-hidden="true" />
-    <div class="turtleos-banner__inner">
-      <h1 class="turtleos-banner__title">TurtleOS</h1>
-      <p class="turtleos-banner__lead">
-        Access our TurtleOS code repository. Download and flash your turtle with the latest
-        navigation system.
-      </p>
-      <div class="turtleos-banner__actions">
+  <section class="page-banner">
+    <img class="page-banner__bg" src="/images/help-code.webp" alt="" aria-hidden="true" />
+    <div class="page-banner__inner">
+      <div class="page-banner__heading">
+        <h1 class="page-banner__title">TurtleOS</h1>
+        <p class="page-banner__lead">
+          Access our TurtleOS code repository. Download and flash your turtle with the latest
+          navigation system.
+        </p>
+      </div>
+      <div class="page-banner__actions">
         <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
           <i class="fa-brands fa-github" aria-hidden="true"></i> View the code on GitHub
         </a>
@@ -21,8 +23,8 @@
   </section>
 
   <div class="layout">
-    <section class="turtleos-columns">
-      <div class="turtleos-columns__main">
+    <section class="page-split">
+      <div class="page-split__main">
         <p>
           Inspired by other great autonomous marine vehicle projects around the world, we've
           developed the navigation system for the Hope Turtles from scratch to be fundamentally
@@ -72,11 +74,11 @@
         <p>
           To make things easy, plug in your Xiao ESP32-S3, open a terminal, and run our installer
           script. Already flashed? Pull the latest navigation system onto your turtle at any time
-          with the sync script — both are ready to copy on the right.
+          with the sync script — both are ready to copy in the boxes alongside.
         </p>
       </div>
 
-      <aside class="turtleos-columns__aside">
+      <aside class="page-split__aside">
         <figure class="turtleos-figure">
           <img src="/images/circuit-dev.webp" alt="TurtleOS circuit development on the Xiao ESP32-S3" loading="lazy" />
         </figure>
