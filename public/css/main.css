@@ -4006,16 +4006,17 @@ label.ht-toggle {
   width: min(1200px, calc(100vw - 2rem));
   max-width: 100%;
   margin: 0 auto;
-  padding: clamp(3rem, 9vh, 6rem) clamp(1rem, 3vw, 2rem);
+  padding: clamp(2rem, 6vh, 4rem) clamp(1.5rem, 4vw, 3.5rem);
   color: #fff;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   justify-content: space-between;
-  gap: 2.5rem;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
 }
 
 .page-banner__heading {
-  max-width: 36rem;
+  max-width: 40rem;
 }
 
 .page-banner__title {
@@ -4038,7 +4039,7 @@ label.ht-toggle {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  align-self: flex-end;
+  flex-shrink: 0;
 }
 
 .page-banner__actions .button {
@@ -4046,10 +4047,16 @@ label.ht-toggle {
   font-size: 1.05rem;
 }
 
+.turtleos-page .layout,
+.ecojoiners-page .layout,
+.about-page .layout {
+  padding-inline: clamp(1rem, 5vw, 4rem);
+}
+
 .page-split {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: 2.5rem;
+  gap: 3rem;
   align-items: start;
   margin-bottom: 2rem;
 }
@@ -4158,10 +4165,43 @@ label.ht-toggle {
     min-height: 360px;
   }
 
+  .page-banner__inner {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1.75rem;
+  }
+
   .page-split {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+}
+
+/* About page */
+.about-figure {
+  margin: 0;
+}
+
+.about-figure video {
+  width: 100%;
+  height: auto;
+  border-radius: 1.2rem;
+  box-shadow: var(--shadow-elevated);
+  display: block;
+}
+
+.about-figure figcaption {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-align: center;
+}
+
+.page-split__aside .button {
+  width: 100%;
+  justify-content: center;
 }
 
 /* Ecojoiners page */
