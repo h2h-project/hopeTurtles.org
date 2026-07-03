@@ -29,17 +29,17 @@
       <% if (card.url) { %>
         <% const isExternal = /^https?:\/\//u.test(card.url); %>
         <a href="<%= card.url %>"<% if (isExternal) { %> target="_blank" rel="noreferrer"<% } %> class="contribute-card">
-          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /><span class="contribute-card__title contribute-card__title--overlay"><%= card.title %></span></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
           <div class="contribute-card__body">
-            <span class="contribute-card__title"><%= card.title %></span>
+            <% if (!card.image) { %><span class="contribute-card__title"><%= card.title %></span><% } %>
             <span class="contribute-card__subtitle"><%= card.subtitle %></span>
           </div>
         </a>
       <% } else { %>
         <button type="button" class="contribute-card" data-contribute-action="<%= card.title %>">
-          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
+          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /><span class="contribute-card__title contribute-card__title--overlay"><%= card.title %></span></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
           <div class="contribute-card__body">
-            <span class="contribute-card__title"><%= card.title %></span>
+            <% if (!card.image) { %><span class="contribute-card__title"><%= card.title %></span><% } %>
             <span class="contribute-card__subtitle"><%= card.subtitle %></span>
           </div>
         </button>
