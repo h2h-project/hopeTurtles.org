@@ -4,7 +4,7 @@ A full-stack Node.js + Express + MySQL platform for tracking autonomous Hope Tur
 
 ## Features
 
-- 🌊 Multilingual landing experience (English, Malay, Indonesian, Hebrew, Arabic, German, Chinese) with RTL support
+- 🌊 Multilingual landing experience (English, Malay, Indonesian, Turkish, Hebrew, Arabic, German, Chinese) with RTL support
 - 🌗 Automatic light/dark theme with manual toggle persisted to `localStorage`
 - 🗺️ Mission explorer with status filters and interactive Leaflet map (Mapbox-ready)
 - 🐢 Real-time turtle telemetry view with drift route polyline refreshed every 10 seconds
