@@ -273,7 +273,7 @@ a:hover {
 }
 
 .nav-controls__menu-toggle {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.5rem;
@@ -296,17 +296,7 @@ a:hover {
 .mobile-menu {
   position: fixed;
   inset: 0;
-  background: var(--color-primary);
-  color: #fff;
   z-index: 1200;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-  padding: clamp(1.25rem, 5vw, 2.5rem);
-}
-
-[data-theme='dark'] .mobile-menu {
-  background: #0f3b1a;
 }
 
 .mobile-menu[hidden] {
@@ -316,18 +306,52 @@ a:hover {
 .mobile-menu__backdrop {
   position: absolute;
   inset: 0;
+  background: rgba(15, 30, 18, 0.5);
   cursor: pointer;
 }
 
+/* Right-side drawer panel. */
 .mobile-menu__panel {
-  position: relative;
-  width: min(480px, calc(100% - 1.5rem));
-  margin-top: clamp(0rem, 5vw, 2rem);
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(360px, 100%);
+  margin: 0;
+  padding: clamp(1.25rem, 5vw, 2.5rem);
+  background: var(--color-primary);
+  color: #fff;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: 100%;
+  overflow-y: auto;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.25);
   z-index: 1;
+}
+
+[data-theme='dark'] .mobile-menu__panel {
+  background: #0f3b1a;
+}
+
+/* Slide in from the right when opened. */
+.mobile-menu:not([hidden]) .mobile-menu__panel {
+  animation: drawer-slide-in 0.25s ease;
+}
+
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Full-screen drawer on mobile. */
+@media (max-width: 600px) {
+  .mobile-menu__panel {
+    width: 100%;
+  }
 }
 
 .mobile-menu__close {
@@ -753,7 +777,7 @@ body.mobile-menu-open {
 }
 
 .layout--home {
-  padding-top: 1rem;
+  padding-top: 0;
 }
 
 .hero {
@@ -812,6 +836,17 @@ body.mobile-menu-open {
   margin: 0;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.92);
+}
+
+/* On the green hero band, links and the tooltip underline read as white. */
+.hero-intro p a {
+  color: #fff;
+  text-decoration-color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-intro p .word-tooltip {
+  color: #fff;
+  border-bottom-color: rgba(255, 255, 255, 0.85);
 }
 
 .landing-metrics {
@@ -937,12 +972,30 @@ body.mobile-menu-open {
   pointer-events: none;
 }
 
+.contribute-card__body {
+  width: 100%;
+}
+
 .contribute-card__subtitle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  text-align: left;
   font-size: 0.85rem;
   font-weight: 400;
   color: var(--color-text);
   line-height: 1.5;
+}
+
+.contribute-card__subtitle-text {
   opacity: 0.85;
+}
+
+.contribute-card__subtitle-icon {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {
@@ -3832,7 +3885,7 @@ label.ht-toggle {
   }
 
   .layout--home {
-    padding-top: 0.75rem;
+    padding-top: 0;
   }
 
   .layout--home .hero {
@@ -4140,6 +4193,12 @@ label.ht-toggle {
 .page-split__aside .button {
   width: 100%;
   justify-content: center;
+}
+
+.about-whitepaper-cta {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0 3rem;
 }
 
 /* Ecojoiners page */

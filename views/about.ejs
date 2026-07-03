@@ -35,6 +35,7 @@
       <aside class="page-split__aside">
         <figure class="about-figure">
           <img src="/images/turtle-floating.webp" alt="A Hope Turtle floating on the open sea" loading="lazy" />
+          <figcaption><%= t.about_caption_prototype || 'A prototype turtle at sea' %></figcaption>
         </figure>
         <figure class="about-figure">
           <video
@@ -59,6 +60,13 @@
         </a>
       </aside>
     </section>
+
+    <div class="about-whitepaper-cta">
+      <a class="button" href="/Hope_Turtle_Whitepaper--June_2026.pdf" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+        <%= t.about_read_whitepaper || 'Read the White Paper' %>
+      </a>
+    </div>
 
     <% if (false) { /* metrics hidden for now */ %>
     <section class="about-metrics-section">

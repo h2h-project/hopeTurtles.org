@@ -9,7 +9,7 @@ import successController from '../controllers/successController.js';
 import dashboardController from '../controllers/dashboardController.js';
 import teamController from '../controllers/teamController.js';
 import profileController from '../controllers/profileController.js';
-import { ensureAdminOrFounder, ensureAuth } from '../middleware/auth.js';
+import { ensureAuth } from '../middleware/auth.js';
 import { getPlatformSummary, getAboutMetrics } from '../models/summaryModel.js';
 import missionsModel from '../models/missionsModel.js';
 import successModel from '../models/successModel.js';
@@ -109,7 +109,7 @@ router.get('/login', (req, res) => {
 router.get('/dashboard', ensureAuth, dashboardController.renderDashboard);
 router.get('/my-turtle/:id', ensureAuth, dashboardController.renderMyTurtle);
 router.get('/admin', ensureAuth, dashboardController.renderAdmin);
-router.get('/admin/users', ensureAuth, ensureAdminOrFounder, renderManagementPage);
+router.get('/admin/users', ensureAuth, renderManagementPage);
 router.get('/profile', ensureAuth, profileController.renderProfilePage);
 router.post('/profile', ensureAuth, profileUpload.single('profile_pic'), profileController.updateProfile);
 router.post('/profile/buwana', ensureAuth, profileController.updateBuwanaProfile);
