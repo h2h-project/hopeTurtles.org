@@ -281,16 +281,24 @@ a:hover {
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: var(--color-primary);
+  color: #6b7280;
   font-size: 1.62rem;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease, color 0.2s ease;
 }
 
 .nav-controls__menu-toggle:hover {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-elevated);
-  background: rgba(1, 121, 25, 0.08);
+  background: rgba(1, 121, 25, 0.1);
+  color: var(--color-primary);
+}
+
+[data-theme='dark'] .nav-controls__menu-toggle {
+  color: var(--color-muted);
+}
+
+[data-theme='dark'] .nav-controls__menu-toggle:hover {
+  color: var(--color-accent);
 }
 
 .mobile-menu {

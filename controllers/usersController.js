@@ -16,7 +16,9 @@ export const renderManagementPage = async (req, res, next) => {
     const dashboardUser = buwanaId ? await usersModel.findByBuwanaId(buwanaId) : null;
 
     const users = await usersModel.listUsers();
-    const canEditRoles = req.session?.user?.role === 'admin';
+    // Temporarily allow any logged-in user to edit roles (normally admin-only)
+    // so the team can bootstrap the first admin accounts.
+    const canEditRoles = Boolean(req.session?.user);
     return res.render('manage-users', {
       pageTitle: 'Manage Users',
       users,
