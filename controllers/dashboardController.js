@@ -1,3 +1,4 @@
+import { isAdminRole } from '../utils/roles.js';
 import missionsModel from '../models/missionsModel.js';
 import turtlesModel from '../models/turtlesModel.js';
 import telemetryModel from '../models/telemetryModel.js';
@@ -37,7 +38,8 @@ export const renderDashboard = async (req, res, next) => {
       res.locals.currentUser = currentUser;
     }
 
-    const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+    const isAdmin = Boolean(currentUser && isAdminRole(currentUser.role));
+    res.locals.isAdmin = isAdmin;
 
     const hubsPromise = isAdmin ? hubsModel.getAllWithStats() : hubsModel.getAll();
     const boatsPromise = isAdmin ? boatsModel.getAllWithStats() : boatsModel.getAll();
@@ -100,7 +102,7 @@ export const renderMyTurtle = async (req, res, next) => {
     const turtle = await turtlesModel.getWithRelationsById(req.params.id);
 
     const currentUser = req.session?.user || null;
-    const isAdmin = currentUser?.role === 'admin';
+    const isAdmin = isAdminRole(currentUser?.role);
     const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
     const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
     const turtleHasManager =

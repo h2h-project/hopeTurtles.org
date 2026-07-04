@@ -1,4 +1,5 @@
 import usersModel from '../models/usersModel.js';
+import { isAdminRole } from '../utils/roles.js';
 
 const VALID_STATUSES = ['active', 'suspended', 'deleted'];
 const ROLE_OPTIONS = [
@@ -16,7 +17,7 @@ export const renderManagementPage = async (req, res, next) => {
     const dashboardUser = buwanaId ? await usersModel.findByBuwanaId(buwanaId) : null;
 
     const users = await usersModel.listUsers();
-    const canEditRoles = req.session?.user?.role === 'admin';
+    const canEditRoles = isAdminRole(req.session?.user?.role);
     return res.render('manage-users', {
       pageTitle: 'Manage Users',
       users,

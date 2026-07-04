@@ -87,8 +87,9 @@ h1,
 h2,
 h3,
 h4,
-h5 {
-  font-family: var(--font-secondary);
+h5,
+h6 {
+  font-family: var(--font-heading);
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--color-primary);
@@ -327,6 +328,9 @@ a:hover {
   width: min(360px, 100%);
   margin: 0;
   padding: clamp(1.25rem, 5vw, 2.5rem);
+  /* Guaranteed minimum gap below the footer so it never hugs the viewport edge
+     (accounts for iOS home-indicator safe area). */
+  padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 0px) + 1.75rem);
   background: var(--color-primary);
   color: #fff;
   display: flex;
@@ -410,7 +414,7 @@ a:hover {
   flex-direction: column;
   gap: 0.75rem;
   font-size: 1.1rem;
-  flex: 1;
+  flex: 0 1 auto;
 }
 
 .mobile-menu__nav a {
@@ -426,7 +430,10 @@ a:hover {
 }
 
 .mobile-menu__footer {
+  /* Auto top + bottom margins center the footer within the space left between
+     the menu items and the panel's bottom padding. */
   margin-top: auto;
+  margin-bottom: auto;
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.95rem;
   line-height: 1.4;
@@ -434,8 +441,6 @@ a:hover {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: 0;
-  padding-bottom: max(2.5rem, env(safe-area-inset-bottom, 2.5rem));
 }
 
 .mobile-menu__user {
@@ -812,7 +817,7 @@ body.mobile-menu-open {
   max-width: 520px;
   height: auto;
   border-radius: 1.5rem;
-  box-shadow: var(--shadow-elevated);
+  border: 2px solid #0f3b1a;
 }
 
 .hero-metrics {

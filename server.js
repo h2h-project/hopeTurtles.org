@@ -18,6 +18,7 @@ import apiRouter from './routes/api/index.js';
 import deviceV1Router from './routes/api/v1/index.js';
 import authRouter from './routes/api/auth.js';
 import { loadLocales } from './utils/localization.js';
+import { isAdminRole } from './utils/roles.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -105,6 +106,7 @@ app.use(sessionMiddleware);
 // ------------------------------------------------------------
 app.use((req, res, next) => {
   res.locals.currentUser = req.session?.user || null;
+  res.locals.isAdmin = isAdminRole(req.session?.user?.role);
   res.locals.theme = res.locals.theme || config.appearance.defaultTheme;
   res.locals.mapboxToken = config.integrations.mapboxToken;
   res.locals.includeWebsiteCarbon = config.integrations.includeWebsiteCarbon;

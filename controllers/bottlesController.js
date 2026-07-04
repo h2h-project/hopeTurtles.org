@@ -1,4 +1,5 @@
 import path from 'path';
+import { isAdminRole } from '../utils/roles.js';
 import bottlesModel from '../models/bottlesModel.js';
 import photosModel from '../models/photosModel.js';
 import turtlesModel from '../models/turtlesModel.js';
@@ -358,7 +359,7 @@ export const detachBottleFromManagedTurtle = async (req, res, next) => {
 export const listBottlesForTurtleAdmin = async (req, res, next) => {
   try {
     const currentUser = req.session?.user || null;
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || !isAdminRole(currentUser.role)) {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 

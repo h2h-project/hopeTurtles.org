@@ -97,7 +97,7 @@
       t.dashboard_intro || 'Your mission control for launching and managing aid bottle and hope turtles on human to human missions.'; %>
     <div class="dashboard-header__intro">
       <h1>Dashboard</h1>
-      <% if (userRole === 'admin') { %>
+      <% if (isAdmin) { %>
         <div class="dashboard-admin-access">
           <span class="dashboard-admin-access__badge">🛡️ <%= t.dashboard_admin_badge || 'Admin' %></span>
           <a class="button" href="/admin">

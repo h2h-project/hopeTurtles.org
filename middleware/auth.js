@@ -1,3 +1,5 @@
+import { isAdminRole } from '../utils/roles.js';
+
 export const ensureAuth = (req, res, next) => {
   if (req.session?.user) {
     return next();
@@ -9,7 +11,7 @@ export const ensureAuth = (req, res, next) => {
 };
 
 export const ensureAdmin = (req, res, next) => {
-  if (req.session?.user && req.session.user.role === 'admin') {
+  if (req.session?.user && isAdminRole(req.session.user.role)) {
     return next();
   }
   if (req.originalUrl?.startsWith('/api/')) {
@@ -23,7 +25,7 @@ export const ensureAdmin = (req, res, next) => {
 
 export const ensureAdminOrFounder = (req, res, next) => {
   const user = req.session?.user;
-  if (user && (user.role === 'admin' || user.id === 1)) {
+  if (user && (isAdminRole(user.role) || user.id === 1)) {
     return next();
   }
   if (req.originalUrl?.startsWith('/api/')) {

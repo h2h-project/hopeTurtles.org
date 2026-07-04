@@ -87,7 +87,7 @@
     <a href="/ecojoiners"><%= t.nav_ecojoiners || 'Ecojoiners' %></a>
     <a href="/about"><%= t.nav_about || 'About' %></a>
     <a href="/turtleos"><%= t.nav_turtleos || 'TurtleOS' %></a>
-    <% if (currentUser && currentUser.role === 'admin') { %>
+    <% if (currentUser && isAdmin) { %>
       <a href="/admin"><%= t.nav_admin || 'Admin' %></a>
     <% } %>
   </nav>
@@ -187,7 +187,7 @@
       <% if (currentUser) { %>
         <a href="/dashboard"><%= t.nav_dashboard || 'Dashboard' %></a>
       <% } %>
-      <% if (currentUser && currentUser.role === 'admin') { %>
+      <% if (currentUser && isAdmin) { %>
         <a href="/admin"><%= t.nav_admin || 'Admin' %></a>
       <% } %>
       <% if (!currentUser) { %>

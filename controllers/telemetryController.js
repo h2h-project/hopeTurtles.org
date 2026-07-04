@@ -1,3 +1,4 @@
+import { isAdminRole } from '../utils/roles.js';
 import telemetryModel from '../models/telemetryModel.js';
 import turtlesModel from '../models/turtlesModel.js';
 
@@ -33,7 +34,7 @@ const resolveManagedTurtle = async (req, res, turtleId) => {
   }
 
   const currentUser = req.session?.user || null;
-  const isAdmin = currentUser?.role === 'admin';
+  const isAdmin = isAdminRole(currentUser?.role);
   const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
   const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
   const turtleHasManager =
