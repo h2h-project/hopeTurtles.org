@@ -4,7 +4,8 @@ import {
   createUser,
   updateUserRole,
   updateUserStatus,
-  deactivateUser
+  deactivateUser,
+  deleteUsers
 } from '../../controllers/usersController.js';
 import { ensureAdmin, ensureAuth } from '../../middleware/auth.js';
 
@@ -14,6 +15,7 @@ router.use(ensureAuth, ensureAdmin);
 
 router.get('/', listUsers);
 router.post('/', createUser);
+router.post('/delete', deleteUsers);
 router.patch('/:id/role', updateUserRole);
 router.patch('/:id/status', updateUserStatus);
 router.delete('/:id', deactivateUser);

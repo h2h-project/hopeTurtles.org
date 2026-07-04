@@ -167,5 +167,129 @@
         }
       });
     });
+
+    // --- Manage mode: multi-select delete ---------------------------------
+    const table = container.querySelector('[data-users-table]');
+    const manageToggle = container.querySelector('[data-users-manage-toggle]');
+    const manageActions = container.querySelector('[data-users-manage-actions]');
+    const selectAll = container.querySelector('[data-users-select-all]');
+    const deleteButton = container.querySelector('[data-users-delete-selected]');
+    const selectedCountEl = container.querySelector('[data-users-selected-count]');
+
+    if (table && manageToggle && manageActions && deleteButton) {
+      const getRowCheckboxes = () =>
+        Array.from(container.querySelectorAll('[data-users-select-row]'));
+      const getSelectedIds = () =>
+        getRowCheckboxes()
+          .filter((box) => box.checked)
+          .map((box) => box.value);
+
+      const refreshSelectionState = () => {
+        const boxes = getRowCheckboxes();
+        const selected = boxes.filter((box) => box.checked);
+        const count = selected.length;
+
+        if (selectedCountEl) {
+          selectedCountEl.textContent = `${count} selected`;
+        }
+        deleteButton.disabled = count === 0;
+
+        if (selectAll) {
+          selectAll.checked = count > 0 && count === boxes.length;
+          selectAll.indeterminate = count > 0 && count < boxes.length;
+        }
+      };
+
+      const setManageMode = (on) => {
+        table.classList.toggle('is-managing', on);
+        manageActions.hidden = !on;
+        manageToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+        manageToggle.classList.toggle('is-active', on);
+        if (!on) {
+          getRowCheckboxes().forEach((box) => {
+            box.checked = false;
+          });
+          if (selectAll) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+          }
+        }
+        refreshSelectionState();
+      };
+
+      manageToggle.addEventListener('click', () => {
+        setManageMode(manageToggle.getAttribute('aria-pressed') !== 'true');
+      });
+
+      if (selectAll) {
+        selectAll.addEventListener('change', () => {
+          getRowCheckboxes().forEach((box) => {
+            box.checked = selectAll.checked;
+          });
+          refreshSelectionState();
+        });
+      }
+
+      container.addEventListener('change', (event) => {
+        if (event.target.matches('[data-users-select-row]')) {
+          refreshSelectionState();
+        }
+      });
+
+      deleteButton.addEventListener('click', async () => {
+        const ids = getSelectedIds();
+        if (!ids.length) {
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `Permanently delete ${ids.length} user${ids.length === 1 ? '' : 's'}? This cannot be undone.`
+        );
+        if (!confirmed) {
+          return;
+        }
+
+        deleteButton.disabled = true;
+        showFeedback('info', `Deleting ${ids.length} user${ids.length === 1 ? '' : 's'}…`);
+
+        try {
+          const response = await fetch('/api/users/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+          });
+
+          const data = await response.json().catch(() => null);
+          if (!response.ok || !data?.success) {
+            throw new Error(data?.message || 'Unable to delete users.');
+          }
+
+          const deleted = data.data?.deleted || [];
+          deleted.forEach((id) => {
+            const row = container.querySelector(`tr[data-user-id="${id}"]`);
+            if (row) {
+              row.remove();
+            }
+          });
+
+          const skipped = data.data?.skipped || [];
+          if (skipped.length) {
+            const reason = skipped[0]?.reason || 'Some users could not be deleted.';
+            showFeedback(
+              'info',
+              `Deleted ${deleted.length}. Skipped ${skipped.length}: ${reason}`
+            );
+          } else {
+            showFeedback('success', data.message || `Deleted ${deleted.length} user(s).`);
+          }
+        } catch (error) {
+          showFeedback('error', error.message || 'Unable to delete users.');
+        } finally {
+          refreshSelectionState();
+        }
+      });
+
+      refreshSelectionState();
+    }
   });
 })();

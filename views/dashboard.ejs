@@ -200,26 +200,22 @@
                     <i class="fa-solid fa-gear" aria-hidden="true"></i>
                     <span><%= formatTurtleStatus(turtle.status) %></span>
                   </button>
-                  <% if (turtle.last_machine_state) { %>
-                    <span
-                      class="status-pill machine-state-pill"
-                      data-state="<%= turtle.last_machine_state %>"
-                      title="Device machine state reported with the latest telemetry"
-                    >
-                      <%= String(turtle.last_machine_state).replace(/_/g, '-') %>
-                    </span>
-                  <% } %>
                 </td>
                 <td data-label="Live" class="turtle-live-column">
                   <button
                     type="button"
-                    class="status-pill turtle-live-toggle"
+                    class="status-pill turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"
+                    <% if (turtle.last_machine_state) { %>data-state="<%= turtle.last_machine_state %>"<% } %>
                     data-toggle-turtle-live
                     data-turtle-id="<%= turtle.turtle_id %>"
                     aria-expanded="false"
                     aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
+                    <% if (turtle.last_machine_state) { %>title="Device machine state reported with the latest telemetry"<% } %>
                   >
                     <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
+                    <% if (turtle.last_machine_state) { %>
+                      <span class="turtle-live-toggle__state"><%= String(turtle.last_machine_state).replace(/_/g, '-') %></span>
+                    <% } %>
                   </button>
                 </td>
               </tr>

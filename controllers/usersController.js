@@ -113,11 +113,52 @@ export const deactivateUser = async (req, res, next) => {
   }
 };
 
+export const deleteUsers = async (req, res, next) => {
+  try {
+    const rawIds = Array.isArray(req.body?.ids) ? req.body.ids : [];
+    const ids = [...new Set(rawIds.map((id) => String(id).trim()).filter(Boolean))];
+
+    if (!ids.length) {
+      return res.status(400).json({ success: false, message: 'No users selected for deletion' });
+    }
+
+    const sessionUser = req.session?.user || null;
+    const currentId = sessionUser?.buwanaId ?? sessionUser?.id ?? null;
+
+    const deleted = [];
+    const skipped = [];
+
+    for (const id of ids) {
+      // An admin should never be able to delete their own account.
+      if (currentId != null && String(currentId) === id) {
+        skipped.push({ id, reason: 'You cannot delete your own account.' });
+        continue;
+      }
+
+      const removed = await usersModel.deleteUser(id);
+      if (removed) {
+        deleted.push(id);
+      } else {
+        skipped.push({ id, reason: 'User not found.' });
+      }
+    }
+
+    return res.json({
+      success: true,
+      data: { deleted, skipped },
+      message: `Deleted ${deleted.length} user${deleted.length === 1 ? '' : 's'}.`
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   renderManagementPage,
   listUsers,
   createUser,
   updateUserRole,
   updateUserStatus,
-  deactivateUser
+  deactivateUser,
+  deleteUsers
 };

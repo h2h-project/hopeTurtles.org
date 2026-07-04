@@ -92,6 +92,15 @@ usersModel.deactivateUser = async (buwanaId) => {
   return usersModel.updateStatus(buwanaId, 'suspended');
 };
 
+usersModel.deleteUser = async (buwanaId) => {
+  const existing = await usersModel.getById(buwanaId);
+  if (!existing) {
+    return null;
+  }
+  await usersModel.remove(buwanaId);
+  return existing;
+};
+
 usersModel.findByBuwanaId = async (buwanaId) => {
   return usersModel.getById(buwanaId);
 };

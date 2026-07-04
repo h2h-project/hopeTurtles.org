@@ -224,9 +224,9 @@ a:hover {
 }
 
 .brand-wordmark-text {
-  font-family: 'Mulish', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-heading);
   font-size: 1.3em;
-  font-weight: 300;
+  font-weight: 400;
   color: #6b7280;
   margin: auto;
   display: block;
@@ -1370,6 +1370,54 @@ body.mobile-menu-open {
   overflow-x: auto;
 }
 
+/* Manage-users toolbar (admin multi-select delete) */
+.users-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.users-toolbar__manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.users-toolbar__count {
+  font-size: 0.9rem;
+  color: var(--color-forest);
+  opacity: 0.8;
+}
+
+[data-theme='dark'] .users-toolbar__count {
+  color: var(--color-mint);
+}
+
+.users-toolbar [data-users-manage-toggle].is-active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* The select checkbox column is hidden until Manage mode is toggled on. */
+.users-select-col {
+  display: none;
+  width: 2.5rem;
+  text-align: center;
+}
+
+.users-table.is-managing .users-select-col {
+  display: table-cell;
+}
+
+.users-select-col input[type='checkbox'] {
+  width: 1.1rem;
+  height: 1.1rem;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
 .users-table,
 .missions-table,
 .hubs-table,
@@ -2321,6 +2369,13 @@ body.mobile-menu-open {
   gap: 1rem;
 }
 
+/* Dashboard headings use the Aleo display face. */
+.dashboard h1,
+.dashboard h2,
+.dashboard h3 {
+  font-family: var(--font-heading);
+}
+
 .dashboard-header__intro {
   min-width: 220px;
   display: flex;
@@ -2599,6 +2654,7 @@ body.mobile-menu-open {
 
 .site-footer h3 {
   color: #fff;
+  font-family: var(--font-heading);
 }
 
 .site-footer a {
@@ -3880,6 +3936,20 @@ label.ht-toggle {
 /* My Turtles — expandable live-telemetry rows */
 .turtle-live-toggle {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* When a device machine state is present the toggle doubles as the
+   machine-state pill: chevron on the left, state label on the right. */
+.turtle-live-toggle--stateful {
+  letter-spacing: 0.04em;
+}
+
+.turtle-live-toggle__state {
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .turtle-live-toggle .chevron {

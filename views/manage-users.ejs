@@ -58,10 +58,29 @@
   }; %>
 
   <section class="panel">
+    <% if (canEditRoles) { %>
+      <div class="users-toolbar">
+        <button type="button" class="button ghost" data-users-manage-toggle aria-pressed="false">
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i> Manage
+        </button>
+        <div class="users-toolbar__manage-actions" data-users-manage-actions hidden>
+          <span class="users-toolbar__count" data-users-selected-count>0 selected</span>
+          <button type="button" class="button danger" data-users-delete-selected disabled>
+            <i class="fa-solid fa-trash" aria-hidden="true"></i> Delete selected
+          </button>
+        </div>
+      </div>
+    <% } %>
     <div class="table-wrapper">
-      <table class="users-table">
+      <table class="users-table<%= canEditRoles ? ' users-table--manageable' : '' %>" data-users-table>
         <thead>
           <tr>
+            <% if (canEditRoles) { %>
+              <th scope="col" class="users-select-col">
+                <label class="sr-only" for="users-select-all">Select all users</label>
+                <input type="checkbox" id="users-select-all" data-users-select-all />
+              </th>
+            <% } %>
             <th scope="col">Emoji</th>
             <th scope="col">Name</th>
             <th scope="col">Buwana ID</th>
@@ -72,6 +91,20 @@
         <tbody>
           <% users.forEach(function (user) { %>
             <tr data-user-id="<%= user.buwana_id %>">
+              <% if (canEditRoles) { %>
+                <td data-label="Select" class="users-select-col">
+                  <label class="sr-only" for="user-select-<%= user.buwana_id %>">
+                    Select <%= user.full_name || 'user ' + user.buwana_id %> for deletion
+                  </label>
+                  <input
+                    type="checkbox"
+                    id="user-select-<%= user.buwana_id %>"
+                    class="users-select-row"
+                    data-users-select-row
+                    value="<%= user.buwana_id %>"
+                  />
+                </td>
+              <% } %>
               <td data-label="Emoji" class="emoji-cell"><%= user.earthling_emoji || '🐢' %></td>
               <td data-label="Name">
                 <strong><%= user.full_name || 'Unnamed turtle' %></strong>
