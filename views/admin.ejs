@@ -139,9 +139,11 @@
           <% missions.forEach(function (mission) { %>
             <% const missionEditData = {
                  id: mission.mission_id,
-                 name: mission.name,
+                 fullName: mission.full_name,
+                 shortName: mission.short_name || '',
                  description: mission.description || '',
                  status: mission.status || 'planned',
+                 visibility: mission.visibility || 'public',
                  startDate: formatDateTimeLocalValue(mission.start_date),
                  endDate: formatDateTimeLocalValue(mission.end_date),
                  targetLat: mission.target_lat ?? '',
@@ -150,12 +152,12 @@
             <tr
               role="button"
               tabindex="0"
-              aria-label="Edit mission <%= mission.name || '#' + mission.mission_id %>"
+              aria-label="Edit mission <%= mission.full_name || '#' + mission.mission_id %>"
               data-mission-row
               data-mission="<%= encodeRecord(missionEditData) %>"
             >
               <td data-label="Name">
-                <strong><%= mission.name %></strong>
+                <strong><%= mission.full_name %></strong>
                 <% if (mission.description) { %>
                   <div class="muted"><%= mission.description %></div>
                 <% } %>
@@ -175,7 +177,7 @@
                   data-field="status"
                   data-value="<%= mission.status %>"
                   data-options="planned|active|paused|completed"
-                  data-label="Update status for mission <%= mission.name %>"
+                  data-label="Update status for mission <%= mission.full_name %>"
                   title="Click to change status"
                 >
                   <span class="status-pill mission-status" data-status="<%= mission.status %>"><%= mission.status %></span>
@@ -348,7 +350,7 @@
           <select name="mission_id">
             <option value="">No mission assigned</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>
@@ -402,8 +404,20 @@
       </header>
       <div class="mission-form-grid">
         <label class="full-width">
-          Name
-          <input name="name" required />
+          Full name
+          <input name="full_name" required />
+        </label>
+        <label class="full-width">
+          Short name
+          <input
+            name="short_name"
+            class="short-name-input"
+            maxlength="10"
+            pattern="[A-Za-z0-9]{1,10}"
+            autocomplete="off"
+            title="Up to 10 letters or numbers — no spaces or symbols"
+          />
+          <span class="field-hint">This name will be used for display in turtleOS. Max 10 characters, letters and numbers only — no spaces or symbols.</span>
         </label>
         <label class="full-width">
           Description
@@ -417,6 +431,16 @@
             <option value="paused">paused</option>
             <option value="completed">completed</option>
           </select>
+        </label>
+        <label>
+          Visibility
+          <select name="visibility">
+            <option value="public">Full public</option>
+            <option value="admin_only">Admin only</option>
+            <option value="core_team">Core team only</option>
+            <option value="users_only">Users only</option>
+          </select>
+          <span class="field-hint">Controls who can see this mission.</span>
         </label>
         <label>
           Start date
@@ -454,8 +478,20 @@
       </header>
       <div class="mission-form-grid">
         <label class="full-width">
-          Name
-          <input name="name" required />
+          Full name
+          <input name="full_name" required />
+        </label>
+        <label class="full-width">
+          Short name
+          <input
+            name="short_name"
+            class="short-name-input"
+            maxlength="10"
+            pattern="[A-Za-z0-9]{1,10}"
+            autocomplete="off"
+            title="Up to 10 letters or numbers — no spaces or symbols"
+          />
+          <span class="field-hint">This name will be used for display in turtleOS. Max 10 characters, letters and numbers only — no spaces or symbols.</span>
         </label>
         <label class="full-width">
           Description
@@ -469,6 +505,16 @@
             <option value="paused">paused</option>
             <option value="completed">completed</option>
           </select>
+        </label>
+        <label>
+          Visibility
+          <select name="visibility">
+            <option value="public">Full public</option>
+            <option value="admin_only">Admin only</option>
+            <option value="core_team">Core team only</option>
+            <option value="users_only">Users only</option>
+          </select>
+          <span class="field-hint">Controls who can see this mission.</span>
         </label>
         <label>
           Start date
@@ -513,7 +559,7 @@
           <select name="mission_id">
             <option value="">No mission connected</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>
@@ -580,7 +626,7 @@
           <select name="mission_id">
             <option value="">No mission connected</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>
@@ -732,7 +778,7 @@
           <select name="mission_id">
             <option value="">No mission assigned</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>
@@ -814,7 +860,7 @@
           <select name="mission_id">
             <option value="">No mission assigned</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>

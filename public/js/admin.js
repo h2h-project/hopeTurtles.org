@@ -279,12 +279,14 @@ const prepareMissionEditForm = (mission) => {
     }
   };
 
-  setFieldValue('[name="name"]', mission.name || '');
+  setFieldValue('[name="full_name"]', mission.fullName || '');
+  setFieldValue('[name="short_name"]', mission.shortName || '');
   const descriptionField = missionEditForm.querySelector('[name="description"]');
   if (descriptionField) {
     descriptionField.value = mission.description || '';
   }
   setFieldValue('[name="status"]', mission.status || 'planned');
+  setFieldValue('[name="visibility"]', mission.visibility || 'public');
   setFieldValue('[name="start_date"]', mission.startDate || '');
   setFieldValue('[name="end_date"]', mission.endDate || '');
   setFieldValue('[name="target_lat"]', mission.targetLat ?? '');
@@ -296,7 +298,7 @@ const prepareMissionEditForm = (mission) => {
   }
 
   if (missionEditNameTarget) {
-    missionEditNameTarget.textContent = mission.name || 'this mission';
+    missionEditNameTarget.textContent = mission.fullName || 'this mission';
   }
 };
 
@@ -607,6 +609,17 @@ deleteButtons.forEach((button) => {
       }
     } catch (error) {
       alert('Unable to delete this record right now.');
+    }
+  });
+});
+
+// Mission short_name is embedded in the MicroPython turtleOS code, so restrict
+// it to <=10 letters/numbers (no spaces or symbols) as the user types.
+document.querySelectorAll('.short-name-input').forEach((input) => {
+  input.addEventListener('input', () => {
+    const cleaned = input.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+    if (cleaned !== input.value) {
+      input.value = cleaned;
     }
   });
 });

@@ -7,7 +7,7 @@ hubsModel.getAllWithStats = async () => {
   const sql = `
     SELECT
       h.*,
-      COALESCE(mission_link.name, mission_map.mission_name) AS mission_name,
+      COALESCE(mission_link.full_name, mission_map.mission_name) AS mission_name,
       COALESCE(boat_counts.boat_count, 0) AS boat_count,
       COALESCE(bottle_counts.bottle_count, 0) AS bottle_count,
       COALESCE(turtle_counts.turtle_count, 0) AS turtle_count
@@ -16,7 +16,7 @@ hubsModel.getAllWithStats = async () => {
     LEFT JOIN (
       SELECT
         t.hub_id,
-        GROUP_CONCAT(DISTINCT m.name ORDER BY m.name SEPARATOR ', ') AS mission_name
+        GROUP_CONCAT(DISTINCT m.full_name ORDER BY m.full_name SEPARATOR ', ') AS mission_name
       FROM turtles_tb t
       INNER JOIN missions_tb m ON m.mission_id = t.mission_id
       WHERE t.hub_id IS NOT NULL AND t.mission_id IS NOT NULL

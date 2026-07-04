@@ -295,10 +295,9 @@ export const callback = async (req, res, next) => {
 
     if (error) {
       console.warn('⚠️ OAuth callback received error:', error, description);
-      return res.status(400).render('error', {
-        pageTitle: 'Auth Error',
-        message: description || error,
-        showLoginAgain: true
+      return res.status(400).render('session-expired', {
+        pageTitle: 'Session expired',
+        message: description || null
       });
     }
 
@@ -327,10 +326,9 @@ export const callback = async (req, res, next) => {
         expected: pkce?.state,
         got: state
       });
-      return res.status(400).render('error', {
-        pageTitle: 'Authentication error',
-        message: 'Invalid or mismatched state parameter.',
-        showLoginAgain: true
+      return res.status(400).render('session-expired', {
+        pageTitle: 'Session expired',
+        message: null
       });
     }
 

@@ -97,6 +97,15 @@
       t.dashboard_intro || 'Your mission control for launching and managing aid bottle and hope turtles on human to human missions.'; %>
     <div class="dashboard-header__intro">
       <h1>Dashboard</h1>
+      <% if (userRole === 'admin') { %>
+        <div class="dashboard-admin-access">
+          <span class="dashboard-admin-access__badge">🛡️ <%= t.dashboard_admin_badge || 'Admin' %></span>
+          <a class="button" href="/admin">
+            <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+            <%= t.dashboard_admin_link || 'Open admin dashboard' %>
+          </a>
+        </div>
+      <% } %>
       <p><%= dashboardIntroCopy %></p>
     </div>
   </section>
@@ -398,7 +407,7 @@
           <select name="mission_id">
             <option value="">No mission assigned</option>
             <% missions.forEach(function (mission) { %>
-              <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+              <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
             <% }) %>
           </select>
         </label>
@@ -483,7 +492,7 @@
             <select name="mission_id">
               <option value="">No mission assigned</option>
               <% missions.forEach(function (mission) { %>
-                <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+                <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
               <% }) %>
             </select>
           </label>

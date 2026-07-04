@@ -12,7 +12,7 @@
     <h1><%= turtle.name %></h1>
     <p><%= turtle.description || t.turtle_description || 'Telemetry stream and mission context for this Hope Turtle.' %></p>
     <% if (mission) { %>
-      <p class="mission-link"><%= t.turtle_mission || 'Mission' %>: <a href="/missions#mission-<%= mission.mission_id %>"><%= mission.name %></a></p>
+      <p class="mission-link"><%= t.turtle_mission || 'Mission' %>: <a href="/missions#mission-<%= mission.mission_id %>"><%= mission.full_name %></a></p>
     <% } %>
   </section>
 

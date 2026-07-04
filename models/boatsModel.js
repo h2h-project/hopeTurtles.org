@@ -8,7 +8,7 @@ boatsModel.getAllWithStats = async () => {
     SELECT
       b.*, 
       h.name AS hub_name,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       COALESCE(turtle_counts.turtle_count, 0) AS turtle_count,
       COALESCE(bottle_counts.bottle_count, 0) AS bottle_count
     FROM boats_tb b

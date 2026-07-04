@@ -1,0 +1,28 @@
+<%- include('partials/header', { pageTitle: pageTitle || 'Session expired', theme }) %>
+<%- include('partials/nav') %>
+<main id="main" class="session-expired">
+  <div class="session-expired__content">
+    <div class="session-expired__inner">
+      <span class="session-expired__eyebrow">🐢 <%= t.session_expired_eyebrow || 'HopeTurtles' %></span>
+      <h1><%= t.session_expired_title || 'Your session has expired' %></h1>
+      <p>
+        <%= t.session_expired_body ||
+          'No worries — for your security, sessions time out after a period of inactivity. Please log in again to pick up right where you left off.' %>
+      </p>
+      <% if (typeof message !== 'undefined' && message) { %>
+        <p class="session-expired__detail"><%= message %></p>
+      <% } %>
+      <div class="session-expired__actions">
+        <a class="button" href="<%= typeof loginUrl !== 'undefined' ? loginUrl : '/auth/login' %>">
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+          <%= t.session_expired_login || 'Log in again' %>
+        </a>
+        <a class="button ghost" href="/"><%= t.session_expired_home || 'Return home' %></a>
+      </div>
+    </div>
+  </div>
+  <div class="session-expired__media" aria-hidden="true">
+    <img src="/images/wood-ecojoiner.webp" alt="" loading="lazy" />
+  </div>
+</main>
+<%- include('partials/footer') %>

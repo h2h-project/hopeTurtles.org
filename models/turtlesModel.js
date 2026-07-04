@@ -5,7 +5,7 @@ const turtlesModel = createModel('turtles_tb', 'turtle_id');
 
 turtlesModel.getAllDetailed = async () => {
   const sql = `
-    SELECT t.*, m.name AS mission_name, h.name AS hub_name
+    SELECT t.*, m.full_name AS mission_name, h.name AS hub_name
     FROM turtles_tb t
     LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
     LEFT JOIN hubs_tb h ON t.hub_id = h.hub_id
@@ -26,7 +26,7 @@ turtlesModel.getAllWithRelations = async () => {
       t.hub_id,
       t.boat_id,
       t.turtle_manager,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       h.name AS hub_name,
       b.name AS boat_name,
       COALESCE(
@@ -56,8 +56,8 @@ turtlesModel.getAllWithRelations = async () => {
       GROUP BY turtle_id
     ) AS log_counts ON log_counts.turtle_id = t.turtle_id
     ORDER BY
-      CASE WHEN m.name IS NULL OR m.name = '' THEN 1 ELSE 0 END,
-      m.name,
+      CASE WHEN m.full_name IS NULL OR m.full_name = '' THEN 1 ELSE 0 END,
+      m.full_name,
       t.name,
       t.turtle_id
   `;
@@ -81,7 +81,7 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
       t.hub_id,
       t.boat_id,
       t.turtle_manager,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       h.name AS hub_name,
       b.name AS boat_name,
       COALESCE(bottle_counts.bottle_count, 0) AS bottle_count,
@@ -118,7 +118,7 @@ turtlesModel.getManagedById = async (turtleId, managerId) => {
       t.hub_id,
       t.boat_id,
       t.turtle_manager,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       h.name AS hub_name,
       b.name AS boat_name
     FROM turtles_tb t
@@ -141,7 +141,7 @@ turtlesModel.getWithRelationsById = async (turtleId) => {
   const sql = `
     SELECT
       t.*,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       h.name AS hub_name,
       b.name AS boat_name,
       profile_photo.url AS profile_photo_url,
@@ -190,7 +190,7 @@ turtlesModel.getDeviceInfo = async (turtleId) => {
     SELECT
       t.turtle_id,
       t.name,
-      m.name AS mission_name,
+      m.full_name AS mission_name,
       h.name AS hub_name,
       u.time_zone
     FROM turtles_tb t

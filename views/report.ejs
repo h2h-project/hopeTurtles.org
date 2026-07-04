@@ -2,45 +2,60 @@
 <%- include('partials/nav') %>
 <main id="main" class="layout report-page">
   <section class="page-header">
-    <h1><%= t.report_title || 'Field Report' %></h1>
-    <p><%= t.report_intro || 'Follow the latest landfalls and gratitude messages from Hope Turtle guardians.' %></p>
+    <h1><%= t.report_title || 'Report a Found Turtle' %></h1>
+    <p>
+      <%= t.report_intro ||
+        'Found a Hope Turtle or one of its aid bottles washed ashore? Please tell us about it below.' %>
+    </p>
   </section>
 
-  <% if (!successEntries || !successEntries.length) { %>
-    <p class="panel-empty"><%= t.report_empty || 'No landfalls have been recorded yet. Check back soon.' %></p>
-  <% } else { %>
-    <section class="success-log report-log" id="success">
-      <header>
-        <h2><%= t.report_recent || 'Recent Landfalls' %></h2>
-        <p><%= t.report_live || 'Live updates from the field.' %></p>
-      </header>
-      <div class="success-grid full">
-        <% successEntries.forEach(function (entry) { %>
-          <article class="success-card">
-            <div class="success-meta">
-              <span><strong><%= t.report_lat || 'Lat:' %></strong> <%= entry.location_lat || '—' %></span>
-              <span><strong><%= t.report_lng || 'Lng:' %></strong> <%= entry.location_lng || '—' %></span>
-            </div>
-            <p><%= entry.thank_you_message || t.report_default_message || 'Ocean blessings received.' %></p>
-            <div class="success-meta">
-              <span>
-                <strong><%= t.report_found || 'Found:' %></strong>
-                <%= entry.date_found
-                  ? new Date(entry.date_found).toLocaleDateString('en-US', { dateStyle: 'medium' })
-                  : '—' %>
-              </span>
-              <span>
-                <strong><%= t.report_turtle || 'Turtle:' %></strong>
-                <%= entry.turtle_name || (entry.turtle_id ? '#' + entry.turtle_id : '—') %>
-              </span>
-            </div>
-          </article>
-        <% }) %>
-      </div>
-      <div class="success-actions">
-        <a class="button" href="/success"><%= t.report_record || 'Record a Landed Turtle' %></a>
-      </div>
-    </section>
-  <% } %>
+  <section class="report-intro-copy">
+    <p>
+      <%= t.report_why ||
+        'Every report you send is a huge help. Each found turtle teaches us how our vessels ride the ocean currents, where they make landfall, and how we can build them better — so we can keep improving the turtles and manifest our human-to-human humanitarian vision of carrying food, love, and hope across the sea.' %>
+    </p>
+    <p>
+      <%= t.report_negative ||
+        'We also genuinely appreciate any negative feedback: turtles that landed somewhere they were not meant to, caused any trouble, or were found lost or adrift at sea. Honest reports — good or bad — make the whole project safer and more effective for everyone.' %>
+    </p>
+  </section>
+
+  <section class="success-form report-form">
+    <h2><%= t.report_form_title || 'Report a found turtle' %></h2>
+    <form id="successForm" class="form-card" enctype="multipart/form-data">
+      <label>
+        <%= t.success_form_turtle || 'Turtle' %>
+        <select name="turtle_id">
+          <option value=""><%= t.success_form_turtle_unknown || 'Unknown turtle' %></option>
+          <% (turtles || []).forEach(function (turtle) { %>
+            <option value="<%= turtle.turtle_id %>"><%= turtle.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>
+        <%= t.success_form_date || 'Date found' %>
+        <input type="date" name="date_found" />
+      </label>
+      <label>
+        <%= t.success_form_lat || 'Latitude' %>
+        <input type="number" step="0.000001" name="location_lat" />
+      </label>
+      <label>
+        <%= t.success_form_lng || 'Longitude' %>
+        <input type="number" step="0.000001" name="location_lng" />
+      </label>
+      <label>
+        <%= t.report_form_message || 'Your message or feedback' %>
+        <textarea name="thank_you_message" required></textarea>
+      </label>
+      <label>
+        <%= t.success_form_photo || 'Photo upload' %>
+        <input type="file" name="photo" accept="image/*" />
+      </label>
+      <button type="submit" class="button"><%= t.report_form_submit || 'Submit report' %></button>
+      <p id="successFeedback" role="status" aria-live="polite"></p>
+    </form>
+  </section>
 </main>
-<%- include('partials/footer') %>
+<% const pageScripts = ['/js/success.js']; %>
+<%- include('partials/footer', { pageScripts }) %>

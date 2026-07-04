@@ -5,14 +5,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import missionsController from '../controllers/missionsController.js';
 import turtlesController from '../controllers/turtlesController.js';
-import successController from '../controllers/successController.js';
 import dashboardController from '../controllers/dashboardController.js';
 import teamController from '../controllers/teamController.js';
 import profileController from '../controllers/profileController.js';
-import { ensureAuth } from '../middleware/auth.js';
+import { ensureAdmin, ensureAdminOrFounder, ensureAuth } from '../middleware/auth.js';
 import { getPlatformSummary, getAboutMetrics } from '../models/summaryModel.js';
 import missionsModel from '../models/missionsModel.js';
-import successModel from '../models/successModel.js';
+import turtlesModel from '../models/turtlesModel.js';
 import { renderManagementPage } from '../controllers/usersController.js';
 
 const router = Router();
@@ -53,10 +52,10 @@ router.get('/', async (req, res, next) => {
 
 router.get('/report', async (req, res, next) => {
   try {
-    const successEntries = await successModel.getRecent(24);
+    const turtles = await turtlesModel.getAll();
     return res.render('report', {
-      pageTitle: 'HopeTurtles Report',
-      successEntries
+      pageTitle: 'Report a Found Turtle',
+      turtles
     });
   } catch (error) {
     return next(error);
@@ -100,7 +99,6 @@ router.get('/ecojoiners', (req, res) => {
 router.get('/missions', missionsController.renderExplorer);
 router.get('/team', teamController.renderTeamPage);
 router.get('/turtles/:id', turtlesController.renderTurtlePage);
-router.get('/success', successController.renderSuccessPage);
 
 router.get('/login', (req, res) => {
   res.redirect('/auth/callback');
@@ -108,8 +106,8 @@ router.get('/login', (req, res) => {
 
 router.get('/dashboard', ensureAuth, dashboardController.renderDashboard);
 router.get('/my-turtle/:id', ensureAuth, dashboardController.renderMyTurtle);
-router.get('/admin', ensureAuth, dashboardController.renderAdmin);
-router.get('/admin/users', ensureAuth, renderManagementPage);
+router.get('/admin', ensureAuth, ensureAdmin, dashboardController.renderAdmin);
+router.get('/admin/users', ensureAuth, ensureAdminOrFounder, renderManagementPage);
 router.get('/profile', ensureAuth, profileController.renderProfilePage);
 router.post('/profile', ensureAuth, profileUpload.single('profile_pic'), profileController.updateProfile);
 router.post('/profile/buwana', ensureAuth, profileController.updateBuwanaProfile);

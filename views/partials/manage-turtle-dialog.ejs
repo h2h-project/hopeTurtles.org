@@ -34,7 +34,7 @@
         <select name="mission_id">
           <option value="">No mission assigned</option>
           <% (missions || []).forEach(function (mission) { %>
-            <option value="<%= mission.mission_id %>"><%= mission.name %></option>
+            <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
           <% }) %>
         </select>
       </label>
