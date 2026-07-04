@@ -1646,11 +1646,48 @@ body.mobile-menu-open {
   white-space: nowrap;
 }
 
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.breadcrumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.breadcrumbs__sep {
+  color: var(--color-text-muted);
+}
+
+.breadcrumbs__current {
+  color: var(--color-text-muted);
+}
+
 .role-cell {
-  min-width: 180px;
+  min-width: 220px;
+}
+
+.role-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .role-select {
+  flex: 1 1 auto;
   width: 100%;
   padding: 0.45rem 0.75rem;
   border-radius: 0.75rem;
@@ -1659,6 +1696,39 @@ body.mobile-menu-open {
   font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
+}
+
+.role-save {
+  flex: 0 0 auto;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.role-save[hidden] {
+  display: none;
+}
+
+.role-feedback {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.role-feedback[hidden] {
+  display: none;
+}
+
+.role-feedback--info {
+  color: var(--color-primary);
+}
+
+.role-feedback--success {
+  color: #0f5225;
+}
+
+.role-feedback--error {
+  color: #8a1f1c;
 }
 
 .role-select:focus {

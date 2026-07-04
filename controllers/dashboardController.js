@@ -144,6 +144,13 @@ export const renderAdmin = async (req, res, next) => {
     const buwanaId = sessionUser?.buwanaId ?? sessionUser?.id ?? null;
     const dashboardUser = buwanaId ? await usersModel.findByBuwanaId(buwanaId) : null;
 
+    // Keep the session role in sync with the DB so freshly-granted admin
+    // rights take effect without needing to log out and back in.
+    if (dashboardUser && req.session?.user) {
+      req.session.user.role = dashboardUser.role;
+      res.locals.currentUser = req.session.user;
+    }
+
     const [
       missionsResult,
       turtleDetailsResult,

@@ -34,6 +34,11 @@
   </section>
 <% } %>
 <main id="main" class="layout manage-users" data-role-options='<%- JSON.stringify(roleOptions) %>' data-can-edit="<%= canEditRoles %>">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <a href="/admin"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Admin dashboard</a>
+    <span class="breadcrumbs__sep" aria-hidden="true">/</span>
+    <span class="breadcrumbs__current" aria-current="page">Manage users</span>
+  </nav>
   <section class="page-header">
     <h1>Manage users</h1>
     <p>Review and adjust access across the HopeTurtles community.</p>
@@ -60,8 +65,8 @@
             <th scope="col">Emoji</th>
             <th scope="col">Name</th>
             <th scope="col">Buwana ID</th>
-            <th scope="col">Role</th>
             <th scope="col">Created</th>
+            <th scope="col">Role</th>
           </tr>
         </thead>
         <tbody>
@@ -73,29 +78,33 @@
                 <div class="muted"><%= user.email || 'No email on file' %></div>
               </td>
               <td data-label="Buwana ID">#<%= user.buwana_id %></td>
-              <td data-label="Role" class="role-cell">
-                <% if (canEditRoles) { %>
-                  <label class="sr-only" for="role-<%= user.buwana_id %>">Change role for <%= user.full_name || 'user ' + user.buwana_id %></label>
-                  <select
-                    id="role-<%= user.buwana_id %>"
-                    class="role-select"
-                    data-user-id="<%= user.buwana_id %>"
-                    data-current-role="<%= user.role %>"
-                  >
-                    <% roleOptions.forEach(function (option) { %>
-                      <option value="<%= option.value %>" <%= option.value === user.role ? 'selected' : '' %>>
-                        <%= option.label %>
-                      </option>
-                    <% }) %>
-                  </select>
-                <% } else { %>
-                  <span class="role-label"><%= getRoleLabel(user.role) %></span>
-                <% } %>
-              </td>
               <td data-label="Created">
                 <time datetime="<%= new Date(user.created_at).toISOString() %>">
                   <%= new Date(user.created_at).toLocaleDateString() %>
                 </time>
+              </td>
+              <td data-label="Role" class="role-cell">
+                <% if (canEditRoles) { %>
+                  <div class="role-edit">
+                    <label class="sr-only" for="role-<%= user.buwana_id %>">Change role for <%= user.full_name || 'user ' + user.buwana_id %></label>
+                    <select
+                      id="role-<%= user.buwana_id %>"
+                      class="role-select"
+                      data-user-id="<%= user.buwana_id %>"
+                      data-current-role="<%= user.role %>"
+                    >
+                      <% roleOptions.forEach(function (option) { %>
+                        <option value="<%= option.value %>" <%= option.value === user.role ? 'selected' : '' %>>
+                          <%= option.label %>
+                        </option>
+                      <% }) %>
+                    </select>
+                    <button type="button" class="button role-save" data-user-id="<%= user.buwana_id %>" hidden>Save</button>
+                  </div>
+                  <span class="role-feedback" role="status" aria-live="polite" hidden></span>
+                <% } else { %>
+                  <span class="role-label"><%= getRoleLabel(user.role) %></span>
+                <% } %>
               </td>
             </tr>
           <% }) %>

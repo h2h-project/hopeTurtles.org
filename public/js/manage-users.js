@@ -82,24 +82,53 @@
       }, 4000);
     };
 
+    const setRowFeedback = (row, type, message) => {
+      const feedback = row?.querySelector('.role-feedback');
+      if (!feedback) {
+        return;
+      }
+      feedback.textContent = message || '';
+      feedback.hidden = !message;
+      feedback.classList.remove(
+        'role-feedback--success',
+        'role-feedback--error',
+        'role-feedback--info'
+      );
+      if (type && message) {
+        feedback.classList.add(`role-feedback--${type}`);
+      }
+    };
+
     const roleSelects = container.querySelectorAll('.role-select');
     roleSelects.forEach((select) => {
-      select.addEventListener('change', async () => {
+      const row = select.closest('tr');
+      const saveButton = row?.querySelector('.role-save');
+      if (!saveButton) {
+        return;
+      }
+
+      // Reveal the Save button only once the selection differs from what's
+      // currently stored; clear any stale feedback while editing.
+      select.addEventListener('change', () => {
+        const changed = select.value !== select.dataset.currentRole;
+        saveButton.hidden = !changed;
+        setRowFeedback(row, null, '');
+      });
+
+      saveButton.addEventListener('click', async () => {
         const userId = select.dataset.userId;
         const previousRole = select.dataset.currentRole;
         const newRole = select.value;
-        if (!userId || !newRole) {
+        if (!userId || !newRole || newRole === previousRole) {
+          saveButton.hidden = true;
           return;
         }
 
-        if (newRole === previousRole) {
-          return;
-        }
-
-        const row = select.closest('tr');
         const displayName = row?.querySelector('strong')?.textContent?.trim() || `User #${userId}`;
 
         select.disabled = true;
+        saveButton.disabled = true;
+        setRowFeedback(row, 'info', 'Saving…');
         showFeedback('info', `Updating ${displayName}…`);
 
         try {
@@ -125,12 +154,16 @@
           }
 
           select.dataset.currentRole = newRole;
+          saveButton.hidden = true;
+          setRowFeedback(row, 'success', `Saved — now ${getRoleLabel(newRole)}.`);
           showFeedback('success', `${displayName} is now ${getRoleLabel(newRole)}.`);
         } catch (error) {
-          select.value = previousRole;
+          // Keep the Save button visible so the change can be retried.
+          setRowFeedback(row, 'error', error.message || 'Save failed.');
           showFeedback('error', error.message || 'Unable to update role.');
         } finally {
           select.disabled = false;
+          saveButton.disabled = false;
         }
       });
     });
