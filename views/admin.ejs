@@ -401,6 +401,7 @@
           <h2 id="createMissionTitle">Create mission</h2>
           <p class="panel-subtitle">Define a new HopeTurtles deployment.</p>
         </div>
+        <button type="button" class="dialog-close" data-close-mission-form aria-label="Close">&times;</button>
       </header>
       <div class="mission-form-grid">
         <label class="full-width">
@@ -541,13 +542,14 @@
     </form>
   </dialog>
 
-  <dialog id="createHubDialog" class="hub-dialog" aria-labelledby="createHubTitle">
+  <dialog id="createHubDialog" class="mission-dialog hub-dialog" aria-labelledby="createHubTitle">
     <form class="form-card admin-form hub-form" data-endpoint="/api/hubs" data-method="POST">
       <header class="mission-dialog__header">
         <div>
           <h2 id="createHubTitle">Create hub</h2>
           <p class="panel-subtitle">Add a new project hub to collect, receive and prepare bottles and hope turtles.</p>
         </div>
+        <button type="button" class="dialog-close" data-close-hub-form aria-label="Close">&times;</button>
       </header>
       <div class="mission-form-grid">
         <label class="full-width">
@@ -607,7 +609,7 @@
     </form>
   </dialog>
 
-  <dialog id="editHubDialog" class="hub-dialog" aria-labelledby="editHubTitle">
+  <dialog id="editHubDialog" class="mission-dialog hub-dialog" aria-labelledby="editHubTitle">
     <form class="form-card admin-form hub-form" data-edit-hub-form>
       <header class="mission-dialog__header">
         <div>
@@ -760,13 +762,14 @@
 
   
 
-  <dialog id="createBoatDialog" class="boat-dialog" aria-labelledby="createBoatTitle">
+  <dialog id="createBoatDialog" class="mission-dialog boat-dialog" aria-labelledby="createBoatTitle">
     <form class="form-card admin-form boat-form" data-endpoint="/api/boats" data-method="POST">
       <header class="mission-dialog__header">
         <div>
           <h2 id="createBoatTitle">Add boat</h2>
           <p class="panel-subtitle">Register a vessel and connect it with missions and hubs.</p>
         </div>
+        <button type="button" class="dialog-close" data-close-boat-form aria-label="Close">&times;</button>
       </header>
       <div class="mission-form-grid">
         <label class="full-width">
@@ -841,7 +844,7 @@
     </form>
   </dialog>
 
-  <dialog id="editBoatDialog" class="boat-dialog" aria-labelledby="editBoatTitle">
+  <dialog id="editBoatDialog" class="mission-dialog boat-dialog" aria-labelledby="editBoatTitle">
     <form class="form-card admin-form boat-form" data-edit-boat-form>
       <header class="mission-dialog__header">
         <div>

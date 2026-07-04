@@ -257,6 +257,7 @@ a:hover {
 .primary-nav a:hover {
   background: rgba(1, 121, 25, 0.12);
   color: var(--color-primary);
+  text-decoration: none;
 }
 
 .nav-controls {
@@ -817,7 +818,7 @@ body.mobile-menu-open {
   max-width: 520px;
   height: auto;
   border-radius: 1.5rem;
-  border: 2px solid #0f3b1a;
+  border: 4px solid #0f3b1a;
 }
 
 .hero-metrics {
@@ -927,8 +928,8 @@ body.mobile-menu-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.5rem;
-  height: 3.5rem;
+  width: 4.75rem;
+  height: 4.75rem;
   border-radius: 50%;
   background: rgba(1, 121, 25, 0.1);
   margin-bottom: 1rem;
@@ -936,7 +937,9 @@ body.mobile-menu-open {
 }
 
 .contribute-card__icon {
-  font-size: 1.6rem;
+  /* Sized to roughly two text lines tall. */
+  font-size: 2.6rem;
+  line-height: 1;
   color: var(--color-primary);
 }
 
@@ -2575,6 +2578,34 @@ body.mobile-menu-open {
 
 .form-card textarea {
   min-height: 120px;
+}
+
+/* Dark mode: admin forms hard-code a light-mint surface, so flip it to the
+   themed surface and give the fields a subtly raised, legible background. */
+[data-theme='dark'] .form-card.admin-form {
+  background: var(--color-surface);
+}
+
+[data-theme='dark'] .filters select,
+[data-theme='dark'] .filters input,
+[data-theme='dark'] .form-card input,
+[data-theme='dark'] .form-card select,
+[data-theme='dark'] .form-card textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: var(--color-text);
+}
+
+[data-theme='dark'] .form-card input::placeholder,
+[data-theme='dark'] .form-card textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Native select dropdown options need an explicit dark background on some
+   browsers so they don't render as light-on-light. */
+[data-theme='dark'] .form-card select option {
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .map-container {
