@@ -190,7 +190,8 @@ turtlesModel.getDeviceInfo = async (turtleId) => {
     SELECT
       t.turtle_id,
       t.name,
-      m.full_name AS mission_name,
+      m.short_name AS mission_short_name,
+      m.full_name  AS mission_full_name,
       h.name AS hub_name,
       u.time_zone
     FROM turtles_tb t

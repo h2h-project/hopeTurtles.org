@@ -341,7 +341,9 @@ export const getDevice = async (req, res) => {
       device_id: String(info.turtle_id),
       device_name: info.name ?? null,
       home_name: info.hub_name ?? null,
-      room_name: info.mission_name ?? null,
+      room_name: info.mission_full_name ?? null,       // legacy alias (was mission_name)
+      mission_short_name: info.mission_short_name ?? null,
+      mission_full_name: info.mission_full_name ?? null,
       community_name: COMMUNITY_NAME,
       time_zone: timeZone,
       tz_offset_min: tzOffsetMin,
