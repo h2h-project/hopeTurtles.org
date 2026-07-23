@@ -214,12 +214,14 @@ a:hover {
   direction: ltr;
   unicode-bidi: isolate;
   max-width: 400px;
+  max-height: 200px;
   overflow: hidden;
-  transition: max-width 0.35s ease, opacity 0.3s ease, transform 0.3s ease;
+  transition: max-width 0.35s ease, max-height 0.35s ease, opacity 0.3s ease, transform 0.3s ease;
 }
 
 .site-header.is-scrolled .brand-ascii {
   max-width: 0;
+  max-height: 0;
   opacity: 0;
   transform: translateX(-1rem);
 }
@@ -4097,7 +4099,7 @@ label.ht-toggle {
   }
 
   .brand-wordmark-text {
-    font-size: 0.92em;
+    font-size: 1.104em;
   }
 
   .nav-controls {

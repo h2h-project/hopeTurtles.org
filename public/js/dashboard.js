@@ -939,6 +939,8 @@ const addBottleRow = (bottle) => {
   toggleBottlesTableState();
 };
 
+let pendingDeliveryBottle = null;
+
 const handleRegisterBottleSubmit = async (event) => {
   event.preventDefault();
   if (!registerBottleForm) {
@@ -1032,12 +1034,21 @@ const handleRegisterBottleSubmit = async (event) => {
       createdBottle = json.data;
     }
 
+    // Defer the delivery popup until the register dialog has fully closed.
+    // Opening a second modal <dialog> in the same tick as closing this one
+    // leaves the register dialog's backdrop/inert state lingering, which makes
+    // the delivery modal's file input and Save button unresponsive (the reason
+    // image upload failed in the add flow but worked from the edit flow).
+    pendingDeliveryBottle = createdBottle;
     if (registerBottleDialog) {
       registerBottleDialog.close();
-    }
-    resetRegisterBottleForm();
-    if (createdBottle) {
-      showBottleDeliveryModal(createdBottle);
+    } else {
+      resetRegisterBottleForm();
+      if (pendingDeliveryBottle) {
+        const bottleToDeliver = pendingDeliveryBottle;
+        pendingDeliveryBottle = null;
+        showBottleDeliveryModal(bottleToDeliver);
+      }
     }
   } catch (error) {
     if (registerBottleFeedback) {
@@ -1058,6 +1069,15 @@ if (registerBottleForm) {
 if (registerBottleDialog) {
   registerBottleDialog.addEventListener('close', () => {
     resetRegisterBottleForm();
+    if (pendingDeliveryBottle) {
+      const bottleToDeliver = pendingDeliveryBottle;
+      pendingDeliveryBottle = null;
+      // Open on the next frame so the register dialog is fully removed from the
+      // top layer before the delivery modal takes over.
+      window.requestAnimationFrame(() => {
+        showBottleDeliveryModal(bottleToDeliver);
+      });
+    }
   });
 
   registerBottleDialog.addEventListener('cancel', (event) => {
