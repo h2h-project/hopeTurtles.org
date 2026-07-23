@@ -4584,3 +4584,316 @@ label.ht-toggle {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Ecojoiner spec generator (/ecojoiners/generate)
+   ────────────────────────────────────────────────────────────────────────── */
+.generate-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Reuse the landing .hero band; image sits to the right via DOM order. */
+.generate-hero {
+  margin-bottom: 0;
+  border-radius: 0;
+}
+
+/* Development notice so no one fills the form expecting a download yet. */
+.eco-dev-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: var(--color-text);
+  line-height: 1.55;
+}
+
+.eco-dev-notice i {
+  color: #d97706;
+  font-size: 1.15rem;
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+
+.eco-generate {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.eco-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.eco-panel {
+  background: var(--color-surface);
+  border: 1px solid rgba(1, 121, 25, 0.15);
+  border-radius: 1.1rem;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.eco-panel[open] {
+  border-color: rgba(1, 121, 25, 0.35);
+  box-shadow: var(--shadow-elevated);
+}
+
+.eco-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.35rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.eco-panel__head::-webkit-details-marker {
+  display: none;
+}
+
+.eco-panel__head:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.eco-panel__step {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.eco-panel__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.eco-panel__title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--color-text);
+}
+
+.eco-panel__desc {
+  font-size: 0.92rem;
+  color: var(--color-muted);
+}
+
+.eco-panel__chevron {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  transition: transform 0.2s ease;
+}
+
+.eco-panel[open] .eco-panel__chevron {
+  transform: rotate(180deg);
+}
+
+.eco-panel__body {
+  padding: 0 1.35rem 1.5rem;
+  border-top: 1px solid rgba(1, 121, 25, 0.1);
+}
+
+.eco-panel__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+  padding-top: 1.25rem;
+}
+
+.eco-panel__content--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.eco-panel__text p {
+  margin: 0 0 1.25rem;
+  line-height: 1.65;
+}
+
+.eco-panel__figure {
+  margin: 0;
+}
+
+.eco-panel__figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  border: 1px solid rgba(1, 121, 25, 0.12);
+}
+
+/* Fields ------------------------------------------------------------------- */
+.eco-fields {
+  display: grid;
+  gap: 1.1rem;
+}
+
+.eco-fields--grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.eco-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.eco-field__label {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.eco-field__unit {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.eco-field input,
+.eco-field select {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-primary);
+  box-sizing: border-box;
+}
+
+.eco-field input:focus-visible,
+.eco-field select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+  border-color: transparent;
+}
+
+[data-theme='dark'] .eco-field input,
+[data-theme='dark'] .eco-field select {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+[data-theme='dark'] .eco-field select option {
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* Inline validation feedback ---------------------------------------------- */
+.eco-feedback {
+  display: block;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  min-height: 0;
+}
+
+.eco-feedback:empty {
+  display: none;
+}
+
+.eco-feedback i {
+  margin-right: 0.15rem;
+}
+
+.eco-feedback--ok {
+  color: var(--color-primary);
+}
+
+.eco-feedback--warn {
+  color: #d97706;
+}
+
+.eco-feedback--error {
+  color: #dc2626;
+}
+
+/* Fabrication toggles ------------------------------------------------------ */
+.eco-fab-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.eco-fab-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(1, 121, 25, 0.15);
+  border-radius: 0.9rem;
+  background: var(--color-background);
+}
+
+.eco-fab-option__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.eco-fab-option__title {
+  font-weight: 600;
+}
+
+.eco-fab-option__desc {
+  font-size: 0.88rem;
+  color: var(--color-muted);
+}
+
+/* Action buttons ----------------------------------------------------------- */
+.eco-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .eco-panel__content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem;
+  }
+
+  /* Move the illustration above the fields on narrow screens. */
+  .eco-panel__figure {
+    order: -1;
+  }
+
+  .eco-panel__head {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .eco-actions {
+    justify-content: stretch;
+  }
+
+  .eco-actions .button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

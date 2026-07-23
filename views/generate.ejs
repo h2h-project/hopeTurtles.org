@@ -1,0 +1,266 @@
+<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
+<%- include('partials/nav') %>
+<main id="main" class="layout generate-page">
+  <section class="hero generate-hero">
+    <div class="hero-intro">
+      <h1>Generate Your Ecojoiner</h1>
+      <p>Use our system to generate custom 2D carpentry specs and 3D CNC and printer files for your bottle.</p>
+    </div>
+    <div class="hero-image">
+      <img src="/images/ecojoiner-spec-hero.webp" alt="A generated ecojoiner specification" loading="lazy" />
+    </div>
+  </section>
+
+  <div class="eco-dev-notice" role="status">
+    <i class="fa-solid fa-flask" aria-hidden="true"></i>
+    <span>
+      <strong>Heads up — this generator is still in development.</strong>
+      You can fill everything out to explore the flow, but spec files can't be generated just yet. Hold tight!
+    </span>
+  </div>
+
+  <form class="eco-generate" id="eco-generate" novalidate>
+    <div class="eco-panels">
+
+      <!-- Panel 1 — Select your bottle -->
+      <details class="eco-panel" data-panel="bottle" open>
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">1</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title">Select your bottle</span>
+            <span class="eco-panel__desc">Choose the perfect local bottle for your ecojoiner</span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <p>
+                Choosing the correct bottle type for your turtle (and future constructions with
+                turtles and bottles!) is key. Not all bottles are ideal. The best tend to be tall
+                and thin, rather than short and stubby. Crucial is that the bottles have short top
+                and bottom tappers and have bodies with flat, upright sides. You can use any bottle
+                size, but for the moment we are recommending 1.5L bottles that are between 83mm and
+                87mm in diameter. Our research shows that type of generic water bottle size is
+                pretty consistent around the world.
+              </p>
+              <div class="eco-fields">
+                <label class="eco-field">
+                  <span class="eco-field__label">Bottle brand</span>
+                  <input type="text" id="eco-brand" name="brand" placeholder="e.g. Aqua, Le Minerale…" autocomplete="off" />
+                  <span class="eco-feedback" data-for="eco-brand"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Bottle volume <span class="eco-field__unit">(ml)</span></span>
+                  <input type="number" id="eco-volume" name="volume" inputmode="numeric" min="0" step="10" placeholder="1500" />
+                  <span class="eco-feedback" data-for="eco-volume"></span>
+                </label>
+              </div>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/chose_bottle.webp" alt="Choosing the right bottle for an ecojoiner" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 2 — Set your bottle specs -->
+      <details class="eco-panel" data-panel="specs">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">2</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title">Set your bottle specs</span>
+            <span class="eco-panel__desc">Specify the key dimensions of your bottle</span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <p>
+                Bottles come in all shapes and sizes. Ecojoiners must adapt! Please measure
+                carefully the key dimensions of your bottle and set them here. All dimensions are
+                in <strong>millimetres (mm)</strong>.
+              </p>
+              <div class="eco-fields eco-fields--grid">
+                <label class="eco-field">
+                  <span class="eco-field__label">Bottle diameter</span>
+                  <input type="number" id="eco-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="85" />
+                  <span class="eco-feedback" data-for="eco-diameter"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Cap diameter</span>
+                  <input type="number" id="eco-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="30" />
+                  <span class="eco-feedback" data-for="eco-cap"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Collar diameter</span>
+                  <input type="number" id="eco-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="33" />
+                  <span class="eco-feedback" data-for="eco-collar"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Bottle height</span>
+                  <input type="number" id="eco-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="320" />
+                  <span class="eco-feedback" data-for="eco-height"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Top tapper height</span>
+                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="40" />
+                  <span class="eco-feedback" data-for="eco-top-tapper"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Bottom tapper height</span>
+                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="decimal" min="0" step="0.1" placeholder="25" />
+                  <span class="eco-feedback" data-for="eco-bottom-tapper"></span>
+                </label>
+              </div>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/bottle_keys.webp" alt="Diagram of key bottle dimensions" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 3 — Set your material specs -->
+      <details class="eco-panel" data-panel="material">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">3</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title">Set your material specs</span>
+            <span class="eco-panel__desc">Ecojoiners can be built from just about anything flat</span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <p>
+                Ecojoiners are best built with organic material that is between 8mm and 25mm thick.
+                The best for ocean durability is solid wood boards. Do not use plastic as it will
+                degrade into polluting the ocean and shore. Avoid metal as it will decrease
+                buoyancy.
+              </p>
+              <div class="eco-fields">
+                <label class="eco-field">
+                  <span class="eco-field__label">Material</span>
+                  <select id="eco-material" name="material">
+                    <option value="">Choose a material…</option>
+                    <option value="solid-wood">Solid wood boards</option>
+                    <option value="plywood">Plywood</option>
+                    <option value="particle-board">Particle board</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <span class="eco-feedback" data-for="eco-material"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label">Material thickness <span class="eco-field__unit">(mm)</span></span>
+                  <input type="number" id="eco-thickness" name="thickness" inputmode="decimal" min="0" step="0.1" placeholder="12" />
+                  <span class="eco-feedback" data-for="eco-thickness"></span>
+                </label>
+              </div>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/choose-material.webp" alt="Choosing a material for the ecojoiner" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 4 — Select fabrication -->
+      <details class="eco-panel" data-panel="fabrication">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">4</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title">Select fabrication</span>
+            <span class="eco-panel__desc">Choose how you'll be fabricating your ecojoiners</span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <p>
+                Ecojoiners can be made in all sorts of ways. With your selected specs we will
+                generate the file type you need to move ahead with carpentry, 3D printing, laser
+                cutting or CNCing.
+              </p>
+              <ul class="eco-fab-list">
+                <li class="eco-fab-option">
+                  <span class="eco-fab-option__info">
+                    <span class="eco-fab-option__title">Carpentry</span>
+                    <span class="eco-fab-option__desc">2D cutting dimensions (PDF)</span>
+                  </span>
+                  <label class="ht-toggle">
+                    <input type="checkbox" id="eco-fab-carpentry" name="fabCarpentry" />
+                    <span class="ht-toggle__slider" aria-hidden="true"></span>
+                  </label>
+                </li>
+                <li class="eco-fab-option">
+                  <span class="eco-fab-option__info">
+                    <span class="eco-fab-option__title">3D printing</span>
+                    <span class="eco-fab-option__desc">3D file (STL)</span>
+                  </span>
+                  <label class="ht-toggle">
+                    <input type="checkbox" id="eco-fab-3d" name="fab3d" />
+                    <span class="ht-toggle__slider" aria-hidden="true"></span>
+                  </label>
+                </li>
+              </ul>
+              <span class="eco-feedback" data-for="eco-fabrication"></span>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/choose_fabrication.webp" alt="Choosing a fabrication method" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 5 — Select ecojoiner type -->
+      <details class="eco-panel" data-panel="type">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">5</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title">Select ecojoiner type</span>
+            <span class="eco-panel__desc">Pick which ecojoiner you want to build</span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content eco-panel__content--single">
+            <div class="eco-panel__text">
+              <p>There are more and more types of ecojoiners to choose from.</p>
+              <div class="eco-fields">
+                <label class="eco-field">
+                  <span class="eco-field__label">Ecojoiner type</span>
+                  <select id="eco-type" name="ecojoinerType">
+                    <option value="">Choose an ecojoiner…</option>
+                    <option value="6fc">Normal Ecojoiner (6FC)</option>
+                    <option value="3fc">Cube Making Ecojoiner (3FC)</option>
+                    <option value="4fc">Flat Ecojoiner (4FC)</option>
+                    <option value="2fc">One to One Ecojoiner (2FC)</option>
+                    <option value="fin">Fin Attachment</option>
+                    <option value="ballast">Ballast Attachment</option>
+                  </select>
+                  <span class="eco-feedback" data-for="eco-type"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+    </div>
+
+    <div class="eco-actions">
+      <button type="button" class="button ghost" id="eco-save">
+        <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> Save Ecojoiner
+      </button>
+      <button type="submit" class="button" id="eco-generate-btn">
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Generate Ecojoiner Specs
+      </button>
+    </div>
+  </form>
+</main>
+<% const pageScripts = ['/js/ecojoiner-generate.js']; %>
+<%- include('partials/footer', { pageScripts }) %>

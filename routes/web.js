@@ -96,6 +96,12 @@ router.get('/ecojoiners', (req, res) => {
   });
 });
 
+router.get('/ecojoiners/generate', (req, res) => {
+  res.render('generate', {
+    pageTitle: 'Generate Your Ecojoiner — Hope Turtle Structure'
+  });
+});
+
 router.get('/missions', missionsController.renderExplorer);
 router.get('/team', teamController.renderTeamPage);
 router.get('/turtles/:id', turtlesController.renderTurtlePage);
