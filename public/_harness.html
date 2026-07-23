@@ -1,5 +1,342 @@
-<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
-<%- include('partials/nav') %>
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="HopeTurtles.org – regenerative humanitarian tracking platform for autonomous hope turtles delivering aid across ocean currents."
+    />
+    <meta property="og:title" content="HopeTurtles.org" />
+    <meta
+      property="og:description"
+      content="Tracking autonomous Hope Turtles as they ferry regenerative aid across the ocean."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hopeturtles.org" />
+    <meta property="og:image" content="/images/social-card.svg" />
+    <title>Generate Your Ecojoiner — Hope Turtle Structure</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Aleo:wght@400;700&family=Mulish:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/main.css" />
+    
+    <script src="https://kit.fontawesome.com/735e38ff98.js" crossorigin="anonymous"></script>
+    <script>
+      (function () {
+        const storedTheme = localStorage.getItem('ht-theme');
+        const storedLang = localStorage.getItem('ht-lang');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = storedTheme || (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+        if (storedLang) {
+          document.documentElement.lang = storedLang;
+        }
+      })();
+    </script>
+  </head>
+  <body class="app-shell">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+
+
+
+<header class="site-header">
+  <div class="brand">
+    <a
+      href="/"
+      class="brand-link"
+      aria-label="hopeTurtles.org home"
+      title="HopeTurtles | a human2human project"
+    >
+      <span class="sr-only">hopeTurtles.org</span>
+      <pre
+        class="brand-ascii"
+        aria-hidden="true"
+        data-logo-src="/turtles-ascii-logo.txt"
+        data-logo-hover-src="/turtles-ascii-logo-2.txt"
+        data-logo-hover-alt-src="/turtles-ascii-logo-3.txt"
+      >
+        HopeTurtles
+      </pre>
+      <script>
+        (function () {
+          const script = document.currentScript;
+          const target =
+            script && script.previousElementSibling && script.previousElementSibling.classList.contains('brand-ascii')
+              ? script.previousElementSibling
+              : document.querySelector('.brand-ascii[data-logo-src]');
+          if (!target) return;
+          const baseSource = target.dataset.logoSrc;
+          const hoverSources = [target.dataset.logoHoverSrc, target.dataset.logoHoverAltSrc].filter(Boolean);
+          const fallback = 'HopeTurtles';
+
+          const loadLogo = (src) =>
+            fetch(src)
+              .then((response) => (response.ok ? response.text() : Promise.reject()))
+              .then((text) => text.replace(/\s+$/u, ''))
+              .catch(() => null);
+
+          const setContent = (text) => {
+            target.textContent = text || fallback;
+          };
+
+          Promise.all([loadLogo(baseSource), ...hoverSources.map((src) => loadLogo(src))]).then((logos) => {
+            const [baseLogo, ...hoverFrames] = logos;
+            const baseFrame = baseLogo || fallback;
+            const frames = hoverFrames.filter(Boolean);
+
+            let frameIndex = 0;
+            let animationId = null;
+            setContent(baseFrame);
+
+            const hoverTarget = target.closest('a') || target;
+            if (!hoverTarget) return;
+
+            const startAnimation = () => {
+              if (!frames.length || animationId !== null) return;
+              frameIndex = 0;
+              setContent(frames[frameIndex]);
+              animationId = window.setInterval(() => {
+                frameIndex = (frameIndex + 1) % frames.length;
+                setContent(frames[frameIndex]);
+              }, 400);
+            };
+
+            const stopAnimation = () => {
+              if (animationId === null) return;
+              window.clearInterval(animationId);
+              animationId = null;
+              frameIndex = 0;
+              setContent(baseFrame);
+            };
+
+            hoverTarget.addEventListener('mouseenter', startAnimation);
+            hoverTarget.addEventListener('mouseleave', stopAnimation);
+            hoverTarget.addEventListener('focus', startAnimation, true);
+            hoverTarget.addEventListener('blur', stopAnimation, true);
+          });
+        })();
+      </script>
+      <span class="brand-wordmark-text" aria-hidden="true">
+        hope<strong class="brand-wordmark-emphasis">Turtles</strong>.org
+      </span>
+    </a>
+  </div>
+  <nav class="primary-nav" aria-label="Primary">
+    <a href="/ecojoiners">Ecojoiners</a>
+    <a href="/about">About</a>
+    <a href="/turtleos">TurtleOS</a>
+    
+  </nav>
+  <div class="nav-controls">
+    <div class="lang-menu">
+      <button
+        id="languageButton"
+        class="lang-button"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded="false"
+        aria-controls="languageMenu"
+      >
+        <span class="sr-only">Change language</span>
+        <i class="fa-solid fa-globe lang-button-icon" aria-hidden="true"></i>
+      </button>
+      <ul id="languageMenu" class="lang-options" role="listbox" hidden>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="en"
+              class="lang-option"
+              aria-selected="true"
+            >
+              <span class="lang-option-code">EN</span>
+              <span class="lang-option-label">English</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="ms"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">MS</span>
+              <span class="lang-option-label">Bahasa Melayu</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="id"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">ID</span>
+              <span class="lang-option-label">Bahasa Indonesia</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="he"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">HE</span>
+              <span class="lang-option-label">עברית</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="ar"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">AR</span>
+              <span class="lang-option-label">العربية</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="de"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">DE</span>
+              <span class="lang-option-label">Deutsch</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="zh"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">ZH</span>
+              <span class="lang-option-label">中文</span>
+            </button>
+          </li>
+        
+          <li role="none">
+            <button
+              type="button"
+              role="option"
+              data-lang="tr"
+              class="lang-option"
+              aria-selected="false"
+            >
+              <span class="lang-option-code">TR</span>
+              <span class="lang-option-label">Türkçe</span>
+            </button>
+          </li>
+        
+      </ul>
+    </div>
+    <button
+      id="themeToggle"
+      class="theme-toggle"
+      aria-label="Switch to dark mode"
+      aria-pressed="false"
+      type="button"
+    >
+      <span class="theme-icon" aria-hidden="true">
+        
+          <i class="fa-regular fa-moon"></i>
+        
+      </span>
+      <span class="sr-only">Switch to dark mode</span>
+    </button>
+    
+      <a class="button nav-auth" href="/auth/login">Login</a>
+      <a
+        class="button ghost nav-signup nav-auth"
+        href="https://buwana.ecobricks.org/en/signup-1.php?app=hope_8fc3caabded4"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Signup
+      </a>
+    
+    <button
+      id="mobileMenuToggle"
+      class="nav-controls__menu-toggle"
+      type="button"
+      aria-label="Open menu"
+      aria-expanded="false"
+      aria-controls="mobileMenu"
+    >
+      <i class="fa-solid fa-bars" aria-hidden="true"></i>
+      <span class="sr-only">Open menu</span>
+    </button>
+  </div>
+</header>
+<div id="mobileMenu" class="mobile-menu" hidden>
+  <div class="mobile-menu__backdrop" data-close-menu="true"></div>
+  <div class="mobile-menu__panel">
+    <button
+      id="mobileMenuClose"
+      class="mobile-menu__close"
+      type="button"
+      aria-label="Close menu"
+    >
+      ✕
+    </button>
+    <nav class="mobile-menu__nav" aria-label="Primary">
+      <a href="/">Home</a>
+      <a href="/about">About</a>
+      <a href="/missions">Missions</a>
+      <a href="/ecojoiners">Ecojoiners</a>
+      <a href="/turtleos">TurtleOS</a>
+      <a href="/team">Team</a>
+      <a href="/report">Report a Turtle</a>
+      
+      
+      
+        <div class="mobile-menu__auth-links">
+          <a class="button ghost mobile-menu__action" href="/auth/login">Login</a>
+          <a
+            class="button ghost mobile-menu__action"
+            href="https://buwana.ecobricks.org/en/signup-1.php?app=hope_8fc3caabded4"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Signup
+          </a>
+        </div>
+      
+    </nav>
+    <div class="mobile-menu__footer">
+      
+      <p class="mobile-menu__auth-note">
+        Authentication by
+        <a href="https://buwana.ecobricks.org" target="_blank" rel="noreferrer">Buwana</a>
+      </p>
+    </div>
+  </div>
+</div>
+
 <main id="main" class="layout generate-page">
   <section class="hero generate-hero">
     <div class="hero-intro">
@@ -306,5 +643,73 @@
     </div>
   </form>
 </main>
-<% const pageScripts = ['/js/ecojoiner-generate.js']; %>
-<%- include('partials/footer', { pageScripts }) %>
+
+    <footer id="contact" class="site-footer">
+      <div class="footer-grid">
+        <div>
+          <h3>Contact</h3>
+          <p>
+            <a href="mailto:go@hopeturtles.org">go@hopeturtles.org</a><br />
+            <span>
+              A last mile, ecological, decentralized and open source pathway to connect humans to humans in moments of need.
+            </span>
+          </p>
+        </div>
+        <div>
+          <h3>Network</h3>
+          <ul>
+            <li><a href="https://earthen.io" target="_blank" rel="noreferrer">Earthen.io</a></li>
+            <li><a href="https://github.com/h2h-project/turtleOS" target="_blank" rel="noreferrer">GitHub</a></li>
+            <li><a href="https://ecobricks.org/en/ecojoiners.php" target="_blank" rel="noreferrer">Ecojoiners</a></li>
+            <li><a href="https://ecobricks.org" target="_blank" rel="noreferrer">Global Ecobrick Alliance</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Regen Accounting</h3>
+          <p>Hosted in Indonesia, by Dewaweb with custom in site carbon accounting..</p>
+          
+            <div id="wcb" class="carbonbadge"></div>
+            <script src="https://unpkg.com/website-carbon-badges@1.1.3/b.min.js" defer></script>
+          
+        </div>
+        
+      </div>
+      <p class="footer-meta">© 2026 HopeTurtles.org · A Human2Human project</p>
+    </footer>
+    <script src="/js/main.js" type="module"></script>
+    
+      
+        <script src="/js/ecojoiner-generate.js"></script>
+      
+    
+  
+<script>
+window.addEventListener("load",function(){setTimeout(function(){
+  var captured=[];window.alert=function(m){captured.push(m);};
+  function setS(id,v){var n=document.getElementById(id);n.value=v;n.dispatchEvent(new Event("change",{bubbles:true}));}
+  function chk(id){var n=document.getElementById(id);n.checked=true;n.dispatchEvent(new Event("change",{bubbles:true}));}
+  document.querySelectorAll(".eco-panel").forEach(function(p){p.open=true;});
+  // material: plastic -> red error
+  setS("eco-material","plastic");
+  var matPlastic=document.querySelector(".eco-feedback[data-for=eco-material]").className;
+  var matPlasticTxt=document.querySelector(".eco-feedback[data-for=eco-material]").textContent.trim();
+  // fabrication: enable DXF + SVG
+  chk("eco-fab-dxf");chk("eco-fab-svg");
+  var fabTxt=document.querySelector(".eco-feedback[data-for=eco-fabrication]").textContent.trim();
+  // type: click a dev card -> alert, then normal -> selected
+  var devCard=document.querySelector(".eco-type-card--dev");
+  devCard.click();
+  var normalCard=document.querySelector(".eco-type-card[data-type=6fc]");
+  normalCard.click();
+  var typeVal=document.getElementById("eco-type").value;
+  var normalSelected=normalCard.classList.contains("eco-type-card--selected");
+  // now set material to pallette for the screenshot (green)
+  setS("eco-material","pallet-wood");
+  var box=document.createElement("div");
+  box.style.cssText="margin:1rem 2rem;padding:1rem;border:2px solid #017919;border-radius:1rem;font-family:monospace;background:#fff;color:#111;font-size:13px";
+  box.innerHTML="<b>AUTOTEST</b><br>plastic feedback class: "+matPlastic+"<br>plastic text: "+matPlasticTxt.slice(0,60)+"...<br>fabrication (dxf+svg): "+fabTxt+"<br>dev-card alerts: "+JSON.stringify(captured)+"<br>normal type value: "+typeVal+" | selected: "+normalSelected;
+  document.querySelector("main").prepend(box);
+},400);});
+</script></body>
+</html>
+

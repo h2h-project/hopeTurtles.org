@@ -137,8 +137,12 @@
       if (!value) return setFeedback('eco-material', '', ''), false;
       if (value === 'solid-wood') {
         setFeedback('eco-material', 'ok', 'Nice. This will last months at sea.');
+      } else if (value === 'pallet-wood') {
+        setFeedback('eco-material', 'ok', 'Great choice! Pallette wood is easy to find around the world, organic and often free! Look for boards under 1.5cm thick.');
       } else if (value === 'plywood' || value === 'particle-board') {
         setFeedback('eco-material', 'warn', 'Good for prototyping. Duration at sea is weeks.');
+      } else if (value === 'plastic') {
+        setFeedback('eco-material', 'error', 'Not a good choice. Plastic will degrade into microplastics and toxins in the ocean environment. Remember our goal is that turtles are 95% organic. Please jump straight to carpentry even for prototyping.');
       } else {
         setFeedback('eco-material', '', '');
       }
@@ -159,7 +163,11 @@
     },
 
     'eco-fabrication': () => {
-      const chosen = el('eco-fab-carpentry').checked || el('eco-fab-3d').checked;
+      const chosen =
+        el('eco-fab-carpentry').checked ||
+        el('eco-fab-3d').checked ||
+        el('eco-fab-dxf').checked ||
+        el('eco-fab-svg').checked;
       if (!chosen) return setFeedback('eco-fabrication', '', ''), false;
       setFeedback('eco-fabrication', 'ok', 'Fabrication selected.');
       return true;
@@ -186,12 +194,28 @@
       if (el('eco-bottom-tapper').value !== '') check('eco-bottom-tapper');
     }
   });
+  const FAB_IDS = ['eco-fab-carpentry', 'eco-fab-3d', 'eco-fab-dxf', 'eco-fab-svg'];
   form.addEventListener('change', (event) => {
     if (event.target.id === 'eco-material') check('eco-material');
-    if (event.target.id === 'eco-type') check('eco-type');
-    if (event.target.id === 'eco-fab-carpentry' || event.target.id === 'eco-fab-3d') {
-      check('eco-fabrication');
-    }
+    if (FAB_IDS.includes(event.target.id)) check('eco-fabrication');
+  });
+
+  // Visual ecojoiner-type picker. Only the "Normal" card is available; the rest
+  // are still in development and just alert the user when clicked.
+  const typeCards = Array.from(form.querySelectorAll('.eco-type-card'));
+  typeCards.forEach((card) => {
+    card.addEventListener('click', () => {
+      if (card.dataset.available !== 'true') {
+        window.alert('This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).');
+        return;
+      }
+      typeCards.forEach((c) => {
+        c.classList.toggle('eco-type-card--selected', c === card);
+        if (c.getAttribute('role') === 'radio') c.setAttribute('aria-checked', String(c === card));
+      });
+      el('eco-type').value = card.dataset.type;
+      check('eco-type');
+    });
   });
 
   // Ensure a panel is open so the user can see a flagged field.
