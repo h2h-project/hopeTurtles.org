@@ -35,11 +35,15 @@ export const getAvailableLanguages = () => {
   return supported.filter((code) => translationsCache[code]);
 };
 
+// Layer the requested language over the default one. A key that has not been
+// translated yet falls back to its default-language wording instead of
+// rendering as "undefined" in the template.
 export const getTranslations = (lang) => {
-  if (!translationsCache[lang]) {
-    return translationsCache[config.appearance.defaultLang] || {};
+  const fallback = translationsCache[config.appearance.defaultLang] || {};
+  if (!translationsCache[lang] || lang === config.appearance.defaultLang) {
+    return fallback;
   }
-  return translationsCache[lang];
+  return { ...fallback, ...translationsCache[lang] };
 };
 
 export const isRtl = (lang) => rtlLanguages.has(lang);
