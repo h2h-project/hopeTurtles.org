@@ -4,6 +4,7 @@
 // the resulting manifest back to the frontend.
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import { constants as fsConstants } from 'fs';
 import os from 'os';
 import path from 'path';
 import { execFile } from 'child_process';
@@ -216,7 +217,22 @@ export const runGenerator = async (body, { dryRun = false } = {}) => {
     if (error.code === 2 && error.stdout) {
       stdout = error.stdout;
     } else {
-      console.error('Ecojoiner generator failed:', error.stderr || error.message);
+      const detail = error.stderr || error.message || '';
+      console.error('Ecojoiner generator failed:', detail);
+      // The reportlab import is guarded inside the script, so a missing install
+      // only shows up here, when the PDF is written — long after validation
+      // succeeded. Name it explicitly instead of returning a generic failure.
+      if (/ReportLab is not installed/i.test(detail)) {
+        throw new Error(
+          'The PDF generator is not installed on this server. Run `npm run ecojoiner:setup` and restart.'
+        );
+      }
+      if (error.code === 'ENOENT') {
+        throw new Error(`Python interpreter not found: ${ecojoiner.python}`);
+      }
+      if (/EACCES|Permission denied/i.test(detail)) {
+        throw new Error('The server cannot write to the ecojoiner exports directory.');
+      }
       throw new Error('The Ecojoiner generator could not be run.');
     }
   } finally {
@@ -252,4 +268,38 @@ export const runGenerator = async (body, { dryRun = false } = {}) => {
   };
 };
 
-export default { runGenerator, mapFormFields, PART_QUANTITIES, EcojoinerRequestError };
+/**
+ * Boot-time probe. Validation runs fine without reportlab and only the PDF
+ * write fails, so an unhealthy install would otherwise stay invisible until a
+ * visitor pressed "generate". Warns rather than throws — SCAD and SVG still
+ * work, and the site should not refuse to start over this.
+ */
+export const checkGeneratorHealth = async () => {
+  try {
+    await execFileAsync(ecojoiner.python, ['-c', 'import reportlab'], { timeout: 10000 });
+  } catch {
+    console.warn(
+      `⚠️  Ecojoiner PDF generation is unavailable: ${ecojoiner.python} cannot import reportlab.\n` +
+        '   Run `npm run ecojoiner:setup` (or set ECOJOINER_PYTHON) and restart.'
+    );
+    return false;
+  }
+
+  try {
+    await fs.mkdir(ecojoiner.exportsDir, { recursive: true });
+    await fs.access(ecojoiner.exportsDir, fsConstants.W_OK);
+  } catch {
+    console.warn(`⚠️  Ecojoiner exports directory is not writable: ${ecojoiner.exportsDir}`);
+    return false;
+  }
+
+  return true;
+};
+
+export default {
+  runGenerator,
+  mapFormFields,
+  checkGeneratorHealth,
+  PART_QUANTITIES,
+  EcojoinerRequestError
+};

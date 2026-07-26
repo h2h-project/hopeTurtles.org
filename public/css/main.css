@@ -4865,6 +4865,18 @@ label.ht-toggle {
   color: var(--color-muted);
 }
 
+.eco-fab-option--unavailable {
+  align-items: flex-start;
+}
+
+.eco-fab-option__note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: #dc2626;
+}
+
 /* Visual ecojoiner-type picker -------------------------------------------- */
 .eco-type-grid {
   display: grid;

@@ -20,6 +20,7 @@ import authRouter from './routes/api/auth.js';
 import { loadLocales } from './utils/localization.js';
 import { isAdminRole } from './utils/roles.js';
 import { scheduleEcojoinerCleanup } from './utils/ecojoinerCleanup.js';
+import { checkGeneratorHealth } from './utils/ecojoinerGenerator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -172,6 +173,7 @@ const start = async () => {
   }
 
   scheduleEcojoinerCleanup();
+  await checkGeneratorHealth();
 
   app.listen(config.port, config.host, () => {
     console.log(`🌊 HopeTurtles.org landing page ready at http://127.0.0.1:${config.port}`);

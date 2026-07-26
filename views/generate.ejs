@@ -44,7 +44,7 @@
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_volume %> <span class="eco-field__unit"><%= t.gen_unit_ml %></span></span>
-                  <input type="number" id="eco-volume" name="volume" inputmode="numeric" min="0" step="10" placeholder="1500" />
+                  <input type="number" id="eco-volume" name="volume" inputmode="numeric" min="0" step="10" placeholder="<%= t.gen_field_volume_ph %>" />
                   <span class="eco-feedback" data-for="eco-volume"></span>
                 </label>
               </div>
@@ -74,32 +74,32 @@
               <div class="eco-fields eco-fields--grid">
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_diameter %></span>
-                  <input type="number" id="eco-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="85" />
+                  <input type="number" id="eco-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_diameter_ph %>" />
                   <span class="eco-feedback" data-for="eco-diameter"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_cap %></span>
-                  <input type="number" id="eco-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="30" />
+                  <input type="number" id="eco-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_ph %>" />
                   <span class="eco-feedback" data-for="eco-cap"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_collar %></span>
-                  <input type="number" id="eco-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="33" />
+                  <input type="number" id="eco-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_collar_ph %>" />
                   <span class="eco-feedback" data-for="eco-collar"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_height %></span>
-                  <input type="number" id="eco-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="320" />
+                  <input type="number" id="eco-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_height_ph %>" />
                   <span class="eco-feedback" data-for="eco-height"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_top_tapper %></span>
-                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="40" />
+                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-top-tapper"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_bottom_tapper %></span>
-                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="decimal" min="0" step="0.1" placeholder="25" />
+                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-bottom-tapper"></span>
                 </label>
               </div>
@@ -141,7 +141,7 @@
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_thickness %> <span class="eco-field__unit"><%= t.gen_unit_mm %></span></span>
-                  <input type="number" id="eco-thickness" name="thickness" inputmode="decimal" min="0" step="0.1" placeholder="12" />
+                  <input type="number" id="eco-thickness" name="thickness" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_thickness_ph %>" />
                   <span class="eco-feedback" data-for="eco-thickness"></span>
                 </label>
               </div>
@@ -188,10 +188,13 @@
                     <span class="ht-toggle__slider" aria-hidden="true"></span>
                   </label>
                 </li>
-                <li class="eco-fab-option">
+                <li class="eco-fab-option eco-fab-option--unavailable">
                   <span class="eco-fab-option__info">
                     <span class="eco-fab-option__title"><%= t.gen_fab_cnc %></span>
                     <span class="eco-fab-option__desc"><%= t.gen_fab_cnc_desc %></span>
+                    <span class="eco-fab-option__note">
+                      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> <%= t.gen_fab_dxf_note %>
+                    </span>
                   </span>
                   <label class="ht-toggle">
                     <input type="checkbox" id="eco-fab-dxf" name="fabDxf" />
