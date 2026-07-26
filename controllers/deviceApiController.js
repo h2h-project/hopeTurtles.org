@@ -6,7 +6,6 @@ import turtlesModel from '../models/turtlesModel.js';
 // any 2xx is treated as success by the firmware, and `server_now`
 // (Unix seconds) is parsed for clock-drift display.
 
-const COMMUNITY_NAME = 'Hope Turtles';
 const MAX_BATCH = 1000;
 
 const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value);
@@ -317,8 +316,17 @@ const tzOffsetMinNow = (ianaZone) => {
 
 // ------------------------------------------------------------
 // GET /api/v1/device — boot/runtime device-info lookup.
-// turtleOS accepts this flat shape; `ts` (epoch ms) and the tz offset
-// fields drive its RTC and timezone sync.
+// turtleOS accepts this flat shape; `ts` (epoch ms) and `tz_offset_min`
+// drive its RTC and timezone sync, and main.py requires `ok` truthy.
+//
+// hopeturtles fields only. The airOS-heritage keys (home_name, room_name,
+// community_name) were dropped 2026-07: airOS devices talk to
+// air2.earthen.io, never here, and those keys were a renamed hub, a
+// duplicate of mission_full_name, and a hardcoded literal. `hub_name`
+// carries the real hubs_tb value under an honest name.
+//
+// `?compact=1` is sent by the firmware and deliberately ignored — with the
+// airOS fields gone there is nothing left worth trimming.
 // ------------------------------------------------------------
 export const getDevice = async (req, res) => {
   const turtleId = req.turtle.turtle_id;
@@ -340,14 +348,12 @@ export const getDevice = async (req, res) => {
       ok: true,
       device_id: String(info.turtle_id),
       device_name: info.name ?? null,
-      home_name: info.hub_name ?? null,
-      room_name: info.mission_full_name ?? null,       // legacy alias (was mission_name)
+      hub_name: info.hub_name ?? null,
       mission_short_name: info.mission_short_name ?? null,
       mission_full_name: info.mission_full_name ?? null,
-      community_name: COMMUNITY_NAME,
+      bottle_count: Number(info.bottle_count ?? 0),
       time_zone: timeZone,
       tz_offset_min: tzOffsetMin,
-      timezone_offset_min: tzOffsetMin,
       ts: Date.now(),
       server_now: serverNow()
     });

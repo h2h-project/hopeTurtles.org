@@ -58,7 +58,9 @@ const getJwksClient = () => {
 // --------------------------------------------------------------------
 // ID Token validation
 // --------------------------------------------------------------------
-const validateIdToken = async ({ idToken, accessToken, nonce }) => {
+// Callers also pass the access token; it is not needed here because no at_hash
+// check is performed against it.
+const validateIdToken = async ({ idToken, nonce }) => {
   const decoded = jwt.decode(idToken, { complete: true });
   if (!decoded?.header?.kid) throw new Error('Unable to decode ID token header (missing kid).');
 

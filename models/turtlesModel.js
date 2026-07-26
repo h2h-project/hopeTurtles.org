@@ -193,7 +193,11 @@ turtlesModel.getDeviceInfo = async (turtleId) => {
       m.short_name AS mission_short_name,
       m.full_name  AS mission_full_name,
       h.name AS hub_name,
-      u.time_zone
+      u.time_zone,
+      -- Bottles currently assigned to this turtle. Not "aboard": bottles_tb has
+      -- no lifecycle state yet, so a recovered bottle still counts. See
+      -- docs/july_tasks.md task 1.
+      (SELECT COUNT(*) FROM bottles_tb b WHERE b.turtle_id = t.turtle_id) AS bottle_count
     FROM turtles_tb t
     LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
     LEFT JOIN hubs_tb h ON t.hub_id = h.hub_id

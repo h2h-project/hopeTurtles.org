@@ -92,13 +92,13 @@ router.get('/turtleos', (req, res) => {
 
 router.get('/ecojoiners', (req, res) => {
   res.render('ecojoiners', {
-    pageTitle: 'Turtle Ecojoiners — Hope Turtle Structure'
+    pageTitle: res.locals.t.eco_page_title
   });
 });
 
 router.get('/ecojoiners/generate', (req, res) => {
   res.render('generate', {
-    pageTitle: 'Generate Your Ecojoiner — Hope Turtle Structure'
+    pageTitle: res.locals.t.gen_page_title
   });
 });
 

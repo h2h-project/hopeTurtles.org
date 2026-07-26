@@ -136,6 +136,8 @@ export const deleteUsers = async (req, res, next) => {
         continue;
       }
 
+      // Deleted one at a time so each id gets its own deleted/skipped verdict.
+      // eslint-disable-next-line no-await-in-loop
       const removed = await usersModel.deleteUser(id);
       if (removed) {
         deleted.push(id);

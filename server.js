@@ -19,6 +19,7 @@ import deviceV1Router from './routes/api/v1/index.js';
 import authRouter from './routes/api/auth.js';
 import { loadLocales } from './utils/localization.js';
 import { isAdminRole } from './utils/roles.js';
+import { scheduleEcojoinerCleanup } from './utils/ecojoinerCleanup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -129,6 +130,16 @@ app.use((req, res, next) => {
 app.use(languageMiddleware);
 app.use(themeMiddleware);
 app.use('/fonts', express.static(path.join(__dirname, 'fonts')));
+// Generated ecojoiner exports. Mounted explicitly (ahead of the blanket public
+// mount) so downloads get their own cache policy and no directory listings.
+app.use(
+  config.ecojoiner.urlPrefix,
+  express.static(config.ecojoiner.exportsDir, {
+    maxAge: '7d',
+    index: false,
+    dotfiles: 'ignore'
+  })
+);
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/auth', authRouter);
@@ -159,6 +170,8 @@ const start = async () => {
         '   Pages that query the database will error until it is reachable.'
     );
   }
+
+  scheduleEcojoinerCleanup();
 
   app.listen(config.port, config.host, () => {
     console.log(`🌊 HopeTurtles.org landing page ready at http://127.0.0.1:${config.port}`);

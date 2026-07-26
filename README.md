@@ -30,6 +30,24 @@ The web app enables:
 
 ---
 
+## 🪵 Ecojoiner Generator
+
+`/ecojoiners/generate` turns a visitor's bottle and board measurements into Ecojoiner v3.2
+cutting files. The geometry, validation and file writing all live in
+`ecojoiner/generate_exports.py` (Python + reportlab); Node maps the form fields onto it, runs it
+with `execFile`, and serves the results from `public/ecojoiner_exports/`.
+
+One-time setup — creates `ecojoiner/.venv` and installs reportlab:
+
+```bash
+npm run ecojoiner:setup
+```
+
+Set `ECOJOINER_PYTHON` in `.env` if you would rather point at a different interpreter. Generated
+job folders are swept after `ECOJOINER_JOB_TTL_DAYS` (default 7) days.
+
+---
+
 ## 📂 Repository Structure
 
 ```

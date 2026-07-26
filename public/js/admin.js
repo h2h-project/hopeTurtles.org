@@ -104,7 +104,6 @@ adminForms.forEach((form) => {
     const feedback = form.querySelector('.form-feedback');
     const formData = new FormData(form);
     const usesMultipart = form.enctype === 'multipart/form-data';
-    const turtleNameFromForm = formData.get('name');
     let payload = null;
     let requestBody;
     let headers;

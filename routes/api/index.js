@@ -10,6 +10,7 @@ import bottlesRouter from './bottles.js';
 import myBottlesRouter from './my-bottles.js';
 import summaryRouter from './summary.js';
 import usersRouter from './users.js';
+import ecojoinerRouter from './ecojoiner.js';
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.use('/boats', boatsRouter);
 router.use('/my-bottles', myBottlesRouter);
 router.use('/bottles', bottlesRouter);
 router.use('/users', usersRouter);
+router.use('/ecojoiner', ecojoinerRouter);
 router.use('/', summaryRouter);
 
 export default router;

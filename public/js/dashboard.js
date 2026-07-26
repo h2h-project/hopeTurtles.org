@@ -41,7 +41,6 @@ if (profileEmojiPill) {
 const buildStatusChart = (ctx, stats) => {
   const labels = stats.missionsByStatus.map((row) => row.status);
   const missionData = stats.missionsByStatus.map((row) => row.total);
-  const turtleLabels = stats.turtlesByStatus.map((row) => row.status);
   const turtleData = stats.turtlesByStatus.map((row) => row.total);
 
   statusChart = new Chart(ctx, {

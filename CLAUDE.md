@@ -14,6 +14,7 @@ The **big active project** is wiring up device telemetry ingestion so that physi
 npm install          # install dependencies
 npm run dev          # development server (nodemon, auto-restart on file change)
 npm start            # production start
+npm run ecojoiner:setup  # one-time: python venv + reportlab for the Ecojoiner generator
 npm run lint         # ESLint
 npm run format       # Prettier --write
 ```
@@ -44,7 +45,13 @@ Server listens on `http://localhost:3000`. Requires a `.env` copied from `.env.e
 - `middleware/localization.js` — locale detection from cookie, falls back to `DEFAULT_LANG`.
 - `middleware/theme.js` — `light`/`dark` theme from cookie.
 
-**i18n:** Locale strings in `locales/{en,ms,id,he,ar,de,zh}.json`. Set via `POST /language`.
+**i18n:** Locale strings in `locales/{en,ms,id,he,ar,de,zh,tr}.json`. Set via `POST /language`.
+Views read them as `t.some_key` (`res.locals.t`, set by `middleware/localization.js`).
+`getTranslations()` layers the chosen language over English, so a key that exists only in
+`en.json` renders its English wording rather than `undefined` — add new copy to `en.json` first,
+then translate. Client-side strings follow the same source of truth: the view serializes the
+relevant keys into a `<script type="application/json">` block that the page script reads (see
+`#eco-i18n` in `views/generate.ejs`).
 
 **File uploads:** Multer → `public/uploads/`. Profile pictures use `multer.diskStorage`.
 
@@ -191,9 +198,28 @@ Following the turtleAPI pattern:
 - On the device, set `api_base` in `config.json` to `https://hopeturtles.org`.
 - The telemetry client auto-resolves the endpoint to `/api/v1/telemetry`.
 
+### Reference: turtleOS firmware (the client)
+
+The turtleOS firmware lives at **`~/PycharmProjects/turtleOS`** on this machine. Live
+source is `device/`; `.tmp_xiao_sync/stage/` is a build staging copy — edit `device/`.
+
+Files that consume this server's device API:
+- `device/src/ui/flows.py` — `_fetch_device_info()` + `_normalize()`; `_DEVICE_PATH_TURTLE`
+  holds the URL. In `turtle_mode` the normalizer returns early after `device_name` and
+  `mission_full_name` and never parses home/room/community.
+- `device/src/ui/screens/device.py` — renders Name / Mission / ID in turtle mode.
+- `device/src/ui/screens/time.py` — RTC + timezone sync; reads `ts` (epoch **ms**) and
+  `timezone_offset_min`, falling back to `tz_offset_min`.
+- `device/main.py` — boot-time API lookup; requires `ok` to be truthy.
+
+All four read fields with `.get()` and `or ""` defaults, so **missing keys are safe** —
+absent fields degrade to blank, never a KeyError. `ok`, `ts` and a tz-offset field are the
+only ones anything actually depends on.
+
 ### Reference: turtleAPI implementation
 
-The turtleAPI project (`../turtleAPI/src/`) is the exact system to mirror:
+The turtleAPI project (`../turtleAPI/src/`, not checked out on this machine) is the
+system the telemetry endpoints were mirrored from:
 - `src/middleware/deviceAuth.js` — device auth middleware
 - `src/routes/v1/telemetry.js` — ingestion endpoint with all filtering/validation logic
 - `src/utils/crypto.js` — `sha256Hex(str)` helper
@@ -203,6 +229,39 @@ The key differences for hopeTurtles.org:
 - Device keys map to `turtle_id` (not `home_id`/`room_id` as in turtleAPI)
 - `telemetry_tb` already exists but may need a `UNIQUE KEY` on `(turtle_id, timestamp)` to handle duplicates
 - The response shape uses `{ success: true }` not `{ ok: true }` in most existing routes — use `{ ok: true, server_now: N }` for the telemetry endpoint specifically since turtleOS parses `ok` and `server_now` by name
+
+---
+
+## Ecojoiner Generator
+
+`/ecojoiners/generate` produces Ecojoiner **v3.2** carpentry files from a visitor's bottle and
+board measurements. Run `npm run ecojoiner:setup` once — it creates `ecojoiner/.venv` with
+reportlab (system python3 is PEP-668 externally-managed, so a global `pip install` will not work).
+
+**All geometry, ranges and file writing live in `ecojoiner/generate_exports.py`.** It is the single
+source of truth: `validate_inputs()` owns every dimensional rule, `derive_dimensions()` owns the
+formulas, `PART_QUANTITIES` owns the v3.2 part list (Long John ×6, Little John ×5, Master John ×1,
+Final Key ×4, Presser ×12 — Saddlers were removed in v3.2). Do **not** re-encode those numbers in
+JS; extend the Python script instead.
+
+Flow:
+
+| Piece | Role |
+|---|---|
+| `public/js/ecojoiner-generate.js` | inline field validation, then POST validate → preview → POST generate → downloads |
+| `routes/api/ecojoiner.js` | `POST /api/ecojoiner/validate` (dry run) and `/generate`, both rate-limited via `middleware/rateLimit.js` |
+| `controllers/ecojoinerController.js` | thin wrapper; validation failures answer `422` with `errors[]` |
+| `utils/ecojoinerGenerator.js` | form→script field mapping, `execFile` invocation, path containment |
+| `utils/ecojoinerCleanup.js` | deletes job folders older than `ECOJOINER_JOB_TTL_DAYS` |
+
+Field mapping worth remembering: the form's **volume is in millilitres** and is divided by 1000;
+bottle **diameter** becomes `port_height`; the **top tapper** becomes `taper_height` (port length =
+taper + allowance); the DXF checkbox yields the `.scad` plus a notice, since DXF/STL still need the
+OpenSCAD CLI.
+
+Safety rules: user values are passed only inside a temp JSON file (`--json`), never as argv, and
+never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at
+`/ecojoiner_exports`); the trusted `ecojoiner/` source directory is never a write target.
 
 ## Environment Variables
 
@@ -224,4 +283,7 @@ MAPBOX_TOKEN=
 DEFAULT_THEME=light
 DEFAULT_LANG=en
 SUPPORTED_LANGS=en,ms,id,he,ar,de,zh
+ECOJOINER_PYTHON=          # optional; defaults to ecojoiner/.venv/bin/python3
+ECOJOINER_JOB_TTL_DAYS=7
+ECOJOINER_TIMEOUT_MS=30000
 ```

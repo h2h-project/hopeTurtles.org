@@ -1,6 +1,20 @@
 import dotenv from 'dotenv';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 dotenv.config();
+
+const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+// The Ecojoiner generator runs on Python. Prefer an explicit interpreter, then
+// the project venv created by `npm run ecojoiner:setup`, then whatever python3
+// is on PATH (which only works if reportlab happens to be installed globally).
+const resolveEcojoinerPython = () => {
+  if (process.env.ECOJOINER_PYTHON) return process.env.ECOJOINER_PYTHON;
+  const venvPython = path.join(rootDir, 'ecojoiner', '.venv', 'bin', 'python3');
+  return fs.existsSync(venvPython) ? venvPython : 'python3';
+};
 
 const requiredVariables = [
   'DB_HOST',
@@ -92,6 +106,17 @@ export const config = {
     )
       .split(',')
       .map((code) => code.trim())
+  },
+  ecojoiner: {
+    rootDir,
+    python: resolveEcojoinerPython(),
+    script: path.join(rootDir, 'ecojoiner', 'generate_exports.py'),
+    fontDir: path.join(rootDir, 'fonts'),
+    exportsDir: path.join(rootDir, 'public', 'ecojoiner_exports'),
+    urlPrefix: '/ecojoiner_exports',
+    // Generated job folders are swept after this many days.
+    jobTtlDays: Number(process.env.ECOJOINER_JOB_TTL_DAYS || 7),
+    timeoutMs: Number(process.env.ECOJOINER_TIMEOUT_MS || 30000)
   },
   integrations: {
     mapboxToken: process.env.MAPBOX_TOKEN || '',
