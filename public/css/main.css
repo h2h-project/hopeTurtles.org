@@ -4663,6 +4663,10 @@ label.ht-toggle {
   flex-shrink: 0;
 }
 
+.eco-panel__body > .eco-dev-notice {
+  margin-top: 1.25rem;
+}
+
 .eco-generate {
   display: flex;
   flex-direction: column;

@@ -780,7 +780,7 @@ def _register_fonts(font_dir: Optional[Path] = None) -> Tuple[str, str, str]:
     return title_font or fallback, body_font or fallback, fallback
 
 
-def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offset=0, label_side="right"):
+def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offset=0, label_side="right", ext1=None, ext2=None, rotate_label=False):
     """Draw a simple dimension line with arrowheads and a label.
 
     The label's clearance from the line is computed from the label's own
@@ -788,7 +788,26 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
     line it's describing, regardless of how long the text is. `label_side`
     ("right" or "left") picks which side of a vertical line the label sits
     on, since the shape being dimensioned can be on either side of the line.
+
+    `ext1`/`ext2`, when given as (x, y) points, are the actual feature edges
+    the dimension line is measuring (the dimension line itself is often
+    offset away from the geometry for legibility). A light witness/extension
+    line is drawn from each feature edge out to the dimension line's
+    endpoint so it is unambiguous what the arrow is pointing to.
+
+    `rotate_label`, for vertical lines only, draws the label rotated 90
+    degrees and centered directly on the line instead of offset to one
+    side. Use this when the line runs through a narrow feature (like a
+    slot) with no clear space beside it for a horizontal label.
     """
+    if ext1 is not None or ext2 is not None:
+        c.setStrokeColor(colors.HexColor("#cccccc"))
+        c.setLineWidth(0.3)
+        if ext1 is not None:
+            c.line(ext1[0], ext1[1], x1, y1)
+        if ext2 is not None:
+            c.line(ext2[0], ext2[1], x2, y2)
+
     c.setStrokeColor(colors.HexColor("#777777"))
     c.setFillColor(colors.HexColor("#333333"))
     c.setLineWidth(0.5)
@@ -804,6 +823,17 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
         c.line(x2, y2, x2 - ah, y2 + ah / 2)
         c.line(x2, y2, x2 - ah, y2 - ah / 2)
         tx, ty = (x1 + x2) / 2, y1 + 5 + offset
+    elif rotate_label:
+        c.line(x1, y1, x1 + ah / 2, y1 + ah)
+        c.line(x1, y1, x1 - ah / 2, y1 + ah)
+        c.line(x2, y2, x2 + ah / 2, y2 - ah)
+        c.line(x2, y2, x2 - ah / 2, y2 - ah)
+        c.saveState()
+        c.translate((x1 + x2) / 2, (y1 + y2) / 2)
+        c.rotate(90)
+        c.drawCentredString(0, 0, text)
+        c.restoreState()
+        return
     else:
         c.line(x1, y1, x1 + ah / 2, y1 + ah)
         c.line(x1, y1, x1 - ah / 2, y1 + ah)
@@ -910,16 +940,17 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     draw_x = margin + left_pad
     right_col_x = page_w - margin - 205  # Final Key / Presser column start
 
-    content_top = page_h - 150
-    content_bottom = 60  # the footer notes have moved up next to the Derived dimensions box
+    content_top = page_h - 130
+    content_bottom = 45  # the footer notes have moved up next to the Derived dimensions box
     n_rows = 3
     row_pitch = (content_top - content_bottom) / n_rows
 
-    # Reserve space above each slat for its label + slot-width dimension line,
-    # and below each slat for the side-offset and overall-length dimension
-    # lines, so arrows never collide with the geometry or with the next row.
-    top_pad = 20
-    bottom_pad = 40
+    # Reserve space above each slat for its label, the port-length/between-
+    # notch dimension row, and the slot-width dimension line, and below each
+    # slat for the side-offset and overall-length dimension lines, so arrows
+    # never collide with the geometry, the title, or the next row's title.
+    top_pad = 44
+    bottom_pad = 55
     slat_h_budget = row_pitch - top_pad - bottom_pad
 
     available_width = right_col_x - draw_x - 20
@@ -966,17 +997,54 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.setFont(title_font, 11)
         c.drawString(x, row_top + 2, label)
 
-        # Dimension lines for slot width/depth, overall height, screw side
-        # offset, and overall length, given generous clearance from the
-        # geometry so arrowheads and text don't crowd each other.
+        # Dimension lines for port length, the gap between the two notches,
+        # slot width/depth, overall height, screw side offset, and overall
+        # length, given generous clearance from the geometry so arrowheads,
+        # witness lines, and text don't crowd each other or the title.
         slot_cx = slots[0]
-        slot_left = x + sx(slot_cx - d.slot_width / 2)
-        slot_right = x + sx(slot_cx + d.slot_width / 2)
-        _draw_dimension_line(c, slot_left, y_top + 9, slot_right, y_top + 9, f"slot {d.slot_width:g}mm", body_font, 6.5)
-        _draw_dimension_line(c, slot_right + 10, y_top, slot_right + 10, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 6.5)
-        _draw_dimension_line(c, x - 14, y, x - 14, y_top, f"{d.john_height:g}mm", body_font, 6.5, label_side="left")
-        _draw_dimension_line(c, x, y - 11, x + sx(d.screw_side_offset), y - 11, "25mm from side", body_font, 6.5)
-        _draw_dimension_line(c, x, y - 27, x + sx(d.john_length), y - 27, f"{d.john_length:g}mm", body_font, 6.5)
+        slot_left_mm = slot_cx - d.slot_width / 2
+        slot_right_mm = slot_cx + d.slot_width / 2
+        slot_left = x + sx(slot_left_mm)
+        slot_right = x + sx(slot_right_mm)
+        slot_cx_pt = x + sx(slot_cx)
+
+        # Port length: the distance from the slat's side to the start of the
+        # first notch. Between-notch span: the gap left between the two
+        # notches, which seats the bottle body (its diameter).
+        slot2_cx = slots[1]
+        slot2_left_mm = slot2_cx - d.slot_width / 2
+        port_length_mm = slot_left_mm
+        between_notches_mm = slot2_left_mm - slot_right_mm
+        slot2_left = x + sx(slot2_left_mm)
+        port_row_y = y_top + 26
+        _draw_dimension_line(
+            c, x, port_row_y, slot_left, port_row_y, f"port {port_length_mm:g}mm", body_font, 6.5,
+            ext1=(x, y_top), ext2=(slot_left, y_top),
+        )
+        _draw_dimension_line(
+            c, slot_right, port_row_y, slot2_left, port_row_y, f"{between_notches_mm:g}mm (bottle ⌀)", body_font, 6.5,
+            ext1=(slot_right, y_top), ext2=(slot2_left, y_top),
+        )
+
+        _draw_dimension_line(
+            c, slot_left, y_top + 9, slot_right, y_top + 9, f"slot {d.slot_width:g}mm", body_font, 6.5,
+            ext1=(slot_left, y_top), ext2=(slot_right, y_top),
+        )
+        _draw_dimension_line(
+            c, slot_cx_pt, y_top, slot_cx_pt, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 6.5, rotate_label=True,
+        )
+        _draw_dimension_line(
+            c, x - 14, y, x - 14, y_top, f"{d.john_height:g}mm", body_font, 6.5, label_side="left",
+            ext1=(x, y), ext2=(x, y_top),
+        )
+        _draw_dimension_line(
+            c, x, y - 11, x + sx(d.screw_side_offset), y - 11, "25mm from side", body_font, 6.5,
+            ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
+        )
+        _draw_dimension_line(
+            c, x, y - 27, x + sx(d.john_length), y - 27, f"{d.john_length:g}mm", body_font, 6.5,
+            ext1=(x, y), ext2=(x + sx(d.john_length), y),
+        )
 
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
@@ -995,8 +1063,14 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.rect(right_x, right_y + 90, d.final_key_length * fk_scale, d.final_key_width * fk_scale, fill=0, stroke=1)
-    _draw_dimension_line(c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{d.final_key_length:g}mm", body_font, 5)
-    _draw_dimension_line(c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{d.final_key_width:g}mm", body_font, 5, label_side="left")
+    _draw_dimension_line(
+        c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{d.final_key_length:g}mm", body_font, 5,
+        ext1=(right_x, right_y + 90), ext2=(right_x + d.final_key_length * fk_scale, right_y + 90),
+    )
+    _draw_dimension_line(
+        c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{d.final_key_width:g}mm", body_font, 5, label_side="left",
+        ext1=(right_x, right_y + 90), ext2=(right_x, right_y + 90 + d.final_key_width * fk_scale),
+    )
 
     # Presser top view and side/section view directly below it.
     p_top_cx = right_x + 58
@@ -1011,7 +1085,10 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setDash(2, 2)
     c.circle(p_top_cx, p_top_cy, p_r * d.presser_nut_recess_diameter / d.presser_diameter, stroke=1, fill=0)
     c.setDash()
-    _draw_dimension_line(c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{d.presser_diameter:g}mm", body_font, 5)
+    _draw_dimension_line(
+        c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{d.presser_diameter:g}mm", body_font, 5,
+        ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
+    )
     c.setFont(body_font, 6)
     c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, f"M6 through-hole: ⌀{d.presser_through_hole_diameter:g}mm")
     c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, f"nut recess: ⌀{d.presser_nut_recess_diameter:g}mm x {d.presser_nut_recess_depth:g}mm deep")
@@ -1031,8 +1108,14 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     recess_w = 28
     recess_h = side_h * d.presser_nut_recess_depth / d.presser_thickness
     c.rect(p_top_cx - recess_w / 2, side_y + side_h - recess_h, recess_w, recess_h, fill=0, stroke=1)
-    _draw_dimension_line(c, side_x + side_w + 8, side_y, side_x + side_w + 8, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5)
-    _draw_dimension_line(c, p_top_cx + recess_w / 2 + 8, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 8, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5)
+    _draw_dimension_line(
+        c, side_x + side_w + 8, side_y, side_x + side_w + 8, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5,
+        ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
+    )
+    _draw_dimension_line(
+        c, p_top_cx + recess_w / 2 + 8, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 8, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5,
+        ext1=(p_top_cx + recess_w / 2, side_y + side_h - recess_h), ext2=(p_top_cx + recess_w / 2, side_y + side_h),
+    )
 
     # Credit box.
     credit_h = 44

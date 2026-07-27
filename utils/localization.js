@@ -56,7 +56,9 @@ export const languageOptions = {
   ar: 'العربية',
   de: 'Deutsch',
   zh: '中文',
-  tr: 'Türkçe'
+  tr: 'Türkçe',
+  es: 'Español',
+  fr: 'Français'
 };
 
 export const getLanguageLabel = (lang) => languageOptions[lang] || lang;

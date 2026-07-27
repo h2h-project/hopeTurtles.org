@@ -487,7 +487,7 @@
       'eco-brand', 'eco-volume',
       'eco-diameter', 'eco-cap', 'eco-collar', 'eco-height', 'eco-top-tapper', 'eco-bottom-tapper',
       'eco-material', 'eco-thickness',
-      'eco-fabrication', 'eco-type'
+      'eco-type', 'eco-fabrication'
     ];
 
     let firstInvalid = null;

@@ -1,14 +1,6 @@
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout generate-page">
-  <div class="eco-dev-notice" role="status">
-    <i class="fa-solid fa-flask" aria-hidden="true"></i>
-    <span>
-      <strong><%= t.gen_notice_title %></strong>
-      <%= t.gen_notice_body %>
-    </span>
-  </div>
-
   <div class="generate-intro">
     <h1><%= t.gen_hero_title %></h1>
     <p><%= t.gen_hero_blurb %></p>
@@ -28,6 +20,13 @@
           <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
         </summary>
         <div class="eco-panel__body">
+          <div class="eco-dev-notice" role="status">
+            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+            <span>
+              <strong><%= t.gen_notice_title %></strong>
+              <%= t.gen_notice_body %>
+            </span>
+          </div>
           <div class="eco-panel__content">
             <div class="eco-panel__text">
               <p><%= t.gen_p1_body %></p>
@@ -148,10 +147,54 @@
         </div>
       </details>
 
-      <!-- Panel 4 — Select fabrication -->
-      <details class="eco-panel" data-panel="fabrication">
+      <!-- Panel 4 — Select ecojoiner type -->
+      <details class="eco-panel" data-panel="type">
         <summary class="eco-panel__head">
           <span class="eco-panel__step">4</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title"><%= t.gen_p5_title %></span>
+            <span class="eco-panel__desc"><%= t.gen_p5_desc %></span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content eco-panel__content--single">
+            <div class="eco-panel__text">
+              <p><%= t.gen_p5_body %></p>
+              <% const devTypes = [
+                { type: '3fc', label: t.gen_type_3fc },
+                { type: '4fc', label: t.gen_type_4fc },
+                { type: '2fc', label: t.gen_type_2fc },
+                { type: 'fin', label: t.gen_type_fin },
+                { type: 'ballast', label: t.gen_type_ballast }
+              ]; %>
+              <div class="eco-type-grid" role="radiogroup" aria-label="<%= t.gen_type_group %>">
+                <button type="button" class="eco-type-card" data-type="6fc" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/just-ecojoiner.webp" alt="<%= t.gen_type_6fc %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_6fc %></span>
+                </button>
+                <% devTypes.forEach(function (option) { %>
+                  <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
+                    <span class="eco-type-card__thumb">
+                      <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= option.label %> — <%= t.gen_type_dev_suffix %>" loading="lazy" />
+                    </span>
+                    <span class="eco-type-card__title"><%= option.label %></span>
+                  </button>
+                <% }) %>
+              </div>
+              <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
+              <span class="eco-feedback" data-for="eco-type"></span>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 5 — Select fabrication -->
+      <details class="eco-panel" data-panel="fabrication">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">5</span>
           <span class="eco-panel__heading">
             <span class="eco-panel__title"><%= t.gen_p4_title %></span>
             <span class="eco-panel__desc"><%= t.gen_p4_desc %></span>
@@ -208,50 +251,6 @@
                 </li>
               </ul>
               <span class="eco-feedback" data-for="eco-fabrication"></span>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <!-- Panel 5 — Select ecojoiner type -->
-      <details class="eco-panel" data-panel="type">
-        <summary class="eco-panel__head">
-          <span class="eco-panel__step">5</span>
-          <span class="eco-panel__heading">
-            <span class="eco-panel__title"><%= t.gen_p5_title %></span>
-            <span class="eco-panel__desc"><%= t.gen_p5_desc %></span>
-          </span>
-          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
-        </summary>
-        <div class="eco-panel__body">
-          <div class="eco-panel__content eco-panel__content--single">
-            <div class="eco-panel__text">
-              <p><%= t.gen_p5_body %></p>
-              <% const devTypes = [
-                { type: '3fc', label: t.gen_type_3fc },
-                { type: '4fc', label: t.gen_type_4fc },
-                { type: '2fc', label: t.gen_type_2fc },
-                { type: 'fin', label: t.gen_type_fin },
-                { type: 'ballast', label: t.gen_type_ballast }
-              ]; %>
-              <div class="eco-type-grid" role="radiogroup" aria-label="<%= t.gen_type_group %>">
-                <button type="button" class="eco-type-card" data-type="6fc" data-available="true" role="radio" aria-checked="false">
-                  <span class="eco-type-card__thumb">
-                    <img src="/images/ecojoiners/just-ecojoiner.webp" alt="<%= t.gen_type_6fc %>" loading="lazy" />
-                  </span>
-                  <span class="eco-type-card__title"><%= t.gen_type_6fc %></span>
-                </button>
-                <% devTypes.forEach(function (option) { %>
-                  <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
-                    <span class="eco-type-card__thumb">
-                      <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= option.label %> — <%= t.gen_type_dev_suffix %>" loading="lazy" />
-                    </span>
-                    <span class="eco-type-card__title"><%= option.label %></span>
-                  </button>
-                <% }) %>
-              </div>
-              <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
-              <span class="eco-feedback" data-for="eco-type"></span>
             </div>
           </div>
         </div>
