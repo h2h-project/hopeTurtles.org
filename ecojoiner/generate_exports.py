@@ -780,27 +780,27 @@ def _register_fonts(font_dir: Optional[Path] = None) -> Tuple[str, str, str]:
     return title_font or fallback, body_font or fallback, fallback
 
 
-def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=6, offset=0):
+def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offset=0):
     """Draw a simple dimension line with arrowheads and a label."""
     c.setStrokeColor(colors.HexColor("#777777"))
     c.setFillColor(colors.HexColor("#333333"))
-    c.setLineWidth(0.4)
+    c.setLineWidth(0.5)
     c.line(x1, y1, x2, y2)
 
     # crude arrowheads; good enough for carpenter reference PDF.
-    ah = 3
+    ah = 5
     if abs(x2 - x1) >= abs(y2 - y1):
         c.line(x1, y1, x1 + ah, y1 + ah / 2)
         c.line(x1, y1, x1 + ah, y1 - ah / 2)
         c.line(x2, y2, x2 - ah, y2 + ah / 2)
         c.line(x2, y2, x2 - ah, y2 - ah / 2)
-        tx, ty = (x1 + x2) / 2, y1 + 3 + offset
+        tx, ty = (x1 + x2) / 2, y1 + 4 + offset
     else:
         c.line(x1, y1, x1 + ah / 2, y1 + ah)
         c.line(x1, y1, x1 - ah / 2, y1 + ah)
         c.line(x2, y2, x2 + ah / 2, y2 - ah)
         c.line(x2, y2, x2 - ah / 2, y2 - ah)
-        tx, ty = x1 + 3 + offset, (y1 + y2) / 2
+        tx, ty = x1 + 4 + offset, (y1 + y2) / 2
 
     c.setFont(font, size)
     c.drawCentredString(tx, ty, text)
@@ -872,17 +872,36 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, "Input variables", input_lines, title_font, body_font)
     _rounded_rect_text(c, page_w - margin - 155, box_y - 94, 155, 76, "Derived dimensions", derived_lines, title_font, body_font)
 
-    # Main drawing area. Scale is chosen to fit Letter; the PDF is a reference,
-    # not a 1:1 tracing template. The SVG export is the 1:1 cut file.
+    # Main drawing area. Scale is chosen to fill the available Letter page
+    # space; the PDF is a reference, not a 1:1 tracing template. The SVG
+    # export is the 1:1 cut file. The three Johns share one scale (derived
+    # from the tallest constraint, vertical space) so they stay comparable,
+    # and are spread evenly through the full column height instead of being
+    # crammed into a small fixed-size block.
     draw_x = margin
-    draw_y_top = page_h - 160
-    scale = min(1.0, 480 / d.john_length, 48 / d.john_height)
+    right_col_x = page_w - margin - 205  # Final Key / Presser column start
+
+    content_top = page_h - 150
+    content_bottom = 78  # leaves room for the notes lines above the credit box
+    n_rows = 3
+    row_pitch = (content_top - content_bottom) / n_rows
+
+    # Reserve space above each slat for its label + slot-width dimension line,
+    # and below each slat for the side-offset dimension line, so arrows never
+    # collide with the geometry or with the next row.
+    top_pad = 20
+    bottom_pad = 28
+    slat_h_budget = row_pitch - top_pad - bottom_pad
+
+    available_width = right_col_x - draw_x - 20
+    scale = min(available_width / d.john_length, slat_h_budget / d.john_height)
     s = scale
 
     def sx(v): return v * s
 
-    def draw_john(label, y_top, slot_depth, slots, hole_diam):
+    def draw_john(label, row_top, slot_depth, slots, hole_diam):
         x = draw_x
+        y_top = row_top - top_pad
         y = y_top - sx(d.john_height)
         c.setStrokeColor(colors.black)
         c.setFillColor(colors.white)
@@ -896,35 +915,37 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         # Center hole.
         c.circle(x + sx(d.john_length / 2), y + sx(d.john_height / 2), sx(hole_diam / 2), stroke=1, fill=0)
         c.setFillColor(colors.HexColor("#111111"))
-        c.setFont(symbol_font, 7)
-        c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 2, f"⌀{hole_diam:g}")
+        c.setFont(symbol_font, 9)
+        c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{hole_diam:g}")
 
         # Screw pilot holes.
         for hx in (d.screw_side_offset, d.john_length - d.screw_side_offset):
             c.circle(x + sx(hx), y + sx(d.screw_y_center), sx(inputs.screw_diameter / 2), stroke=1, fill=0)
             c.setFillColor(colors.HexColor("#111111"))
-            c.setFont(symbol_font, 5.5)
-            c.drawString(x + sx(hx) + 5, y + sx(d.screw_y_center) + 2, f"M6 (⌀{inputs.screw_diameter:g}mm)")
+            c.setFont(symbol_font, 6.5)
+            c.drawString(x + sx(hx) + 7, y + sx(d.screw_y_center) + 2, f"M6 (⌀{inputs.screw_diameter:g}mm)")
 
-        # Part title inside the slat, so it stays visible even when scaled.
+        # Part title above the slat, clear of the slot/dimension line beneath it.
         c.setFillColor(colors.HexColor("#111111"))
-        c.setFont(title_font, 8.5)
-        c.drawString(x + 7, y_top - 14, label)
+        c.setFont(title_font, 11)
+        c.drawString(x, row_top + 2, label)
 
-        # Dimension lines for slot width/depth and screw side offset.
+        # Dimension lines for slot width/depth and screw side offset, given
+        # generous clearance from the geometry so arrowheads and text don't
+        # crowd each other.
         slot_cx = slots[0]
         slot_left = x + sx(slot_cx - d.slot_width / 2)
         slot_right = x + sx(slot_cx + d.slot_width / 2)
-        _draw_dimension_line(c, slot_left, y_top + 2, slot_right, y_top + 2, f"slot {d.slot_width:g}mm", body_font, 5)
-        _draw_dimension_line(c, slot_right + 5, y_top, slot_right + 5, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 5)
-        _draw_dimension_line(c, x, y - 8, x + sx(d.screw_side_offset), y - 8, "25mm from side", body_font, 5)
+        _draw_dimension_line(c, slot_left, y_top + 9, slot_right, y_top + 9, f"slot {d.slot_width:g}mm", body_font, 6.5)
+        _draw_dimension_line(c, slot_right + 10, y_top, slot_right + 10, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 6.5)
+        _draw_dimension_line(c, x, y - 11, x + sx(d.screw_side_offset), y - 11, "25mm from side", body_font, 6.5)
 
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
 
-    draw_john("Long John x 6", draw_y_top, d.standard_slot_depth, long_slots, inputs.cap_diameter)
-    draw_john("Little John x 5", draw_y_top - 88, d.standard_slot_depth, little_slots, inputs.collar_diameter)
-    draw_john("Master John x 1", draw_y_top - 176, d.master_slot_depth, little_slots, inputs.collar_diameter)
+    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter)
+    draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
+    draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 
     # Right-side parts: Final Key and Presser.
     right_x = page_w - margin - 205
