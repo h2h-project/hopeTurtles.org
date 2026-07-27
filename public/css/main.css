@@ -2371,6 +2371,16 @@ body.mobile-menu-open {
   margin: 2rem auto;
 }
 
+.dashboard {
+  background-image: url('/images/ocean_texture.webp');
+  background-repeat: repeat;
+  background-size: 480px;
+}
+
+[data-theme='dark'] .dashboard {
+  background-image: url('/images/ocean_texture_dark.webp');
+}
+
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -4603,12 +4613,34 @@ label.ht-toggle {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  background-image: url('/images/ocean_texture.webp');
+  background-repeat: repeat;
+  background-size: 480px;
 }
 
-/* Reuse the landing .hero band; image sits to the right via DOM order. */
-.generate-hero {
-  margin-bottom: 0;
-  border-radius: 0;
+[data-theme='dark'] .generate-page {
+  background-image: url('/images/ocean_texture_dark.webp');
+}
+
+.generate-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.generate-intro h1 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  color: var(--color-text);
+  line-height: 1.25;
+}
+
+.generate-intro p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--color-text-muted);
 }
 
 /* Development notice so no one fills the form expecting a download yet. */

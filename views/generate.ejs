@@ -1,22 +1,17 @@
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout generate-page">
-  <section class="hero generate-hero">
-    <div class="hero-intro">
-      <h1><%= t.gen_hero_title %></h1>
-      <p><%= t.gen_hero_blurb %></p>
-    </div>
-    <div class="hero-image">
-      <img src="/images/ecojoiner-spec-hero.webp" alt="<%= t.gen_hero_alt %>" loading="lazy" />
-    </div>
-  </section>
-
   <div class="eco-dev-notice" role="status">
     <i class="fa-solid fa-flask" aria-hidden="true"></i>
     <span>
       <strong><%= t.gen_notice_title %></strong>
       <%= t.gen_notice_body %>
     </span>
+  </div>
+
+  <div class="generate-intro">
+    <h1><%= t.gen_hero_title %></h1>
+    <p><%= t.gen_hero_blurb %></p>
   </div>
 
   <form class="eco-generate" id="eco-generate" novalidate>
