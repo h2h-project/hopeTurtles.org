@@ -4470,11 +4470,12 @@ label.ht-toggle {
 
 /* Session expired / login-again split screen */
 .session-expired {
-  flex: 1 0 auto;
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: stretch;
-  min-height: 62vh;
+  /* Leaves the top ~100px of the footer visible below the fold as a scroll cue. */
+  min-height: calc(100dvh - 5.75rem - 100px);
 }
 
 .session-expired__content {
@@ -4482,6 +4483,14 @@ label.ht-toggle {
   align-items: center;
   justify-content: center;
   padding: clamp(2rem, 6vw, 5rem);
+  background-image: url('/images/ocean_texture.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+[data-theme='dark'] .session-expired__content {
+  background-image: url('/images/ocean_texture_dark.webp');
 }
 
 .session-expired__inner {

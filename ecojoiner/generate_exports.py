@@ -780,8 +780,15 @@ def _register_fonts(font_dir: Optional[Path] = None) -> Tuple[str, str, str]:
     return title_font or fallback, body_font or fallback, fallback
 
 
-def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offset=0):
-    """Draw a simple dimension line with arrowheads and a label."""
+def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offset=0, label_side="right"):
+    """Draw a simple dimension line with arrowheads and a label.
+
+    The label's clearance from the line is computed from the label's own
+    rendered width (for vertical lines) so it never visually crosses the
+    line it's describing, regardless of how long the text is. `label_side`
+    ("right" or "left") picks which side of a vertical line the label sits
+    on, since the shape being dimensioned can be on either side of the line.
+    """
     c.setStrokeColor(colors.HexColor("#777777"))
     c.setFillColor(colors.HexColor("#333333"))
     c.setLineWidth(0.5)
@@ -789,20 +796,23 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
 
     # crude arrowheads; good enough for carpenter reference PDF.
     ah = 5
+    c.setFont(font, size)
+    text_w = c.stringWidth(text, font, size)
     if abs(x2 - x1) >= abs(y2 - y1):
         c.line(x1, y1, x1 + ah, y1 + ah / 2)
         c.line(x1, y1, x1 + ah, y1 - ah / 2)
         c.line(x2, y2, x2 - ah, y2 + ah / 2)
         c.line(x2, y2, x2 - ah, y2 - ah / 2)
-        tx, ty = (x1 + x2) / 2, y1 + 4 + offset
+        tx, ty = (x1 + x2) / 2, y1 + 5 + offset
     else:
         c.line(x1, y1, x1 + ah / 2, y1 + ah)
         c.line(x1, y1, x1 - ah / 2, y1 + ah)
         c.line(x2, y2, x2 + ah / 2, y2 - ah)
         c.line(x2, y2, x2 - ah / 2, y2 - ah)
-        tx, ty = x1 + 4 + offset, (y1 + y2) / 2
+        gap = text_w / 2 + 6 + offset
+        tx = x1 - gap if label_side == "left" else x1 + gap
+        ty = (y1 + y2) / 2 - size * 0.32
 
-    c.setFont(font, size)
     c.drawCentredString(tx, ty, text)
 
 
@@ -843,13 +853,13 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     style = ParagraphStyle(
         name="vision",
         fontName=body_font,
-        fontSize=7.2,
-        leading=9,
+        fontSize=8.64,  # 20% larger than the original 7.2pt
+        leading=10.8,
         textColor=colors.HexColor("#333333"),
     )
     p = Paragraph(html.escape(VISION_STATEMENT), style)
-    p.wrapOn(c, para_width, 45)
-    p.drawOn(c, margin, title_y - 42)
+    p.wrapOn(c, para_width, 60)
+    p.drawOn(c, margin, title_y - 48)
 
     # Input and derived boxes, kept compact.
     box_y = page_h - 92
@@ -870,7 +880,25 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         f"Presser: ⌀{d.presser_diameter:g}mm",
     ]
     _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, page_w - margin - 155, box_y - 94, 155, 76, "Derived dimensions", derived_lines, title_font, body_font)
+    derived_box_x, derived_box_y, derived_box_w = page_w - margin - 155, box_y - 94, 155
+    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, 76, "Derived dimensions", derived_lines, title_font, body_font)
+
+    # Notes, placed under the Derived dimensions box rather than at the foot
+    # of the page so the John drawings can use the full page height.
+    notes_style = ParagraphStyle(
+        name="notes",
+        fontName=body_font,
+        fontSize=6,
+        leading=7.4,
+        textColor=colors.HexColor("#333333"),
+    )
+    notes_text = (
+        "Note: This one-page PDF is a scaled carpenter reference. Use the SVG file for 1:1 digital cutting geometry. "
+        "Cut order suggestion: inner holes and slots first; outer profiles last. CNC router users may need dogbone slot reliefs."
+    )
+    notes_p = Paragraph(html.escape(notes_text), notes_style)
+    notes_p.wrapOn(c, derived_box_w, 60)
+    notes_p.drawOn(c, derived_box_x, derived_box_y - 10 - notes_p.height)
 
     # Main drawing area. Scale is chosen to fill the available Letter page
     # space; the PDF is a reference, not a 1:1 tracing template. The SVG
@@ -878,19 +906,20 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # from the tallest constraint, vertical space) so they stay comparable,
     # and are spread evenly through the full column height instead of being
     # crammed into a small fixed-size block.
-    draw_x = margin
+    left_pad = 34  # room for the overall-height dimension line to the left of each slat
+    draw_x = margin + left_pad
     right_col_x = page_w - margin - 205  # Final Key / Presser column start
 
     content_top = page_h - 150
-    content_bottom = 78  # leaves room for the notes lines above the credit box
+    content_bottom = 60  # the footer notes have moved up next to the Derived dimensions box
     n_rows = 3
     row_pitch = (content_top - content_bottom) / n_rows
 
     # Reserve space above each slat for its label + slot-width dimension line,
-    # and below each slat for the side-offset dimension line, so arrows never
-    # collide with the geometry or with the next row.
+    # and below each slat for the side-offset and overall-length dimension
+    # lines, so arrows never collide with the geometry or with the next row.
     top_pad = 20
-    bottom_pad = 28
+    bottom_pad = 40
     slat_h_budget = row_pitch - top_pad - bottom_pad
 
     available_width = right_col_x - draw_x - 20
@@ -918,27 +947,36 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.setFont(symbol_font, 9)
         c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{hole_diam:g}")
 
-        # Screw pilot holes.
-        for hx in (d.screw_side_offset, d.john_length - d.screw_side_offset):
-            c.circle(x + sx(hx), y + sx(d.screw_y_center), sx(inputs.screw_diameter / 2), stroke=1, fill=0)
+        # Screw pilot holes. The left hole's label grows rightward and the
+        # right hole's label grows leftward, back toward the hole, so
+        # neither one runs past the slat's outer edge.
+        screw_label = f"M6 (⌀{inputs.screw_diameter:g}mm)"
+        for i, hx in enumerate((d.screw_side_offset, d.john_length - d.screw_side_offset)):
+            hcx, hcy = x + sx(hx), y + sx(d.screw_y_center)
+            c.circle(hcx, hcy, sx(inputs.screw_diameter / 2), stroke=1, fill=0)
             c.setFillColor(colors.HexColor("#111111"))
             c.setFont(symbol_font, 6.5)
-            c.drawString(x + sx(hx) + 7, y + sx(d.screw_y_center) + 2, f"M6 (⌀{inputs.screw_diameter:g}mm)")
+            if i == 0:
+                c.drawString(hcx + 7, hcy + 2, screw_label)
+            else:
+                c.drawRightString(hcx - 7, hcy + 2, screw_label)
 
         # Part title above the slat, clear of the slot/dimension line beneath it.
         c.setFillColor(colors.HexColor("#111111"))
         c.setFont(title_font, 11)
         c.drawString(x, row_top + 2, label)
 
-        # Dimension lines for slot width/depth and screw side offset, given
-        # generous clearance from the geometry so arrowheads and text don't
-        # crowd each other.
+        # Dimension lines for slot width/depth, overall height, screw side
+        # offset, and overall length, given generous clearance from the
+        # geometry so arrowheads and text don't crowd each other.
         slot_cx = slots[0]
         slot_left = x + sx(slot_cx - d.slot_width / 2)
         slot_right = x + sx(slot_cx + d.slot_width / 2)
         _draw_dimension_line(c, slot_left, y_top + 9, slot_right, y_top + 9, f"slot {d.slot_width:g}mm", body_font, 6.5)
         _draw_dimension_line(c, slot_right + 10, y_top, slot_right + 10, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 6.5)
+        _draw_dimension_line(c, x - 14, y, x - 14, y_top, f"{d.john_height:g}mm", body_font, 6.5, label_side="left")
         _draw_dimension_line(c, x, y - 11, x + sx(d.screw_side_offset), y - 11, "25mm from side", body_font, 6.5)
+        _draw_dimension_line(c, x, y - 27, x + sx(d.john_length), y - 27, f"{d.john_length:g}mm", body_font, 6.5)
 
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
@@ -954,9 +992,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setFont(title_font, 9)
     c.drawString(right_x, right_y + 118, "Final Key x 4")
     fk_scale = min(1.0, 190 / d.final_key_length)
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(1)
     c.rect(right_x, right_y + 90, d.final_key_length * fk_scale, d.final_key_width * fk_scale, fill=0, stroke=1)
-    _draw_dimension_line(c, right_x, right_y + 82, right_x + d.final_key_length * fk_scale, right_y + 82, f"{d.final_key_length:g}mm", body_font, 5)
-    _draw_dimension_line(c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{d.final_key_width:g}mm", body_font, 5)
+    _draw_dimension_line(c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{d.final_key_length:g}mm", body_font, 5)
+    _draw_dimension_line(c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{d.final_key_width:g}mm", body_font, 5, label_side="left")
 
     # Presser top view and side/section view directly below it.
     p_top_cx = right_x + 58
@@ -964,6 +1004,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     p_r = 22
     c.setFont(title_font, 9)
     c.drawString(right_x, p_top_cy + 46, "Presser x 12")
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(1)
     c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
     c.circle(p_top_cx, p_top_cy, p_r * d.presser_through_hole_diameter / d.presser_diameter, stroke=1, fill=0)
     c.setDash(2, 2)
@@ -979,6 +1021,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     side_h = 22
     side_x = p_top_cx - side_w / 2
     side_y = p_top_cy - 62
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(1)
     c.rect(side_x, side_y, side_w, side_h, fill=0, stroke=1)
     # Through hole in section.
     hole_w = 9
@@ -990,12 +1034,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     _draw_dimension_line(c, side_x + side_w + 8, side_y, side_x + side_w + 8, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5)
     _draw_dimension_line(c, p_top_cx + recess_w / 2 + 8, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 8, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5)
 
-    # Notes and credit box.
-    c.setFont(body_font, 6.5)
-    c.setFillColor(colors.HexColor("#333333"))
-    c.drawString(margin, 63, "Note: This one-page PDF is a scaled carpenter reference. Use the SVG file for 1:1 digital cutting geometry.")
-    c.drawString(margin, 52, "Cut order suggestion: inner holes and slots first; outer profiles last. CNC router users may need dogbone slot reliefs.")
-
+    # Credit box.
     credit_h = 44
     c.setStrokeColor(colors.HexColor("#aaaaaa"))
     c.setFillColor(colors.HexColor("#f8f8f8"))
