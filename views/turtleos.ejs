@@ -8,15 +8,14 @@
     <img class="page-banner__bg" src="/images/help-code.webp" alt="" aria-hidden="true" />
     <div class="page-banner__inner">
       <div class="page-banner__heading">
-        <h1 class="page-banner__title">TurtleOS</h1>
+        <h1 class="page-banner__title"><%= t.turtleos_title %></h1>
         <p class="page-banner__lead">
-          Access our TurtleOS code repository. Download and flash your turtle with the latest
-          navigation system.
+          <%= t.turtleos_lead %>
         </p>
       </div>
       <div class="page-banner__actions">
         <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
-          <i class="fa-brands fa-github" aria-hidden="true"></i> View the code on GitHub
+          <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_view_code %>
         </a>
       </div>
     </div>
@@ -26,78 +25,60 @@
     <section class="page-split">
       <div class="page-split__main">
         <p>
-          Inspired by other great autonomous marine vehicle projects around the world, we've
-          developed the navigation system for the Hope Turtles from scratch to be fundamentally
-          different from “drone” technology. Traditional drone technology is all about achieving
-          great precision and control — with little thought for the ecosystems, animals, and
-          humans in the environments where they are manufactured, navigated, and discarded. This
-          is precisely why you won't find the word “drone” anywhere else on this site.
+          <%= t.turtleos_body_p1 %>
         </p>
 
-        <p class="turtleos-aside">And it's why we call our babies “turtles”!</p>
+        <p class="turtleos-aside"><%= t.turtleos_aside %></p>
 
         <p>
-          TurtleOS is the brains embedded in each one. Coded in MicroPython, we explored a whole
-          range of microprocessors and settled on developing specifically for the Xiao ESP32-S3.
-          However, we build on a hardware abstraction layer — which means you can still operate
-          and develop TurtleOS on a Raspberry Pi or an Arduino.
+          <%= t.turtleos_body_p2 %>
         </p>
 
         <p>
-          TurtleOS provides not only the navigation algorithm for the deployment of a turtle in
-          the open sea, but also the means to recover detailed sensory telemetry for testing,
-          improvement, and tracking. That said, first and foremost TurtleOS is designed to
-          navigate without an internet connection on the open seas. Using the simplest sensory
-          setup — a GPS and a gyroscope — the turtle can control its sail servo to self-navigate
-          toward a heading.
+          <%= t.turtleos_body_p3 %>
         </p>
 
         <p>
-          Unlike a drone, this simple system is not about precision. It's about arrival on coastal
-          zones within a range of plus or minus 5 kilometers. Because of this, turtles can be
-          random and powerful blessings when they arrive and are discovered by our fellow humans —
-          but they can never be precise delivery systems or weapons.
+          <%= t.turtleos_body_p4 %>
         </p>
 
-        <h2>Get going with TurtleOS</h2>
+        <h2><%= t.turtleos_get_going_title %></h2>
 
         <p>
-          To get going with TurtleOS, you can access our code on our GitHub repository.
+          <%= t.turtleos_get_going_body %>
         </p>
 
         <div class="turtleos-actions">
           <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
-            <i class="fa-brands fa-github" aria-hidden="true"></i> Open the GitHub repository
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_open_repo %>
           </a>
         </div>
 
         <p>
-          To make things easy, plug in your Xiao ESP32-S3, open a terminal, and run our installer
-          script. Already flashed? Pull the latest navigation system onto your turtle at any time
-          with the sync script — both are ready to copy in the boxes alongside.
+          <%= t.turtleos_body_p5 %>
         </p>
       </div>
 
       <aside class="page-split__aside">
         <figure class="turtleos-figure">
-          <img src="/images/circuit-dev.webp" alt="TurtleOS circuit development on the Xiao ESP32-S3" loading="lazy" />
+          <img src="/images/circuit-dev.webp" alt="<%= t.turtleos_circuit_alt %>" loading="lazy" />
         </figure>
 
-        <p class="code-copy__caption">Install TurtleOS</p>
+        <p class="code-copy__caption"><%= t.turtleos_install_caption %></p>
         <div class="code-copy" data-code-copy>
           <code class="code-copy__text"><%= installCommand %></code>
-          <button type="button" class="code-copy__button" data-copy-target aria-label="Copy install command">
+          <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_install_aria %>">
             <i class="fa-regular fa-copy" aria-hidden="true"></i>
-            <span class="code-copy__label">Copy</span>
+            <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
           </button>
         </div>
 
-        <p class="code-copy__caption">Sync to the latest TurtleOS</p>
+        <p class="code-copy__caption"><%= t.turtleos_sync_caption %></p>
         <div class="code-copy" data-code-copy>
           <code class="code-copy__text"><%= syncCommand %></code>
-          <button type="button" class="code-copy__button" data-copy-target aria-label="Copy sync command">
+          <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_sync_aria %>">
             <i class="fa-regular fa-copy" aria-hidden="true"></i>
-            <span class="code-copy__label">Copy</span>
+            <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
           </button>
         </div>
       </aside>
@@ -106,6 +87,7 @@
 </main>
 <script>
   (function () {
+    var copiedLabel = <%- JSON.stringify(t.turtleos_copied) %>;
     document.querySelectorAll('[data-code-copy]').forEach(function (box) {
       const button = box.querySelector('[data-copy-target]');
       const text = box.querySelector('.code-copy__text');
@@ -116,7 +98,7 @@
         const done = function () {
           if (!label) return;
           const original = label.textContent;
-          label.textContent = 'Copied!';
+          label.textContent = copiedLabel;
           window.setTimeout(function () {
             label.textContent = original;
           }, 1800);

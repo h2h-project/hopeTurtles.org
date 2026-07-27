@@ -12,7 +12,7 @@
       </div>
       <div class="page-banner__actions">
         <a class="button" href="/Hope_Turtle_Whitepaper--June_2026.pdf" target="_blank" rel="noopener noreferrer">
-          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Read the White Paper
+          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> <%= t.about_read_whitepaper %>
         </a>
       </div>
     </div>
@@ -21,15 +21,15 @@
   <div class="layout">
     <section class="page-split">
       <div class="page-split__main">
-        <p>The Hope Turtle Project is a regenerative, open-source humanitarian initiative that designs and deploys small solar-powered marine vessels to deliver aid across open water to people who need it most. Rather than relying on centralised logistics or political permission, the project takes a radically different approach — building a decentralised, community-powered system where anyone, anywhere in the world can take direct, meaningful action to help a fellow human being.</p>
+        <p><%= t.about_body_p1 %></p>
 
-        <p>Each Hope Turtle is a buoyant marine vessel built primarily from bamboo and repurposed bottles — materials that are widely available, inexpensive, and biodegradable. Inspired by ancestral Austronesian seafaring traditions, the design harnesses ocean currents, wind, and solar energy rather than fossil fuels. Version 1.0 is a hand-assembled structure that carries six food-filled bottles as payload. Version 2.0 integrates onboard electronics, GPS navigation, telemetry, and self-steering — enabling independent voyages across hundreds of kilometres of open sea.</p>
+        <p><%= t.about_body_p2 %></p>
 
-        <p>Supporting the physical vessels is the hopeTurtles.org human-to-human platform — a transparent, open-source web application that connects senders and recipients directly. People in need can request specific items; supporters around the world respond by packing a bottle, registering it with a unique serial number, and dispatching it. When a turtle arrives, the recipient can look up their sender and share news of its safe arrival — creating a living record of solidarity and connection.</p>
+        <p><%= t.about_body_p3 %></p>
 
-        <p>The project is grounded in Earthen ecological principles and a commitment to radical transparency and non-violence. All designs, source code, and research are publicly available. The vessels are engineered to be as organic and biodegradable as possible — so that even if a turtle ends its journey unexpectedly, it leaves behind nutrition rather than pollution. This regenerative philosophy extends to the platform, the community, and the culture of the project itself.</p>
+        <p><%= t.about_body_p4 %></p>
 
-        <p>The Hope Turtle Project is not simply a technology project — it is an invitation. An invitation to imagine and embody a world in which compassion travels freely across borders and oceans. By keeping costs low and designs open, the project is built to grow: engineers, makers, sailors, and communities everywhere are invited to build their own Hope Turtles, commission deployments, and join a growing global bale of people committed to turning concern into care. Every turtle in the water is a small, humble, powerful act of hope.</p>
+        <p><%= t.about_body_p5 %></p>
       </div>
 
       <aside class="page-split__aside">
@@ -45,9 +45,9 @@
             autoplay
             muted
             playsinline
-            aria-label="Artist rendering of a floating hope turtle"
+            aria-label="<%= t.about_video_caption %>"
           ></video>
-          <figcaption>Artist rendering of a floating hope turtle</figcaption>
+          <figcaption><%= t.about_video_caption %></figcaption>
         </figure>
         <a
           class="button ghost"

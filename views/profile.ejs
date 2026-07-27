@@ -3,8 +3,8 @@
 <main class="layout profile-page">
   <section class="page-header profile-page__header">
     <div>
-      <h1>Your profile</h1>
-      <p>Your identity on HopeTurtles.org is set from the details of your Buwana account. Manage your profile here on Hopeturtles.</p>
+      <h1><%= t.profile_title %></h1>
+      <p><%= t.profile_intro %></p>
     </div>
   </section>
 
@@ -30,8 +30,10 @@
     const lon = (b.location_long != null) ? b.location_long : profileUser.location_long;
     const continentCode = (b.continent_code || profileUser.continent_code || '').toUpperCase();
     const continentNames = {
-      AF: '🌍 Africa', AN: '🌏 Antarctica', AS: '🌏 Asia', EU: '🌍 Europe',
-      NA: '🌎 North America', SA: '🌎 South America', OC: '🌊 Oceania', AU: '🌏 Australia'
+      AF: `🌍 ${t.profile_continent_af}`, AN: `🌏 ${t.profile_continent_an}`,
+      AS: `🌏 ${t.profile_continent_as}`, EU: `🌍 ${t.profile_continent_eu}`,
+      NA: `🌎 ${t.profile_continent_na}`, SA: `🌎 ${t.profile_continent_sa}`,
+      OC: `🌊 ${t.profile_continent_oc}`, AU: `🌏 ${t.profile_continent_au}`
     };
     const continent = b.continent_name || (continentCode ? (continentNames[continentCode] || continentCode) : '—');
     const buwanaId = profileUser.buwana_id || profileUser.user_id || profileUser.id || '';
@@ -45,7 +47,7 @@
         <% const hasProfilePhoto = profileUser.profile_pic && profileUser.profile_pic !== 'null'; %>
         <div class="profile-avatar <%= hasProfilePhoto ? '' : 'profile-avatar--placeholder' %>">
           <% if (hasProfilePhoto) { %>
-            <img src="<%= profileUser.profile_pic %>" alt="Profile photo for <%= fullName %>" loading="lazy" />
+            <img src="<%= profileUser.profile_pic %>" alt="<%= t.profile_photo_alt.replace('{name}', fullName) %>" loading="lazy" />
           <% } else { %>
             <span aria-hidden="true"><%= emoji %></span>
           <% } %>
@@ -53,37 +55,37 @@
         <div>
           <h2><%= fullName %></h2>
           <p class="profile-card__meta">
-            Joined <%= profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—' %>
+            <%= t.profile_joined %> <%= profileUser.created_at ? new Date(profileUser.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' }) : '—' %>
           </p>
         </div>
       </div>
 
       <div class="profile-card__title-row">
-        <h2>HopeTurtle profile</h2>
-        <button type="button" class="button ghost small" data-edit-toggle="ht">Edit</button>
+        <h2><%= t.profile_ht_heading %></h2>
+        <button type="button" class="button ghost small" data-edit-toggle="ht"><%= t.profile_edit %></button>
       </div>
 
       <!-- VIEW MODE -->
       <dl class="profile-readonly-grid" data-view="ht">
-        <div class="readonly-field"><dt>Profile title</dt><dd><%= profileUser.team_title || '—' %></dd></div>
-        <div class="readonly-field readonly-field--wide"><dt>Profile bio</dt><dd><%= profileUser.profile_txt || '—' %></dd></div>
+        <div class="readonly-field"><dt><%= t.profile_field_title %></dt><dd><%= profileUser.team_title || '—' %></dd></div>
+        <div class="readonly-field readonly-field--wide"><dt><%= t.profile_field_bio %></dt><dd><%= profileUser.profile_txt || '—' %></dd></div>
       </dl>
 
       <!-- EDIT MODE -->
       <form class="profile-edit-form" data-edit="ht" method="POST" action="/profile" enctype="multipart/form-data" hidden>
-        <label>Profile title
-          <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="e.g. Turtle master" />
+        <label><%= t.profile_field_title %>
+          <input name="team_title" value="<%= profileUser.team_title || '' %>" placeholder="<%= t.profile_field_title_ph %>" />
         </label>
-        <label>Profile bio
-          <textarea name="profile_txt" rows="5" placeholder="Share a short update about you, your mission, or your watershed community"><%= profileUser.profile_txt || '' %></textarea>
+        <label><%= t.profile_field_bio %>
+          <textarea name="profile_txt" rows="5" placeholder="<%= t.profile_field_bio_ph %>"><%= profileUser.profile_txt || '' %></textarea>
         </label>
-        <label>Profile photo
+        <label><%= t.profile_field_photo %>
           <input type="file" name="profile_pic" accept="image/*" />
-          <span class="muted">Supported formats: JPG, PNG, or WebP.</span>
+          <span class="muted"><%= t.profile_photo_formats %></span>
         </label>
         <div class="profile-form__actions">
-          <button type="submit" class="button">Save profile</button>
-          <button type="button" class="button ghost" data-edit-cancel="ht">Cancel</button>
+          <button type="submit" class="button"><%= t.profile_save %></button>
+          <button type="button" class="button ghost" data-edit-cancel="ht"><%= t.profile_cancel %></button>
         </div>
       </form>
     </article>
@@ -93,60 +95,60 @@
       <div class="profile-card__title-row">
         <h2 class="profile-card__heading">
           <span class="profile-card__heading-emoji" aria-hidden="true"><%= emoji %></span>
-          Buwana account
+          <%= t.profile_buwana_heading %>
         </h2>
         <% if (buwanaEditable) { %>
-          <button type="button" class="button ghost small" data-edit-toggle="buwana">Edit</button>
+          <button type="button" class="button ghost small" data-edit-toggle="buwana"><%= t.profile_edit %></button>
         <% } else { %>
-          <a class="button ghost small" href="/auth/login" title="Re-authenticate to enable editing">Log in to edit</a>
+          <a class="button ghost small" href="/auth/login" title="<%= t.profile_reauth_title %>"><%= t.profile_log_in_to_edit %></a>
         <% } %>
       </div>
 
       <% if (!buwanaEditable) { %>
         <p class="form-feedback is-error profile-card__notice" role="status">
-          Buwana account couldn’t be loaded, so country, community &amp; language are blank.
-          <% if (buwanaError) { %><br><strong>Reason:</strong> <%= buwanaError %><% } %>
-          <br>Log out and back in to refresh your session, then reload this page.
+          <%= t.profile_buwana_error_notice %>
+          <% if (buwanaError) { %><br><strong><%= t.profile_buwana_error_reason %></strong> <%= buwanaError %><% } %>
+          <br><%= t.profile_buwana_error_relogin %>
         </p>
       <% } %>
 
       <!-- VIEW MODE -->
       <dl class="profile-readonly-grid" data-view="buwana">
-        <div class="readonly-field"><dt><i class="fa-solid fa-user" aria-hidden="true"></i> Name</dt><dd><%= fullName %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-envelope" aria-hidden="true"></i> Email</dt><dd><%= email %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> Location</dt><dd><%= locationFull %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-droplet" aria-hidden="true"></i> Watershed</dt><dd><%= watershed %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-crosshairs" aria-hidden="true"></i> Coordinates</dt><dd><%= (lat != null && lon != null) ? `${lat}, ${lon}` : '—' %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-people-group" aria-hidden="true"></i> Community</dt><dd><%= community %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-earth-americas" aria-hidden="true"></i> Continent</dt><dd><%= continent %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-flag" aria-hidden="true"></i> Country</dt><dd><%= country %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-language" aria-hidden="true"></i> Language</dt><dd><%= language %></dd></div>
-        <div class="readonly-field"><dt><i class="fa-solid fa-clock" aria-hidden="true"></i> Time zone</dt><dd><%= timezone %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-user" aria-hidden="true"></i> <%= t.profile_field_name %></dt><dd><%= fullName %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-envelope" aria-hidden="true"></i> <%= t.profile_field_email %></dt><dd><%= email %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-location-dot" aria-hidden="true"></i> <%= t.profile_field_location %></dt><dd><%= locationFull %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-droplet" aria-hidden="true"></i> <%= t.profile_field_watershed %></dt><dd><%= watershed %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-crosshairs" aria-hidden="true"></i> <%= t.profile_field_coordinates %></dt><dd><%= (lat != null && lon != null) ? `${lat}, ${lon}` : '—' %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-people-group" aria-hidden="true"></i> <%= t.profile_field_community %></dt><dd><%= community %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-earth-americas" aria-hidden="true"></i> <%= t.profile_field_continent %></dt><dd><%= continent %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-flag" aria-hidden="true"></i> <%= t.profile_field_country %></dt><dd><%= country %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-language" aria-hidden="true"></i> <%= t.profile_field_language %></dt><dd><%= language %></dd></div>
+        <div class="readonly-field"><dt><i class="fa-solid fa-clock" aria-hidden="true"></i> <%= t.profile_field_timezone %></dt><dd><%= timezone %></dd></div>
       </dl>
 
       <!-- EDIT MODE -->
       <% if (buwanaEditable) { %>
       <form class="profile-edit-form" data-edit="buwana" method="POST" action="/profile/buwana" hidden>
         <p class="profile-form__intro">
-          Country &amp; continent are set automatically from your location. Name, email and community stay managed by the main registry.
+          <%= t.profile_buwana_intro %>
         </p>
-        <label>Earthling emoji
+        <label><%= t.profile_field_emoji %>
           <input name="earthling_emoji" value="<%= b.earthling_emoji || '' %>" maxlength="8" />
         </label>
-        <label>Location
+        <label><%= t.profile_field_location %>
           <div class="location-input-wrap">
             <span class="loc-spinner" id="buwana-loc-spinner" hidden aria-hidden="true"></span>
             <input type="text" id="buwana-location-input" name="location_full" autocomplete="off"
-                   value="<%= b.location_full || '' %>" placeholder="Search your location…" />
+                   value="<%= b.location_full || '' %>" placeholder="<%= t.profile_location_ph %>" />
           </div>
           <div id="buwana-location-suggestions" class="location-suggestions"></div>
           <input type="hidden" id="buwana-lat" name="latitude" value="<%= (b.location_lat != null) ? b.location_lat : '' %>" />
           <input type="hidden" id="buwana-lon" name="longitude" value="<%= (b.location_long != null) ? b.location_long : '' %>" />
         </label>
-        <label>Watershed
+        <label><%= t.profile_field_watershed %>
           <input name="location_watershed" value="<%= b.location_watershed || '' %>" />
         </label>
-        <label>Preferred language
+        <label><%= t.profile_field_preferred_language %>
           <select name="language_id">
             <% (buwanaReference.languages || []).forEach((l) => { %>
               <option value="<%= l.language_id %>" <%= String(l.language_id) === String(b.language_id) ? 'selected' : '' %>>
@@ -155,7 +157,7 @@
             <% }) %>
           </select>
         </label>
-        <label>Time zone
+        <label><%= t.profile_field_timezone %>
           <select name="time_zone">
             <% Object.entries(buwanaReference.timezones || {}).forEach(([value, label]) => { %>
               <option value="<%= value %>" <%= value === b.time_zone ? 'selected' : '' %>><%= label %></option>
@@ -163,8 +165,8 @@
           </select>
         </label>
         <div class="profile-form__actions">
-          <button type="submit" class="button">Save Buwana account</button>
-          <button type="button" class="button ghost" data-edit-cancel="buwana">Cancel</button>
+          <button type="submit" class="button"><%= t.profile_save_buwana %></button>
+          <button type="button" class="button ghost" data-edit-cancel="buwana"><%= t.profile_cancel %></button>
         </div>
       </form>
       <% } %>
@@ -174,11 +176,11 @@
   <!-- Privacy -->
   <section class="form-card profile-privacy-card">
     <div class="profile-privacy__text">
-      <h2>Make this account private</h2>
-      <p>Set this account so that it is not visible publicly on hopeturtles.org.</p>
+      <h2><%= t.profile_privacy_title %></h2>
+      <p><%= t.profile_privacy_body %></p>
       <p class="privacy-status muted" id="privacy-status" role="status"></p>
     </div>
-    <label class="ht-toggle" title="Toggle public visibility">
+    <label class="ht-toggle" title="<%= t.profile_privacy_toggle_title %>">
       <input type="checkbox" id="privacy-toggle" <%= isPrivate ? 'checked' : '' %> />
       <span class="ht-toggle__slider" aria-hidden="true"></span>
     </label>
@@ -188,15 +190,23 @@
   <section class="profile-bottom-actions">
     <a class="button ghost small"
        href="https://buwana.ecobricks.org/en/edit-profile.php?app=hope_8fc3caabded4"
-       target="_blank" rel="noreferrer">Update Buwana Account</a>
+       target="_blank" rel="noreferrer"><%= t.profile_update_buwana %></a>
     <a class="button ghost small"
        href="https://buwana.ecobricks.org/en/feedback.php?app=hope_8fc3caabded4<%= buwanaId ? `&buwana=${encodeURIComponent(buwanaId)}` : '' %>"
-       target="_blank" rel="noreferrer">Bugs &amp; Support</a>
+       target="_blank" rel="noreferrer"><%= t.profile_bugs_support %></a>
   </section>
 </main>
 
 <script>
   (function () {
+    var PROFILE_STRINGS = <%- JSON.stringify({
+      searchNoMatches: t.profile_search_no_matches,
+      searchFailed: t.profile_search_failed,
+      accountPrivate: t.profile_privacy_private,
+      accountPublic: t.profile_privacy_public,
+      privacyUpdateFailed: t.profile_privacy_update_error
+    }).replace(/</g, '\\u003c') %>;
+
     // ── Per-section edit toggles ──────────────────────────────────────────
     function setMode(section, editing) {
       const view = document.querySelector('[data-view="' + section + '"]');
@@ -232,12 +242,13 @@
       async function search(q) {
         if (spinner) spinner.hidden = false;
         try {
-          const url = 'https://nominatim.openstreetmap.org/search?format=json&accept-language=en&limit=6&q=' + encodeURIComponent(q);
+          const url = 'https://nominatim.openstreetmap.org/search?format=json&accept-language=<%= lang %>&limit=6&q=' + encodeURIComponent(q);
           const res = await fetch(url);
           const data = await res.json();
           suggestions.innerHTML = '';
           if (!Array.isArray(data) || data.length === 0) {
-            suggestions.innerHTML = '<div class="location-suggestion-empty">No matches found.</div>';
+            suggestions.innerHTML = '<div class="location-suggestion-empty"></div>';
+            suggestions.firstChild.textContent = PROFILE_STRINGS.searchNoMatches;
             return;
           }
           data.forEach((item) => {
@@ -253,7 +264,8 @@
             suggestions.appendChild(div);
           });
         } catch (e) {
-          suggestions.innerHTML = '<div class="location-suggestion-empty">Search failed. Please try again.</div>';
+          suggestions.innerHTML = '<div class="location-suggestion-empty"></div>';
+          suggestions.firstChild.textContent = PROFILE_STRINGS.searchFailed;
         } finally {
           if (spinner) spinner.hidden = true;
         }
@@ -265,7 +277,7 @@
     if (privacyToggle) {
       const status = document.getElementById('privacy-status');
       const render = (isPrivate) => {
-        if (status) status.textContent = isPrivate ? 'Your account is private.' : 'Your account is public.';
+        if (status) status.textContent = isPrivate ? PROFILE_STRINGS.accountPrivate : PROFILE_STRINGS.accountPublic;
       };
       render(privacyToggle.checked);
       privacyToggle.addEventListener('change', async () => {
@@ -283,7 +295,7 @@
           render(data.isPrivate);
         } catch (e) {
           privacyToggle.checked = !desired; // revert on failure
-          if (status) status.textContent = 'Could not update privacy. Please try again.';
+          if (status) status.textContent = PROFILE_STRINGS.privacyUpdateFailed;
         } finally {
           privacyToggle.disabled = false;
         }

@@ -7,94 +7,98 @@
   >
     <header class="mission-dialog__header">
       <div>
-        <h2 id="manageTurtleTitle">Manage turtle</h2>
+        <h2 id="manageTurtleTitle"><%= t.turtle_dialog_title %></h2>
         <p class="panel-subtitle">
-          Update turtle details or retrieve its secret key.
+          <%= t.turtle_dialog_subtitle %>
         </p>
       </div>
-      <button type="button" class="dialog-close" data-close-manage-turtle aria-label="Close">&times;</button>
+      <button type="button" class="dialog-close" data-close-manage-turtle aria-label="<%= t.turtle_dialog_close %>">&times;</button>
     </header>
     <div class="mission-form-grid">
       <label class="full-width">
-        Turtle name
+        <%= t.turtle_dialog_name %>
         <input name="name" />
-        <span class="muted">Shown on the turtle's screen as its device name.</span>
+        <span class="muted"><%= t.turtle_dialog_name_hint %></span>
       </label>
       <label>
-        Status
+        <%= t.turtle_dialog_status %>
         <select name="status">
-          <option value="">No status</option>
+          <option value=""><%= t.turtle_dialog_no_status %></option>
           <% (turtleStatusOptions || []).forEach(function (status) { %>
             <option value="<%= status %>"><%= status %></option>
           <% }) %>
         </select>
       </label>
       <label>
-        Mission
+        <%= t.turtle_dialog_mission %>
         <select name="mission_id">
-          <option value="">No mission assigned</option>
+          <option value=""><%= t.turtle_dialog_no_mission %></option>
           <% (missions || []).forEach(function (mission) { %>
             <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
           <% }) %>
         </select>
       </label>
       <label>
-        Hub
+        <%= t.turtle_dialog_hub %>
         <select name="hub_id">
-          <option value="">No hub assigned</option>
+          <option value=""><%= t.turtle_dialog_no_hub %></option>
           <% (hubs || []).forEach(function (hub) { %>
             <option value="<%= hub.hub_id %>"><%= hub.name %></option>
           <% }) %>
         </select>
       </label>
       <label>
-        Boat
+        <%= t.turtle_dialog_boat %>
         <select name="boat_id">
-          <option value="">No boat assigned</option>
+          <option value=""><%= t.turtle_dialog_no_boat %></option>
           <% (boats || []).forEach(function (boat) { %>
             <option value="<%= boat.boat_id %>"><%= boat.name %></option>
           <% }) %>
         </select>
       </label>
       <label class="full-width feature-photo-field">
-        Feature photo
+        <%= t.turtle_dialog_photo %>
         <figure class="feature-photo-preview" data-feature-photo-preview hidden>
-          <img src="" alt="Current feature photo" loading="lazy" data-feature-photo-image />
-          <figcaption>Current photo</figcaption>
+          <img src="" alt="<%= t.turtle_dialog_current_photo %>" loading="lazy" data-feature-photo-image />
+          <figcaption><%= t.turtle_dialog_current_photo %></figcaption>
         </figure>
         <input type="file" name="profile_photo" accept="image/*" />
-        <span class="muted">Optional. JPG or PNG works best.</span>
+        <span class="muted"><%= t.turtle_dialog_photo_hint %></span>
       </label>
     </div>
     <section class="turtle-secret-panel" aria-live="polite">
-      <h3>Device configuration</h3>
+      <h3><%= t.turtle_dialog_device_config %></h3>
       <p class="muted">
-        These values go into the turtle's <code>config.json</code> on its turtleOS device.
+        <%- t.turtle_dialog_device_config_hint %>
       </p>
       <p class="device-id-row">
-        Device ID: <code data-managed-turtle-device-id></code>
+        <%= t.turtle_dialog_device_id %> <code data-managed-turtle-device-id></code>
       </p>
       <div class="secret-key-card" data-secret-card hidden>
         <pre class="secret-key-value" data-managed-turtle-secret></pre>
       </div>
-      <button type="button" class="button ghost" data-secret-action>View secret</button>
+      <button type="button" class="button ghost" data-secret-action><%= t.turtle_dialog_view_secret %></button>
       <p class="muted">
-        Viewing generates a new secret (device key) — re-flash the turtle's
-        <code>config.json</code> after viewing.
+        <%- t.turtle_dialog_secret_hint %>
       </p>
       <div class="device-config-snippet" data-device-config-block hidden>
         <pre class="secret-key-value" data-device-config-snippet></pre>
-        <button type="button" class="button ghost" data-copy-device-config>Copy config.json</button>
+        <button type="button" class="button ghost" data-copy-device-config><%= t.turtle_dialog_copy_config %></button>
       </div>
       <p class="copy-feedback muted" data-managed-secret-feedback role="status"></p>
     </section>
     <div class="mission-dialog__actions mission-dialog__actions--split">
-      <button type="button" class="button button-outline-danger" data-delete-turtle>Delete turtle</button>
+      <button type="button" class="button button-outline-danger" data-delete-turtle><%= t.turtle_dialog_delete %></button>
       <div class="mission-dialog__actions-group">
-        <button type="button" class="button ghost" data-close-manage-turtle>Cancel</button>
-        <button type="submit" class="button">Save changes</button>
+        <button type="button" class="button ghost" data-close-manage-turtle><%= t.turtle_dialog_cancel %></button>
+        <button type="submit" class="button"><%= t.turtle_dialog_save %></button>
       </div>
     </div>
     <p class="form-feedback" role="status" data-managed-turtle-feedback></p>
   </form>
 </dialog>
+<%# Strings managed-turtles.js swaps into the secret/delete buttons at runtime. %>
+<% const turtleDialogStrings = {}; %>
+<% Object.keys(t).filter((key) => key.startsWith('turtle_dialog_')).forEach((key) => { turtleDialogStrings[key] = t[key]; }); %>
+<%# `<` is escaped so a string containing markup cannot close this tag early. %>
+<script id="turtle-dialog-i18n" type="application/json"><%- JSON.stringify(turtleDialogStrings).replace(/</g, '\\u003c') %></script>

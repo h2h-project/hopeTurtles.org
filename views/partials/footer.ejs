@@ -34,14 +34,14 @@
                currentUser.name ||
                currentUser.firstName ||
                (currentUser.email ? currentUser.email.split('@')[0] : null) ||
-               'Unknown user';
+               t.footer_account_unknown_user;
              const accountRole = currentUser.role || 'user';
              const accountLastLogin = currentUser.lastLogin
                ? new Date(currentUser.lastLogin).toLocaleString('en-US', {
                    dateStyle: 'medium',
                    timeStyle: 'short'
                  })
-               : 'Never';
+               : t.footer_account_never;
         %>
           <div class="footer-account">
             <h3><%= t.footer_account || 'Account' %></h3>

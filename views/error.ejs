@@ -1,12 +1,12 @@
-<%- include('partials/header', { pageTitle: pageTitle || 'Error', theme }) %>
+<%- include('partials/header', { pageTitle: pageTitle || t.error_page_title, theme }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout">
   <section class="page-header">
-    <h1><%= pageTitle || 'Something went wrong' %></h1>
-    <p><%= message || 'An unexpected issue occurred. Please try again shortly.' %></p>
+    <h1><%= pageTitle || t.error_heading %></h1>
+    <p><%= message || t.error_message %></p>
     <% if (typeof showLoginAgain !== 'undefined' && showLoginAgain) { %>
       <div class="error-actions">
-        <a class="button" href="/auth/login">Login Again</a>
+        <a class="button" href="/auth/login"><%= t.error_login_again %></a>
       </div>
     <% } %>
   </section>

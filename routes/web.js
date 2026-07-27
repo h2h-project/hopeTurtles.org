@@ -86,7 +86,7 @@ router.get('/about', async (req, res, next) => {
 
 router.get('/turtleos', (req, res) => {
   res.render('turtleos', {
-    pageTitle: 'TurtleOS — Hope Turtle Navigation System'
+    pageTitle: res.locals.t.turtleos_page_title
   });
 });
 

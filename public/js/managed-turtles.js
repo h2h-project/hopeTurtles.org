@@ -1,4 +1,21 @@
 (function initManagedTurtles() {
+// Localized strings the secret/delete buttons swap into themselves at runtime.
+// The dialog partial injects the current language's `turtle_dialog_*` keys.
+const TURTLE_DIALOG_STRINGS = (() => {
+  const defaults = {
+    turtle_dialog_view_secret: 'View secret',
+    turtle_dialog_copy_secret: 'Copy secret',
+    turtle_dialog_loading: 'Loading…',
+    turtle_dialog_deleting: 'Deleting…'
+  };
+  const node = document.getElementById('turtle-dialog-i18n');
+  if (!node) return defaults;
+  try {
+    return Object.assign(defaults, JSON.parse(node.textContent));
+  } catch (error) {
+    return defaults;
+  }
+})();
 const manageTurtleDialog = document.getElementById('manageTurtleDialog');
 const manageTurtleForm = manageTurtleDialog
   ? manageTurtleDialog.querySelector('[data-manage-turtle-form]')
@@ -590,7 +607,7 @@ let launchWasSuccessful = false;
 const resetSecretState = () => {
   if (!secretButton) return;
   secretButton.disabled = false;
-  secretButton.textContent = 'View secret';
+  secretButton.textContent = TURTLE_DIALOG_STRINGS.turtle_dialog_view_secret;
   secretButton.dataset.action = 'view';
   if (secretCard) {
     secretCard.hidden = true;
@@ -1160,7 +1177,7 @@ const requestSecret = async () => {
 
   secretButton.disabled = true;
   const originalText = secretButton.textContent;
-  secretButton.textContent = 'Loading…';
+  secretButton.textContent = TURTLE_DIALOG_STRINGS.turtle_dialog_loading;
   secretButton.dataset.action = 'loading';
 
   try {
@@ -1186,7 +1203,7 @@ const requestSecret = async () => {
     if (secretFeedback) {
       secretFeedback.textContent = 'Secret ready to copy.';
     }
-    secretButton.textContent = 'Copy secret';
+    secretButton.textContent = TURTLE_DIALOG_STRINGS.turtle_dialog_copy_secret;
     secretButton.dataset.action = 'copy';
   } catch (error) {
     if (secretFeedback) {
@@ -1340,7 +1357,7 @@ if (deleteTurtleButton) {
     }
     const originalText = deleteTurtleButton.textContent;
     deleteTurtleButton.disabled = true;
-    deleteTurtleButton.textContent = 'Deleting…';
+    deleteTurtleButton.textContent = TURTLE_DIALOG_STRINGS.turtle_dialog_deleting;
     if (formFeedback) {
       formFeedback.textContent = 'Removing turtle…';
     }
