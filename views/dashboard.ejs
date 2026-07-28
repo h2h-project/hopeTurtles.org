@@ -1,4 +1,4 @@
-<%- include('partials/header', { pageTitle, theme, extraStyles: ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'] }) %>
+<%- include('partials/header', { pageTitle, theme, bodyClass, extraStyles: ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'] }) %>
 <%- include('partials/nav') %>
 <% const formatStatusKey = (value) => (value ? value.toLowerCase().replace(/[^a-z0-9]+/gu, '-') : ''); %>
 <% const formatTurtleStatus = (value) => {
@@ -64,7 +64,7 @@
   </section>
 <% } %>
 
-<main id="main" class="layout dashboard ocean-bg">
+<main id="main" class="layout dashboard">
   <section class="page-header dashboard-header">
     <section
       class="dashboard-alert-banner"

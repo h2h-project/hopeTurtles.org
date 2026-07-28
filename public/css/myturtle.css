@@ -355,6 +355,13 @@
   flex-direction: column;
 }
 
+/* The modal is route-only: the "Current Location" head and its mode/expand
+   buttons stay on the page and aren't needed here — hiding them lets the map
+   claim that vertical space. */
+.map-modal-body .panel-head {
+  display: none;
+}
+
 .map-modal-body .map-wrapper {
   flex: 1;
   min-height: 0;

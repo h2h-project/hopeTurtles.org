@@ -79,6 +79,7 @@ export const renderDashboard = async (req, res, next) => {
     ]);
     return res.render('dashboard', {
       pageTitle: 'Dashboard',
+      bodyClass: 'ocean-bg',
       missions,
       turtles,
       telemetry,

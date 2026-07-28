@@ -4598,29 +4598,21 @@ label.ht-toggle {
 
 /* ──────────────────────────────────────────────────────────────────────────
    Full-viewport ocean texture background (shared by .generate-page, .dashboard)
-   .layout caps its element at 1200px wide and its height is content-driven,
-   so the texture is painted on a viewport-*fixed* pseudo-element instead of
-   directly on the element: fixed positioning is pinned to the viewport, not
-   the element's box, so it can't be clipped or orphaned by later reflows
-   (e.g. web fonts swapping in) the way an absolutely-positioned/inline
-   background tied to element height could be.
+   Applied to <body> (via a `bodyClass` local rendered in partials/header.ejs)
+   rather than to the `.layout` element itself: `.layout` is capped at 1200px
+   wide and its height is content-driven, so a background painted on it (or
+   on a positioned/z-index pseudo-element scoped to it) either doesn't reach
+   the viewport edges or can be knocked out by stacking-context/reflow
+   quirks. <body> is always full viewport width and grows with the page, so
+   painting the texture there is the reliable option.
    ────────────────────────────────────────────────────────────────────────── */
-.ocean-bg {
-  position: relative;
-}
-
-.ocean-bg::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
+body.ocean-bg {
   background-image: url('/images/ocean_texture.webp');
   background-repeat: repeat;
   background-size: 480px;
-  pointer-events: none;
 }
 
-[data-theme='dark'] .ocean-bg::before {
+[data-theme='dark'] body.ocean-bg {
   background-image: url('/images/ocean_texture_dark.webp');
 }
 

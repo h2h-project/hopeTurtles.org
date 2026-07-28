@@ -43,5 +43,5 @@
       })();
     </script>
   </head>
-  <body class="app-shell">
+  <body class="app-shell<%= typeof bodyClass !== 'undefined' && bodyClass ? ' ' + bodyClass : '' %>">
     <a class="skip-link" href="#main"><%= t.skip_to_content %></a>

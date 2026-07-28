@@ -670,16 +670,18 @@
     }
   }
 
+  function setGpsMode(mode) {
+    gpsMode = mode;
+    mapSection.querySelectorAll('[data-gps-mode]').forEach((b) =>
+      b.classList.toggle('active', b.dataset.gpsMode === mode)
+    );
+    mapTitleEl.textContent = gpsMode === 'route' ? 'GPS Route' : mapTitleEl.dataset.locationLabel || 'Current Location';
+    routeSliderWrap.classList.toggle('route-slider-active', gpsMode === 'route');
+    renderMap();
+  }
+
   mapSection.querySelectorAll('[data-gps-mode]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      gpsMode = btn.dataset.gpsMode;
-      mapSection.querySelectorAll('[data-gps-mode]').forEach((b) =>
-        b.classList.toggle('active', b === btn)
-      );
-      mapTitleEl.textContent = gpsMode === 'route' ? 'GPS Route' : mapTitleEl.dataset.locationLabel || 'Current Location';
-      routeSliderWrap.classList.toggle('route-slider-active', gpsMode === 'route');
-      renderMap();
-    });
+    btn.addEventListener('click', () => setGpsMode(btn.dataset.gpsMode));
   });
 
   routeSlider.addEventListener('input', () => {
@@ -693,6 +695,8 @@
   });
 
   mapExpandBtn.addEventListener('click', () => {
+    // The modal is route-only — force route mode before it opens.
+    setGpsMode('route');
     mapModalBody.appendChild(mapSection);
     if (mapModal.showModal) mapModal.showModal();
     else mapModal.setAttribute('open', '');
