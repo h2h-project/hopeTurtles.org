@@ -1,7 +1,7 @@
 # July 2026 — Task Queue
 
 Work identified but not yet started. Each entry states the problem, why the current
-schema/code can't express it, and the shape of the fix.
+schema/code can't express it, and the shape of the fix....
 
 ---
 
