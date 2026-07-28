@@ -2371,16 +2371,6 @@ body.mobile-menu-open {
   margin: 2rem auto;
 }
 
-.dashboard {
-  background-image: url('/images/ocean_texture.webp');
-  background-repeat: repeat;
-  background-size: 480px;
-}
-
-[data-theme='dark'] .dashboard {
-  background-image: url('/images/ocean_texture_dark.webp');
-}
-
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -4607,32 +4597,40 @@ label.ht-toggle {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Ecojoiner spec generator (/ecojoiners/generate)
+   Full-viewport ocean texture background (shared by .generate-page, .dashboard)
+   .layout caps its element at 1200px wide and its height is content-driven,
+   so the texture is painted on a viewport-*fixed* pseudo-element instead of
+   directly on the element: fixed positioning is pinned to the viewport, not
+   the element's box, so it can't be clipped or orphaned by later reflows
+   (e.g. web fonts swapping in) the way an absolutely-positioned/inline
+   background tied to element height could be.
    ────────────────────────────────────────────────────────────────────────── */
-.generate-page {
+.ocean-bg {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
 }
 
-/* Full-bleed background: .layout caps this element at 1200px wide, so the
-   texture is painted on a viewport-width pseudo-element behind it instead. */
-.generate-page::before {
+.ocean-bg::before {
   content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: calc(50% - 50vw);
-  right: calc(50% - 50vw);
+  position: fixed;
+  inset: 0;
+  z-index: -1;
   background-image: url('/images/ocean_texture.webp');
   background-repeat: repeat;
   background-size: 480px;
-  z-index: -1;
+  pointer-events: none;
 }
 
-[data-theme='dark'] .generate-page::before {
+[data-theme='dark'] .ocean-bg::before {
   background-image: url('/images/ocean_texture_dark.webp');
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Ecojoiner spec generator (/ecojoiners/generate)
+   ────────────────────────────────────────────────────────────────────────── */
+.generate-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .generate-intro {

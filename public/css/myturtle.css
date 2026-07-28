@@ -343,6 +343,7 @@
   padding: 1.25rem;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
 }
 
 .map-modal-body .myturtle-panel {
