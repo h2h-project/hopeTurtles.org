@@ -949,8 +949,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # notch dimension row, and the slot-width dimension line, and below each
     # slat for the side-offset and overall-length dimension lines, so arrows
     # never collide with the geometry, the title, or the next row's title.
-    top_pad = 44
-    bottom_pad = 55
+    top_pad = 36
+    bottom_pad = 42
     slat_h_budget = row_pitch - top_pad - bottom_pad
 
     available_width = right_col_x - draw_x - 20
@@ -1053,9 +1053,12 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
     draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 
-    # Right-side parts: Final Key and Presser.
+    # Right-side parts: Final Key and Presser. Lowered from the top of their
+    # column (they used to sit right under the Derived-dimensions notes,
+    # leaving a large empty gap between them and the footer) so they split
+    # the column's leftover vertical space more evenly.
     right_x = page_w - margin - 205
-    right_y = 260
+    right_y = 170
 
     c.setFont(title_font, 9)
     c.drawString(right_x, right_y + 118, "Final Key x 4")
