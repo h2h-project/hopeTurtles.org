@@ -294,7 +294,7 @@
   "eco_alt_spec_hero": "Ecojoiner specification diagram",
   "gen_page_title": "Generate Your Ecojoiner — Hope Turtle Structure",
   "gen_hero_title": "Generate Your Ecojoiner",
-  "gen_hero_blurb": "Use our system to generate custom 2D carpentry specs and 3D CNC and printer files for your bottle.",
+  "gen_hero_blurb": "Use our system to generate custom 2D carpentry specs and 3D CNC and printer files for your bottle. This is a non-AI, 100% algorithmic generation of the ecojoiner geometry. The generated files will serve as a starting point for customizing your ecojoiners to the quirks of your bottle.",
   "gen_notice_title": "Woohoo! Our ecojoiner generator is now operational.",
   "gen_notice_body": "We're still working out the bugs, so bear with us if exports aren't quite ideal yet. 🙏",
   "gen_p1_title": "Select your bottle",

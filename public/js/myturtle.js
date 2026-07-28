@@ -510,7 +510,6 @@
 
   const mapSection = main.querySelector('#location');
   const mapTitleEl = mapSection.querySelector('[data-map-title]');
-  const mapOuter = mapSection.querySelector('.map-outer');
   const mapEl = document.getElementById('turtleRouteMap');
   const mapEmptyEl = mapSection.querySelector('[data-map-empty]');
   const mapLoadingEl = mapSection.querySelector('[data-map-loading]');
@@ -519,9 +518,13 @@
   const routeSlider = mapSection.querySelector('[data-route-slider]');
   const routeSliderValue = mapSection.querySelector('[data-route-slider-value]');
   const mapExpandBtn = mapSection.querySelector('[data-expand="map"]');
+  const mapModal = document.getElementById('mapModal');
+  const mapModalBody = mapModal.querySelector('[data-map-modal-body]');
+  const mapModalClose = mapModal.querySelector('[data-close-map-modal]');
+  const locationAnchor = document.createComment('location-anchor');
+  mapSection.parentNode.insertBefore(locationAnchor, mapSection);
 
   let gpsMode = 'location';
-  let mapExpanded = true;
   let mapObj = null;
   let locationMarker = null;
   let routeLine = null;
@@ -690,10 +693,20 @@
   });
 
   mapExpandBtn.addEventListener('click', () => {
-    mapExpanded = !mapExpanded;
-    mapExpandBtn.textContent = mapExpanded ? '⊟' : '⊞';
-    mapExpandBtn.setAttribute('aria-pressed', String(mapExpanded));
-    mapOuter.classList.toggle('map-outer--expanded', mapExpanded);
+    mapModalBody.appendChild(mapSection);
+    if (mapModal.showModal) mapModal.showModal();
+    else mapModal.setAttribute('open', '');
+    setTimeout(() => mapObj && mapObj.invalidateSize(), 260);
+  });
+
+  mapModalClose.addEventListener('click', () => mapModal.close());
+
+  mapModal.addEventListener('click', (e) => {
+    if (e.target === mapModal) mapModal.close();
+  });
+
+  mapModal.addEventListener('close', () => {
+    locationAnchor.after(mapSection);
     setTimeout(() => mapObj && mapObj.invalidateSize(), 260);
   });
 

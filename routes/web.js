@@ -98,7 +98,10 @@ router.get('/ecojoiners', (req, res) => {
 
 router.get('/ecojoiners/generate', (req, res) => {
   res.render('generate', {
-    pageTitle: res.locals.t.gen_page_title
+    pageTitle: res.locals.t.gen_page_title,
+    metaDescription:
+      'Generate the engineering files to make an ecojoiner for your choice of bottle.  Build furniture, structures or just set a turtle free.',
+    ogImage: '/images/ecojoiner-spec-hero.webp'
   });
 });
 

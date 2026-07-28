@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="HopeTurtles.org – regenerative humanitarian tracking platform for autonomous hope turtles delivering aid across ocean currents."
+      content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'HopeTurtles.org – regenerative humanitarian tracking platform for autonomous hope turtles delivering aid across ocean currents.' %>"
     />
-    <meta property="og:title" content="HopeTurtles.org" />
+    <meta property="og:title" content="<%= typeof pageTitle !== 'undefined' ? pageTitle : 'HopeTurtles.org' %>" />
     <meta
       property="og:description"
-      content="Tracking autonomous Hope Turtles as they ferry regenerative aid across the ocean."
+      content="<%= typeof metaDescription !== 'undefined' ? metaDescription : 'Tracking autonomous Hope Turtles as they ferry regenerative aid across the ocean.' %>"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://hopeturtles.org" />
-    <meta property="og:image" content="/images/social-card.svg" />
+    <meta property="og:image" content="<%= typeof ogImage !== 'undefined' ? ogImage : '/images/social-card.svg' %>" />
     <title><%= pageTitle %></title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

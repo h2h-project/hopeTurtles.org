@@ -4667,6 +4667,10 @@ label.ht-toggle {
   margin-top: 1.25rem;
 }
 
+.eco-dev-notice--top {
+  margin: 1.5rem 0 2rem;
+}
+
 .eco-generate {
   display: flex;
   flex-direction: column;

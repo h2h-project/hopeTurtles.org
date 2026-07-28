@@ -188,12 +188,12 @@
           <button class="range-btn active" type="button" data-gps-mode="location"><%= t.myturtle_mode_location || 'Location' %></button>
           <button class="range-btn" type="button" data-gps-mode="route"><%= t.myturtle_mode_route || 'Route' %></button>
         </div>
-        <button class="range-btn expand-btn" type="button" data-expand="map" aria-pressed="true" title="<%= t.myturtle_collapse || 'Collapse map' %>">⊟</button>
+        <button class="range-btn expand-btn" type="button" data-expand="map" aria-haspopup="dialog" title="<%= t.myturtle_expand || 'Expand map' %>">⛶</button>
       </div>
     </div>
 
     <div class="map-wrapper">
-      <div class="map-outer map-outer--expanded">
+      <div class="map-outer">
         <div class="map-empty muted" data-map-empty hidden></div>
         <div id="turtleRouteMap" class="map-el"></div>
       </div>
@@ -290,6 +290,12 @@
       <button type="button" class="dialog-close" data-close-packet-detail aria-label="Close">&times;</button>
     </header>
     <div class="packet-detail-body" data-packet-detail-body></div>
+  </div>
+</dialog>
+<dialog id="mapModal" class="map-modal" aria-label="<%= t.myturtle_location || 'Current Location' %>" aria-modal="true">
+  <div class="map-modal-card">
+    <button type="button" class="map-modal-close" data-close-map-modal aria-label="Close">&times;</button>
+    <div class="map-modal-body" data-map-modal-body></div>
   </div>
 </dialog>
 
