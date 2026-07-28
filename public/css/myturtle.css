@@ -340,7 +340,7 @@
 .map-modal-body {
   flex: 1;
   min-height: 0;
-  padding: 1.25rem;
+  padding: 1rem 0.5rem;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -391,6 +391,12 @@
   margin-top: 0.6rem;
 }
 
+.route-slider-head .location-meta {
+  margin-top: 0;
+  margin-left: auto;
+  text-align: right;
+}
+
 .location-coord {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -399,7 +405,7 @@
 
 .route-slider-wrap {
   margin-top: 0.75rem;
-  padding: 10px 14px;
+  padding: 7px 14px;
   border-radius: 12px;
   background: var(--color-mist, #f2f9f3);
   border: 1px solid rgba(1, 121, 25, 0.1);
