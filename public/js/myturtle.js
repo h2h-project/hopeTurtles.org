@@ -696,7 +696,9 @@
     mapModalBody.appendChild(mapSection);
     if (mapModal.showModal) mapModal.showModal();
     else mapModal.setAttribute('open', '');
-    setTimeout(() => mapObj && mapObj.invalidateSize(), 260);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => mapObj && mapObj.invalidateSize());
+    });
   });
 
   mapModalClose.addEventListener('click', () => mapModal.close());

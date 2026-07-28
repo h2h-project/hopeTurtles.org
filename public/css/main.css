@@ -4610,15 +4610,28 @@ label.ht-toggle {
    Ecojoiner spec generator (/ecojoiners/generate)
    ────────────────────────────────────────────────────────────────────────── */
 .generate-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+/* Full-bleed background: .layout caps this element at 1200px wide, so the
+   texture is painted on a viewport-width pseudo-element behind it instead. */
+.generate-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 50vw);
+  right: calc(50% - 50vw);
   background-image: url('/images/ocean_texture.webp');
   background-repeat: repeat;
   background-size: 480px;
+  z-index: -1;
 }
 
-[data-theme='dark'] .generate-page {
+[data-theme='dark'] .generate-page::before {
   background-image: url('/images/ocean_texture_dark.webp');
 }
 
