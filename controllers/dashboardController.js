@@ -1,25 +1,31 @@
-import { isAdminRole } from '../utils/roles.js';
-import missionsModel from '../models/missionsModel.js';
-import turtlesModel from '../models/turtlesModel.js';
-import telemetryModel from '../models/telemetryModel.js';
-import successModel from '../models/successModel.js';
-import alertsModel from '../models/alertsModel.js';
-import hubsModel from '../models/hubsModel.js';
-import boatsModel from '../models/boatsModel.js';
-import usersModel from '../models/usersModel.js';
-import bottlesModel from '../models/bottlesModel.js';
+import { isAdminRole } from "../utils/roles.js";
+import missionsModel from "../models/missionsModel.js";
+import turtlesModel from "../models/turtlesModel.js";
+import telemetryModel from "../models/telemetryModel.js";
+import successModel from "../models/successModel.js";
+import alertsModel from "../models/alertsModel.js";
+import hubsModel from "../models/hubsModel.js";
+import boatsModel from "../models/boatsModel.js";
+import usersModel from "../models/usersModel.js";
+import bottlesModel from "../models/bottlesModel.js";
+import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
+import ecojoinerDesignsModel from "../models/ecojoinerDesignsModel.js";
 
 export const renderDashboard = async (req, res, next) => {
   try {
     let currentUser = req.session?.user || null;
     const buwanaId = currentUser?.buwanaId ?? currentUser?.id ?? null;
 
-    const dashboardUser = buwanaId ? await usersModel.findByBuwanaId(buwanaId) : null;
+    const dashboardUser = buwanaId
+      ? await usersModel.findByBuwanaId(buwanaId)
+      : null;
 
     if (dashboardUser) {
       const firstName =
         dashboardUser.first_name ||
-        (dashboardUser.full_name ? dashboardUser.full_name.split(/\s+/u)[0] : null) ||
+        (dashboardUser.full_name
+          ? dashboardUser.full_name.split(/\s+/u)[0]
+          : null) ||
         currentUser?.firstName ||
         null;
 
@@ -31,7 +37,7 @@ export const renderDashboard = async (req, res, next) => {
         name: dashboardUser.full_name || firstName || currentUser?.name || null,
         firstName,
         lastLogin: dashboardUser.last_login || currentUser?.lastLogin || null,
-        role: dashboardUser.role
+        role: dashboardUser.role,
       };
 
       req.session.user = currentUser;
@@ -41,15 +47,27 @@ export const renderDashboard = async (req, res, next) => {
     const isAdmin = Boolean(currentUser && isAdminRole(currentUser.role));
     res.locals.isAdmin = isAdmin;
 
-    const hubsPromise = isAdmin ? hubsModel.getAllWithStats() : hubsModel.getAll();
-    const boatsPromise = isAdmin ? boatsModel.getAllWithStats() : boatsModel.getAll();
+    const hubsPromise = isAdmin
+      ? hubsModel.getAllWithStats()
+      : hubsModel.getAll();
+    const boatsPromise = isAdmin
+      ? boatsModel.getAllWithStats()
+      : boatsModel.getAll();
     const usersPromise = isAdmin ? usersModel.getAll() : Promise.resolve([]);
-    const turtleDetailsPromise = isAdmin ? turtlesModel.getAllWithRelations() : Promise.resolve([]);
+    const turtleDetailsPromise = isAdmin
+      ? turtlesModel.getAllWithRelations()
+      : Promise.resolve([]);
     const managedTurtlesPromise = buwanaId
       ? turtlesModel.getManagedWithRelations(buwanaId)
       : Promise.resolve([]);
     const userBottlesPromise = buwanaId
       ? bottlesModel.getForPackerWithDetails(buwanaId)
+      : Promise.resolve([]);
+    const ecojoinerProfilesPromise = buwanaId
+      ? ecojoinerProfilesModel.getForUser(buwanaId)
+      : Promise.resolve([]);
+    const ecojoinerDesignsPromise = buwanaId
+      ? ecojoinerDesignsModel.getForUser(buwanaId)
       : Promise.resolve([]);
 
     const [
@@ -63,7 +81,9 @@ export const renderDashboard = async (req, res, next) => {
       users,
       turtleDetails,
       managedTurtles,
-      userBottles
+      userBottles,
+      ecojoinerProfiles,
+      ecojoinerDesigns,
     ] = await Promise.all([
       missionsModel.getAllWithStats(),
       turtlesModel.getAll(),
@@ -75,11 +95,13 @@ export const renderDashboard = async (req, res, next) => {
       usersPromise,
       turtleDetailsPromise,
       managedTurtlesPromise,
-      userBottlesPromise
+      userBottlesPromise,
+      ecojoinerProfilesPromise,
+      ecojoinerDesignsPromise,
     ]);
-    return res.render('dashboard', {
-      pageTitle: 'Dashboard',
-      bodyClass: 'ocean-bg',
+    return res.render("dashboard", {
+      pageTitle: "Dashboard",
+      bodyClass: "ocean-bg",
       missions,
       turtles,
       telemetry,
@@ -91,7 +113,11 @@ export const renderDashboard = async (req, res, next) => {
       users: Array.isArray(users) ? users : [],
       turtleDetails: Array.isArray(turtleDetails) ? turtleDetails : [],
       managedTurtles: Array.isArray(managedTurtles) ? managedTurtles : [],
-      userBottles: Array.isArray(userBottles) ? userBottles : []
+      userBottles: Array.isArray(userBottles) ? userBottles : [],
+      ecojoinerProfiles: Array.isArray(ecojoinerProfiles)
+        ? ecojoinerProfiles
+        : [],
+      ecojoinerDesigns: Array.isArray(ecojoinerDesigns) ? ecojoinerDesigns : [],
     });
   } catch (error) {
     return next(error);
@@ -105,36 +131,46 @@ export const renderMyTurtle = async (req, res, next) => {
     const currentUser = req.session?.user || null;
     const isAdmin = isAdminRole(currentUser?.role);
     const managerIdRaw = currentUser?.buwanaId ?? currentUser?.id ?? null;
-    const hasManagerId = managerIdRaw !== undefined && managerIdRaw !== null && managerIdRaw !== '';
+    const hasManagerId =
+      managerIdRaw !== undefined &&
+      managerIdRaw !== null &&
+      managerIdRaw !== "";
     const turtleHasManager =
-      turtle?.turtle_manager !== undefined && turtle?.turtle_manager !== null && turtle?.turtle_manager !== '';
+      turtle?.turtle_manager !== undefined &&
+      turtle?.turtle_manager !== null &&
+      turtle?.turtle_manager !== "";
     const managesTurtle =
-      hasManagerId && turtleHasManager && String(turtle.turtle_manager) === String(managerIdRaw);
+      hasManagerId &&
+      turtleHasManager &&
+      String(turtle.turtle_manager) === String(managerIdRaw);
 
     if (!turtle || (!isAdmin && !managesTurtle)) {
-      return res.status(404).render('error', {
-        pageTitle: 'Turtle not found',
-        message: 'This turtle does not exist or is not managed by your account.'
+      return res.status(404).render("error", {
+        pageTitle: "Turtle not found",
+        message:
+          "This turtle does not exist or is not managed by your account.",
       });
     }
 
     delete turtle.secret_hash;
 
-    const latestReading = await telemetryModel.getLatestForTurtle(turtle.turtle_id);
+    const latestReading = await telemetryModel.getLatestForTurtle(
+      turtle.turtle_id,
+    );
     let latestValues = null;
     if (latestReading?.raw_data) {
       const raw =
-        typeof latestReading.raw_data === 'string'
+        typeof latestReading.raw_data === "string"
           ? JSON.parse(latestReading.raw_data)
           : latestReading.raw_data;
       latestValues = raw?.values ?? raw ?? null;
     }
 
-    return res.render('myturtle', {
+    return res.render("myturtle", {
       pageTitle: turtle.name || `Turtle #${turtle.turtle_id}`,
       turtle,
       latestReading,
-      latestValues
+      latestValues,
     });
   } catch (error) {
     return next(error);
@@ -145,7 +181,9 @@ export const renderAdmin = async (req, res, next) => {
   try {
     const sessionUser = req.session?.user || null;
     const buwanaId = sessionUser?.buwanaId ?? sessionUser?.id ?? null;
-    const dashboardUser = buwanaId ? await usersModel.findByBuwanaId(buwanaId) : null;
+    const dashboardUser = buwanaId
+      ? await usersModel.findByBuwanaId(buwanaId)
+      : null;
 
     // Keep the session role in sync with the DB so freshly-granted admin
     // rights take effect without needing to log out and back in.
@@ -161,7 +199,7 @@ export const renderAdmin = async (req, res, next) => {
       boatsResult,
       alertsResult,
       usersResult,
-      userStatsResult
+      userStatsResult,
     ] = await Promise.all([
       missionsModel.getAllWithStats(),
       turtlesModel.getAllWithRelations(),
@@ -169,18 +207,20 @@ export const renderAdmin = async (req, res, next) => {
       boatsModel.getAllWithStats(),
       alertsModel.getAll(),
       usersModel.getAll(),
-      usersModel.getDashboardStats()
+      usersModel.getDashboardStats(),
     ]);
-    return res.render('admin', {
-      pageTitle: 'Admin Tools',
+    return res.render("admin", {
+      pageTitle: "Admin Tools",
       missions: Array.isArray(missionsResult) ? missionsResult : [],
-      turtleDetails: Array.isArray(turtleDetailsResult) ? turtleDetailsResult : [],
+      turtleDetails: Array.isArray(turtleDetailsResult)
+        ? turtleDetailsResult
+        : [],
       hubs: Array.isArray(hubsResult) ? hubsResult : [],
       boats: Array.isArray(boatsResult) ? boatsResult : [],
       alerts: Array.isArray(alertsResult) ? alertsResult : [],
       users: Array.isArray(usersResult) ? usersResult : [],
       userStats: userStatsResult || null,
-      dashboardUser
+      dashboardUser,
     });
   } catch (error) {
     return next(error);
@@ -190,5 +230,5 @@ export const renderAdmin = async (req, res, next) => {
 export default {
   renderDashboard,
   renderMyTurtle,
-  renderAdmin
+  renderAdmin,
 };

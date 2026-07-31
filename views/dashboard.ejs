@@ -110,6 +110,8 @@
     </div>
   </section>
 
+  <div class="dashboard-content-grid">
+  <div class="dashboard-main-col">
   <% const myTurtles = Array.isArray(managedTurtles) ? managedTurtles : []; %>
   <% const activeHopeTurtles = myTurtles.filter(function (turtle) {
     return turtle && String(turtle.status || '').toLowerCase() !== 'lost';
@@ -341,6 +343,161 @@
       You haven't registered any bottles yet.
     </p>
   </section>
+
+  <% const myEcojoinerDesigns = Array.isArray(ecojoinerDesigns) ? ecojoinerDesigns : []; %>
+  <% const myEcojoinerProfiles = Array.isArray(ecojoinerProfiles) ? ecojoinerProfiles : []; %>
+  <section class="panel my-ecojoiner-designs-panel" id="my-ecojoiner-designs">
+    <header class="panel-header">
+      <div>
+        <h2>My Saved Ecojoiner Designs</h2>
+        <p class="panel-subtitle">Bottle profiles and generated designs you've saved.</p>
+      </div>
+      <a class="button" href="/ecojoiners/generate">+ New Design</a>
+    </header>
+    <div class="table-wrapper" data-my-ecojoiner-designs-table <%= myEcojoinerDesigns.length ? '' : 'hidden' %>>
+      <table class="bottles-table">
+        <thead>
+          <tr>
+            <th scope="col">Design</th>
+            <th scope="col">Type</th>
+            <th scope="col">Formats</th>
+            <th scope="col">Status</th>
+            <th scope="col">Visibility</th>
+            <th scope="col">Saved</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody data-my-ecojoiner-designs-body>
+          <% myEcojoinerDesigns.forEach(function (design) { %>
+            <% const snapshot = (function () {
+              try { return JSON.parse(design.profile_snapshot || '{}'); } catch { return {}; }
+            })(); %>
+            <% const formats = (function () {
+              try { return JSON.parse(design.formats || '[]'); } catch { return []; }
+            })(); %>
+            <tr
+              data-eco-design-row
+              data-design-id="<%= design.design_id %>"
+              data-visibility="<%= design.visibility %>"
+              data-share-token="<%= design.share_token || '' %>"
+            >
+              <td data-label="Design"><%= snapshot.label || snapshot.brand || 'Untitled bottle' %></td>
+              <td data-label="Type"><%= design.ecojoiner_type %></td>
+              <td data-label="Formats"><%= formats.join(', ') || '—' %></td>
+              <td data-label="Status">
+                <span class="status-pill" data-status="<%= design.status %>"><%= design.status %></span>
+              </td>
+              <td data-label="Visibility">
+                <button
+                  type="button"
+                  class="pill-button"
+                  data-toggle-eco-visibility
+                  data-design-id="<%= design.design_id %>"
+                  data-current-visibility="<%= design.visibility %>"
+                >
+                  <%= design.visibility === 'public' ? 'Public' : 'Private' %>
+                </button>
+              </td>
+              <td data-label="Saved">
+                <%= design.created_at ? new Date(design.created_at).toLocaleDateString() : '—' %>
+              </td>
+              <td data-label="Actions">
+                <% if (design.visibility === 'public' && design.share_token) { %>
+                  <button type="button" class="button ghost" data-copy-eco-share data-design-id="<%= design.design_id %>">
+                    Copy link
+                  </button>
+                <% } %>
+                <button type="button" class="button ghost" data-delete-eco-design data-design-id="<%= design.design_id %>">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p class="panel-empty" data-my-ecojoiner-designs-empty <%= myEcojoinerDesigns.length ? 'hidden' : '' %>>
+      You haven't saved any ecojoiner designs yet.
+    </p>
+
+    <% if (myEcojoinerProfiles.length) { %>
+      <h3 class="panel-subtitle">Saved bottle profiles</h3>
+      <ul class="eco-profile-list">
+        <% myEcojoinerProfiles.forEach(function (profile) { %>
+          <li>
+            <span><%= profile.label %> (<%= profile.brand %>, <%= profile.volume_ml %>ml)</span>
+            <button type="button" class="button ghost" data-delete-eco-profile data-profile-id="<%= profile.profile_id %>">
+              Delete
+            </button>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+  </div>
+
+  <aside class="dashboard-action-sidebar" aria-label="Support the mission">
+    <section class="panel dashboard-action-panel dashboard-action-panel--contribute">
+      <div class="dashboard-action-panel__icon" aria-hidden="true">
+        <i class="fa-solid fa-hand-holding-heart"></i>
+      </div>
+      <h2>Make a Contribution</h2>
+      <p class="panel-subtitle">Fuel the fleet — every contribution helps launch and maintain Hope Turtles.</p>
+      <button type="button" class="button dashboard-action-panel__button" data-open-contribute>
+        Contribute
+      </button>
+    </section>
+
+    <section class="panel dashboard-action-panel dashboard-action-panel--manifest">
+      <div class="dashboard-action-panel__icon" aria-hidden="true">
+        <i class="fa-solid fa-compass-drafting"></i>
+      </div>
+      <h2>Manifest a Turtle</h2>
+      <p class="panel-subtitle">Design and commission your own Hope Turtle, component by component.</p>
+      <a class="button dashboard-action-panel__button" href="/commission">
+        Start building
+      </a>
+    </section>
+
+    <section class="panel dashboard-action-panel dashboard-action-panel--openbooks">
+      <div class="dashboard-action-panel__icon" aria-hidden="true">
+        <i class="fa-solid fa-book-open-reader"></i>
+      </div>
+      <h2>Our OpenBooks</h2>
+      <p class="panel-subtitle">See every transaction behind the Hope Turtle Project, in the open.</p>
+      <a class="button dashboard-action-panel__button" href="/openbooks" data-openbooks-notice>
+        View OpenBooks
+      </a>
+    </section>
+  </aside>
+  </div>
+
+  <dialog id="contributeDialog" class="mission-dialog" aria-labelledby="contributeTitle">
+    <form class="form-card" data-contribute-form>
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="contributeTitle">Make a contribution</h2>
+          <p class="panel-subtitle">Choose an amount to support the Hope Turtle Project.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-contribute aria-label="Close">&times;</button>
+      </header>
+      <div class="contribute-amount-grid" role="group" aria-label="Preset contribution amounts">
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="10">$10</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="25">$25</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="50">$50</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="100">$100</button>
+      </div>
+      <label class="full-width">
+        Contribution amount (USD)
+        <input type="number" name="amount" min="1" step="1" required data-contribute-amount-input />
+      </label>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-close-contribute>Cancel</button>
+        <button type="submit" class="button">Contribute</button>
+      </div>
+      <p class="form-feedback" role="status" data-contribute-feedback hidden></p>
+    </form>
+  </dialog>
 
   <%- include('partials/manage-turtle-dialog', { turtleStatusOptions, missions, hubs, boats }) %>
 

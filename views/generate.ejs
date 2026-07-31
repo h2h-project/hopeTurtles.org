@@ -30,6 +30,14 @@
         <div class="eco-panel__body">
           <div class="eco-panel__content">
             <div class="eco-panel__text">
+              <div class="eco-fields">
+                <label class="eco-field eco-field--full">
+                  <span class="eco-field__label">Load a saved bottle profile</span>
+                  <select id="eco-profile-picker" data-eco-profile-picker>
+                    <option value="">Start a new profile</option>
+                  </select>
+                </label>
+              </div>
               <p><%= t.gen_p1_body %></p>
               <div class="eco-fields">
                 <label class="eco-field">
@@ -272,6 +280,48 @@
          the download links once the user confirms. -->
     <section class="eco-results" id="eco-results" hidden aria-live="polite" tabindex="-1"></section>
   </form>
+
+  <dialog id="ecoSaveDialog" class="mission-dialog" aria-labelledby="ecoSaveDialogTitle">
+    <form class="mission-dialog__form" data-eco-save-form enctype="multipart/form-data">
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="ecoSaveDialogTitle">Save your ecojoiner</h2>
+          <p class="panel-subtitle">Save this bottle profile and design to your dashboard.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-eco-save aria-label="Close">&times;</button>
+      </header>
+      <div class="mission-form-grid">
+        <label class="full-width" data-eco-save-new-profile-field>
+          Name this bottle profile
+          <input type="text" name="label" placeholder="e.g. Aqua 1.5L" data-eco-save-label />
+        </label>
+        <label class="full-width">
+          Photo of your bottle
+          <input type="file" name="bottle_photo" accept="image/*" />
+        </label>
+        <label class="full-width">
+          Photo of your finished ecojoiner
+          <input type="file" name="ecojoiner_photo" accept="image/*" />
+        </label>
+        <div class="eco-fab-option full-width">
+          <span class="eco-fab-option__info">
+            <span class="eco-fab-option__title">Make this design public</span>
+            <span class="eco-fab-option__desc">Public designs get a shareable link. Private designs are only visible to you.</span>
+          </span>
+          <label class="ht-toggle">
+            <input type="checkbox" data-eco-save-visibility />
+            <span class="ht-toggle__slider" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-close-eco-save>Cancel</button>
+        <button type="submit" class="button">Save</button>
+      </div>
+      <p class="form-feedback" role="status" data-eco-save-feedback hidden></p>
+      <p class="form-feedback" role="status" data-eco-save-share hidden></p>
+    </form>
+  </dialog>
 </main>
 <%# Strings the generator script paints into the page at runtime. %>
 <% const generateStrings = {}; %>

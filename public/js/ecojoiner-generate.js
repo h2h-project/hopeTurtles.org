@@ -2,7 +2,7 @@
    generate flow: POST /api/ecojoiner/validate to preview the derived
    dimensions, then POST /api/ecojoiner/generate to write the download files. */
 (function () {
-  const form = document.getElementById('eco-generate');
+  const form = document.getElementById("eco-generate");
   if (!form) return;
 
   const el = (id) => document.getElementById(id);
@@ -12,54 +12,61 @@
   // only a safety net if that block is missing.
   const STRINGS = (() => {
     const defaults = {
-      gen_fb_volume_big: "This bottle size might be too big for our generator's logic.",
-      gen_fb_volume_small: 'This may be too small for the system.',
-      gen_fb_volume_ok: 'Great — a workable bottle volume.',
+      gen_fb_volume_big:
+        "This bottle size might be too big for our generator's logic.",
+      gen_fb_volume_small: "This may be too small for the system.",
+      gen_fb_volume_ok: "Great — a workable bottle volume.",
       gen_fb_looks_wrong: "This doesn't look right.",
-      gen_fb_looks_good: 'Looks good.',
+      gen_fb_looks_good: "Looks good.",
       gen_fb_tapper_long:
         "That's a long top tapper — not an ideal bottle type. Aim for under 15%.",
-      gen_fb_tapper_tall: 'A touch tall — ideally the top tapper is under 15% of the height.',
-      gen_fb_tapper_ok: 'Nice short tapper.',
-      gen_fb_bottom_deep: "That's a deep bottom tapper — not the ideal bottle type.",
-      gen_fb_bottom_ok: 'Nice flat base.',
-      gen_fb_material_solid: 'Nice. This will last months at sea.',
+      gen_fb_tapper_tall:
+        "A touch tall — ideally the top tapper is under 15% of the height.",
+      gen_fb_tapper_ok: "Nice short tapper.",
+      gen_fb_bottom_deep:
+        "That's a deep bottom tapper — not the ideal bottle type.",
+      gen_fb_bottom_ok: "Nice flat base.",
+      gen_fb_material_solid: "Nice. This will last months at sea.",
       gen_fb_material_pallet:
-        'Great choice! Pallette wood is easy to find around the world, organic and often free! Look for boards under 1.5cm thick.',
-      gen_fb_material_proto: 'Good for prototyping. Duration at sea is weeks.',
+        "Great choice! Pallette wood is easy to find around the world, organic and often free! Look for boards under 1.5cm thick.",
+      gen_fb_material_proto: "Good for prototyping. Duration at sea is weeks.",
       gen_fb_material_plastic:
-        'Not a good choice. Plastic will degrade into microplastics and toxins in the ocean environment.',
-      gen_fb_thickness_bad: "That thickness doesn't look right — aim for 8–25mm.",
-      gen_fb_thickness_ok: 'Good thickness.',
-      gen_fb_fabrication_ok: 'Fabrication selected.',
+        "Not a good choice. Plastic will degrade into microplastics and toxins in the ocean environment.",
+      gen_fb_thickness_bad:
+        "That thickness doesn't look right — aim for 8–25mm.",
+      gen_fb_thickness_ok: "Good thickness.",
+      gen_fb_fabrication_ok: "Fabrication selected.",
       gen_alert_type_dev:
-        'This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).',
-      gen_alert_save_dev: 'Saving ecojoiners is still in development. Hold tight!',
-      gen_res_title: 'Your ecojoiner, worked out',
+        "This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).",
+      gen_alert_save_dev:
+        "Saving ecojoiners is still in development. Hold tight!",
+      gen_res_title: "Your ecojoiner, worked out",
       gen_res_lede:
-        'Ecojoiner v{version} — check these against your bottle and your board before you cut anything.',
-      gen_res_parts_title: 'Parts to cut',
-      gen_res_confirm: 'Generate my files',
-      gen_res_ready_title: 'Your ecojoiner is ready',
+        "Ecojoiner v{version} — check these against your bottle and your board before you cut anything.",
+      gen_res_parts_title: "Parts to cut",
+      gen_res_confirm: "Generate my files",
+      gen_res_ready_title: "Your ecojoiner is ready",
       gen_res_ready_lede:
-        'Print the carpenter sheet at 100% scale — the SVG cutting files are 1:1 in millimetres.',
-      gen_res_retention: 'Files are kept for 7 days — download them now and keep a copy.',
-      gen_res_working: 'Working out your cuts…',
-      gen_res_generating: 'Generating…',
-      gen_res_err_derive: 'We could not work out these measurements.',
-      gen_res_err_generate: 'We could not generate your files.',
-      gen_res_err_network: 'We could not reach the generator. Please try again.',
-      gen_dim_port_length: 'Port length',
-      gen_dim_john_length: 'John length',
-      gen_dim_john_height: 'John height',
-      gen_dim_slot_width: 'Slot width',
-      gen_dim_slot_depth_std: 'Standard slot depth',
-      gen_dim_slot_depth_master: 'Master slot depth',
-      gen_dim_final_key: 'Final Key',
-      gen_dim_presser: 'Presser diameter',
-      gen_dim_screw: 'Screw pilot hole'
+        "Print the carpenter sheet at 100% scale — the SVG cutting files are 1:1 in millimetres.",
+      gen_res_retention:
+        "Files are kept for 7 days — download them now and keep a copy.",
+      gen_res_working: "Working out your cuts…",
+      gen_res_generating: "Generating…",
+      gen_res_err_derive: "We could not work out these measurements.",
+      gen_res_err_generate: "We could not generate your files.",
+      gen_res_err_network:
+        "We could not reach the generator. Please try again.",
+      gen_dim_port_length: "Port length",
+      gen_dim_john_length: "John length",
+      gen_dim_john_height: "John height",
+      gen_dim_slot_width: "Slot width",
+      gen_dim_slot_depth_std: "Standard slot depth",
+      gen_dim_slot_depth_master: "Master slot depth",
+      gen_dim_final_key: "Final Key",
+      gen_dim_presser: "Presser diameter",
+      gen_dim_screw: "Screw pilot hole",
     };
-    const node = document.getElementById('eco-i18n');
+    const node = document.getElementById("eco-i18n");
     if (!node) return defaults;
     try {
       return Object.assign(defaults, JSON.parse(node.textContent));
@@ -68,12 +75,12 @@
     }
   })();
 
-  const s = (key) => STRINGS[key] || '';
+  const s = (key) => STRINGS[key] || "";
 
   // Read a numeric field. Returns null when empty / not a number.
   const num = (id) => {
     const node = el(id);
-    if (!node || node.value.trim() === '') return null;
+    if (!node || node.value.trim() === "") return null;
     const value = Number(node.value);
     return Number.isFinite(value) ? value : null;
   };
@@ -81,220 +88,241 @@
   const ICONS = {
     ok: '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> ',
     warn: '<i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ',
-    error: '<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> '
+    error: '<i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> ',
   };
 
   // Paint the inline feedback line beneath a field.
   const setFeedback = (key, level, msg) => {
     const node = form.querySelector(`.eco-feedback[data-for="${key}"]`);
     if (!node) return;
-    node.classList.remove('eco-feedback--ok', 'eco-feedback--warn', 'eco-feedback--error');
+    node.classList.remove(
+      "eco-feedback--ok",
+      "eco-feedback--warn",
+      "eco-feedback--error",
+    );
     if (!level || !msg) {
-      node.innerHTML = '';
+      node.innerHTML = "";
       return;
     }
     node.classList.add(`eco-feedback--${level}`);
-    node.innerHTML = (ICONS[level] || '') + msg;
+    node.innerHTML = (ICONS[level] || "") + msg;
   };
 
   // Each validator sets its own feedback and returns whether the field is
   // acceptable for generation (soft warnings still return true).
   const validators = {
-    'eco-brand': () => {
-      const node = el('eco-brand');
-      const filled = node && node.value.trim() !== '';
-      setFeedback('eco-brand', '', '');
+    "eco-brand": () => {
+      const node = el("eco-brand");
+      const filled = node && node.value.trim() !== "";
+      setFeedback("eco-brand", "", "");
       return filled;
     },
 
-    'eco-volume': () => {
-      const v = num('eco-volume');
-      if (v === null) return setFeedback('eco-volume', '', ''), false;
+    "eco-volume": () => {
+      const v = num("eco-volume");
+      if (v === null) return (setFeedback("eco-volume", "", ""), false);
       if (v > 3000) {
-        setFeedback('eco-volume', 'warn', s('gen_fb_volume_big'));
+        setFeedback("eco-volume", "warn", s("gen_fb_volume_big"));
         return false;
       }
       if (v < 500) {
-        setFeedback('eco-volume', 'warn', s('gen_fb_volume_small'));
+        setFeedback("eco-volume", "warn", s("gen_fb_volume_small"));
         return false;
       }
-      setFeedback('eco-volume', 'ok', s('gen_fb_volume_ok'));
+      setFeedback("eco-volume", "ok", s("gen_fb_volume_ok"));
       return true;
     },
 
-    'eco-diameter': () => {
-      const v = num('eco-diameter');
-      if (v === null) return setFeedback('eco-diameter', '', ''), false;
+    "eco-diameter": () => {
+      const v = num("eco-diameter");
+      if (v === null) return (setFeedback("eco-diameter", "", ""), false);
       if (v < 60 || v > 200) {
-        setFeedback('eco-diameter', 'error', s('gen_fb_looks_wrong'));
+        setFeedback("eco-diameter", "error", s("gen_fb_looks_wrong"));
         return false;
       }
-      setFeedback('eco-diameter', 'ok', s('gen_fb_looks_good'));
+      setFeedback("eco-diameter", "ok", s("gen_fb_looks_good"));
       return true;
     },
 
-    'eco-cap': () => {
-      const v = num('eco-cap');
-      if (v === null) return setFeedback('eco-cap', '', ''), false;
+    "eco-cap": () => {
+      const v = num("eco-cap");
+      if (v === null) return (setFeedback("eco-cap", "", ""), false);
       if (v < 25 || v > 40) {
-        setFeedback('eco-cap', 'error', s('gen_fb_looks_wrong'));
+        setFeedback("eco-cap", "error", s("gen_fb_looks_wrong"));
         return false;
       }
-      setFeedback('eco-cap', 'ok', s('gen_fb_looks_good'));
+      setFeedback("eco-cap", "ok", s("gen_fb_looks_good"));
       return true;
     },
 
-    'eco-collar': () => {
-      const v = num('eco-collar');
-      if (v === null) return setFeedback('eco-collar', '', ''), false;
+    "eco-collar": () => {
+      const v = num("eco-collar");
+      if (v === null) return (setFeedback("eco-collar", "", ""), false);
       if (v < 25 || v > 45) {
-        setFeedback('eco-collar', 'error', s('gen_fb_looks_wrong'));
+        setFeedback("eco-collar", "error", s("gen_fb_looks_wrong"));
         return false;
       }
-      setFeedback('eco-collar', 'ok', s('gen_fb_looks_good'));
+      setFeedback("eco-collar", "ok", s("gen_fb_looks_good"));
       return true;
     },
 
-    'eco-height': () => {
-      const v = num('eco-height');
-      if (v === null || v <= 0) return setFeedback('eco-height', '', ''), false;
-      setFeedback('eco-height', 'ok', s('gen_fb_looks_good'));
+    "eco-height": () => {
+      const v = num("eco-height");
+      if (v === null || v <= 0)
+        return (setFeedback("eco-height", "", ""), false);
+      setFeedback("eco-height", "ok", s("gen_fb_looks_good"));
       return true;
     },
 
     // Top tapper: soft warnings only. Ideal < 15% of bottle height, flag > 25%.
-    'eco-top-tapper': () => {
-      const v = num('eco-top-tapper');
-      const height = num('eco-height');
-      if (v === null) return setFeedback('eco-top-tapper', '', ''), false;
+    "eco-top-tapper": () => {
+      const v = num("eco-top-tapper");
+      const height = num("eco-height");
+      if (v === null) return (setFeedback("eco-top-tapper", "", ""), false);
       if (height && height > 0) {
         const ratio = v / height;
         if (ratio > 0.25) {
-          setFeedback('eco-top-tapper', 'warn', s('gen_fb_tapper_long'));
+          setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_long"));
           return true;
         }
         if (ratio > 0.15) {
-          setFeedback('eco-top-tapper', 'warn', s('gen_fb_tapper_tall'));
+          setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_tall"));
           return true;
         }
       }
-      setFeedback('eco-top-tapper', 'ok', s('gen_fb_tapper_ok'));
+      setFeedback("eco-top-tapper", "ok", s("gen_fb_tapper_ok"));
       return true;
     },
 
     // Bottom tapper: soft warning when over 15% of bottle height.
-    'eco-bottom-tapper': () => {
-      const v = num('eco-bottom-tapper');
-      const height = num('eco-height');
-      if (v === null) return setFeedback('eco-bottom-tapper', '', ''), false;
+    "eco-bottom-tapper": () => {
+      const v = num("eco-bottom-tapper");
+      const height = num("eco-height");
+      if (v === null) return (setFeedback("eco-bottom-tapper", "", ""), false);
       if (height && height > 0 && v / height > 0.15) {
-        setFeedback('eco-bottom-tapper', 'warn', s('gen_fb_bottom_deep'));
+        setFeedback("eco-bottom-tapper", "warn", s("gen_fb_bottom_deep"));
         return true;
       }
-      setFeedback('eco-bottom-tapper', 'ok', s('gen_fb_bottom_ok'));
+      setFeedback("eco-bottom-tapper", "ok", s("gen_fb_bottom_ok"));
       return true;
     },
 
-    'eco-material': () => {
-      const value = el('eco-material').value;
-      if (!value) return setFeedback('eco-material', '', ''), false;
-      if (value === 'solid-wood') {
-        setFeedback('eco-material', 'ok', s('gen_fb_material_solid'));
-      } else if (value === 'pallet-wood') {
-        setFeedback('eco-material', 'ok', s('gen_fb_material_pallet'));
-      } else if (value === 'plywood' || value === 'particle-board') {
-        setFeedback('eco-material', 'warn', s('gen_fb_material_proto'));
-      } else if (value === 'plastic') {
-        setFeedback('eco-material', 'error', s('gen_fb_material_plastic'));
+    "eco-material": () => {
+      const value = el("eco-material").value;
+      if (!value) return (setFeedback("eco-material", "", ""), false);
+      if (value === "solid-wood") {
+        setFeedback("eco-material", "ok", s("gen_fb_material_solid"));
+      } else if (value === "pallet-wood") {
+        setFeedback("eco-material", "ok", s("gen_fb_material_pallet"));
+      } else if (value === "plywood" || value === "particle-board") {
+        setFeedback("eco-material", "warn", s("gen_fb_material_proto"));
+      } else if (value === "plastic") {
+        setFeedback("eco-material", "error", s("gen_fb_material_plastic"));
       } else {
-        setFeedback('eco-material', '', '');
+        setFeedback("eco-material", "", "");
       }
       return true;
     },
 
     // Descriptive guidance says 8–25mm; the stated error bounds were
     // contradictory, so we hard-flag outside a permissive 4–26mm window.
-    'eco-thickness': () => {
-      const v = num('eco-thickness');
-      if (v === null) return setFeedback('eco-thickness', '', ''), false;
+    "eco-thickness": () => {
+      const v = num("eco-thickness");
+      if (v === null) return (setFeedback("eco-thickness", "", ""), false);
       if (v < 4 || v > 26) {
-        setFeedback('eco-thickness', 'error', s('gen_fb_thickness_bad'));
+        setFeedback("eco-thickness", "error", s("gen_fb_thickness_bad"));
         return false;
       }
-      setFeedback('eco-thickness', 'ok', s('gen_fb_thickness_ok'));
+      setFeedback("eco-thickness", "ok", s("gen_fb_thickness_ok"));
       return true;
     },
 
-    'eco-fabrication': () => {
+    "eco-fabrication": () => {
       const chosen =
-        el('eco-fab-carpentry').checked ||
-        el('eco-fab-3d').checked ||
-        el('eco-fab-dxf').checked ||
-        el('eco-fab-svg').checked;
-      if (!chosen) return setFeedback('eco-fabrication', '', ''), false;
-      setFeedback('eco-fabrication', 'ok', s('gen_fb_fabrication_ok'));
+        el("eco-fab-carpentry").checked ||
+        el("eco-fab-3d").checked ||
+        el("eco-fab-dxf").checked ||
+        el("eco-fab-svg").checked;
+      if (!chosen) return (setFeedback("eco-fabrication", "", ""), false);
+      setFeedback("eco-fabrication", "ok", s("gen_fb_fabrication_ok"));
       return true;
     },
 
-    'eco-type': () => {
-      const value = el('eco-type').value;
-      if (!value) return setFeedback('eco-type', '', ''), false;
-      setFeedback('eco-type', '', '');
+    "eco-type": () => {
+      const value = el("eco-type").value;
+      if (!value) return (setFeedback("eco-type", "", ""), false);
+      setFeedback("eco-type", "", "");
       return true;
-    }
+    },
   };
 
   // Run one validator by key.
   const check = (key) => (validators[key] ? validators[key]() : true);
 
   // Live feedback as the user edits.
-  form.addEventListener('input', (event) => {
+  form.addEventListener("input", (event) => {
     const key = event.target.id;
     if (validators[key]) check(key);
     // Tapper ratios depend on height, so re-run them when height changes.
-    if (key === 'eco-height') {
-      if (el('eco-top-tapper').value !== '') check('eco-top-tapper');
-      if (el('eco-bottom-tapper').value !== '') check('eco-bottom-tapper');
+    if (key === "eco-height") {
+      if (el("eco-top-tapper").value !== "") check("eco-top-tapper");
+      if (el("eco-bottom-tapper").value !== "") check("eco-bottom-tapper");
     }
   });
-  const FAB_IDS = ['eco-fab-carpentry', 'eco-fab-3d', 'eco-fab-dxf', 'eco-fab-svg'];
-  form.addEventListener('change', (event) => {
-    if (event.target.id === 'eco-material') check('eco-material');
-    if (FAB_IDS.includes(event.target.id)) check('eco-fabrication');
+  const FAB_IDS = [
+    "eco-fab-carpentry",
+    "eco-fab-3d",
+    "eco-fab-dxf",
+    "eco-fab-svg",
+  ];
+  form.addEventListener("change", (event) => {
+    if (event.target.id === "eco-material") check("eco-material");
+    if (FAB_IDS.includes(event.target.id)) check("eco-fabrication");
   });
 
   // Visual ecojoiner-type picker. Only the "Normal" card is available; the rest
   // are still in development and just alert the user when clicked.
-  const typeCards = Array.from(form.querySelectorAll('.eco-type-card'));
+  const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
   typeCards.forEach((card) => {
-    card.addEventListener('click', () => {
-      if (card.dataset.available !== 'true') {
-        window.alert(s('gen_alert_type_dev'));
+    card.addEventListener("click", () => {
+      if (card.dataset.available !== "true") {
+        window.alert(s("gen_alert_type_dev"));
         return;
       }
       typeCards.forEach((c) => {
-        c.classList.toggle('eco-type-card--selected', c === card);
-        if (c.getAttribute('role') === 'radio') c.setAttribute('aria-checked', String(c === card));
+        c.classList.toggle("eco-type-card--selected", c === card);
+        if (c.getAttribute("role") === "radio")
+          c.setAttribute("aria-checked", String(c === card));
       });
-      el('eco-type').value = card.dataset.type;
-      check('eco-type');
+      el("eco-type").value = card.dataset.type;
+      check("eco-type");
     });
   });
 
   // --- Generation flow -----------------------------------------------------
 
-  const results = el('eco-results');
-  const submitBtn = el('eco-generate-btn');
-  const submitLabel = submitBtn ? submitBtn.innerHTML : '';
+  const results = el("eco-results");
+  const submitBtn = el("eco-generate-btn");
+  const submitLabel = submitBtn ? submitBtn.innerHTML : "";
 
   const esc = (value) =>
-    String(value).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    String(value).replace(
+      /[&<>"']/g,
+      (c) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[c],
     );
 
   // Trim trailing zeros so 61.0 reads as 61mm.
   const mm = (value) =>
-    value === null || value === undefined ? '—' : `${Number(value.toFixed(2))}mm`;
+    value === null || value === undefined
+      ? "—"
+      : `${Number(value.toFixed(2))}mm`;
 
   const busy = (isBusy, label) => {
     if (!submitBtn) return;
@@ -308,13 +336,13 @@
     if (!results) return;
     results.innerHTML = html;
     results.hidden = false;
-    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    results.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
   const hideResults = () => {
     if (!results) return;
     results.hidden = true;
-    results.innerHTML = '';
+    results.innerHTML = "";
   };
 
   const renderErrors = (message, errors) =>
@@ -324,35 +352,35 @@
            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> ${esc(message)}
          </h2>
          <ul class="eco-results__errors">
-           ${(errors || []).map((e) => `<li>${esc(e)}</li>`).join('')}
+           ${(errors || []).map((e) => `<li>${esc(e)}</li>`).join("")}
          </ul>
-       </div>`
+       </div>`,
     );
 
   // Gather the whole form. Checkboxes send their checked state, not "on".
   const collect = () => ({
-    brand: el('eco-brand').value.trim(),
-    volume: el('eco-volume').value,
-    diameter: el('eco-diameter').value,
-    cap: el('eco-cap').value,
-    collar: el('eco-collar').value,
-    height: el('eco-height').value,
-    topTapper: el('eco-top-tapper').value,
-    bottomTapper: el('eco-bottom-tapper').value,
-    material: el('eco-material').value,
-    thickness: el('eco-thickness').value,
-    ecojoinerType: el('eco-type').value,
-    fabCarpentry: el('eco-fab-carpentry').checked,
-    fab3d: el('eco-fab-3d').checked,
-    fabDxf: el('eco-fab-dxf').checked,
-    fabSvg: el('eco-fab-svg').checked
+    brand: el("eco-brand").value.trim(),
+    volume: el("eco-volume").value,
+    diameter: el("eco-diameter").value,
+    cap: el("eco-cap").value,
+    collar: el("eco-collar").value,
+    height: el("eco-height").value,
+    topTapper: el("eco-top-tapper").value,
+    bottomTapper: el("eco-bottom-tapper").value,
+    material: el("eco-material").value,
+    thickness: el("eco-thickness").value,
+    ecojoinerType: el("eco-type").value,
+    fabCarpentry: el("eco-fab-carpentry").checked,
+    fab3d: el("eco-fab-3d").checked,
+    fabDxf: el("eco-fab-dxf").checked,
+    fabSvg: el("eco-fab-svg").checked,
   });
 
   const post = async (path, payload) => {
     const response = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     });
     const body = await response.json().catch(() => ({}));
     return { ok: response.ok, body };
@@ -361,57 +389,63 @@
   const renderPreview = (data) => {
     const d = data.derived || {};
     const rows = [
-      [s('gen_dim_port_length'), mm(d.port_length)],
-      [s('gen_dim_john_length'), mm(d.john_length)],
-      [s('gen_dim_john_height'), mm(d.john_height)],
-      [s('gen_dim_slot_width'), mm(d.slot_width)],
-      [s('gen_dim_slot_depth_std'), mm(d.standard_slot_depth)],
-      [s('gen_dim_slot_depth_master'), mm(d.master_slot_depth)],
-      [s('gen_dim_final_key'), `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`],
-      [s('gen_dim_presser'), mm(d.presser_diameter)],
-      [s('gen_dim_screw'), mm(d.presser_through_hole_diameter)]
+      [s("gen_dim_port_length"), mm(d.port_length)],
+      [s("gen_dim_john_length"), mm(d.john_length)],
+      [s("gen_dim_john_height"), mm(d.john_height)],
+      [s("gen_dim_slot_width"), mm(d.slot_width)],
+      [s("gen_dim_slot_depth_std"), mm(d.standard_slot_depth)],
+      [s("gen_dim_slot_depth_master"), mm(d.master_slot_depth)],
+      [
+        s("gen_dim_final_key"),
+        `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`,
+      ],
+      [s("gen_dim_presser"), mm(d.presser_diameter)],
+      [s("gen_dim_screw"), mm(d.presser_through_hole_diameter)],
     ];
 
-    const lede = s('gen_res_lede').replace('{version}', data.design_version || '3.2');
+    const lede = s("gen_res_lede").replace(
+      "{version}",
+      data.design_version || "3.2",
+    );
 
     showResults(
       `<div class="eco-results__card">
          <h2 class="eco-results__title">
            <i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>
-           ${esc(s('gen_res_title'))}
+           ${esc(s("gen_res_title"))}
          </h2>
          <p class="eco-results__lede">${esc(lede)}</p>
          <dl class="eco-results__dims">
            ${rows
              .map(
                ([label, value]) =>
-                 `<div class="eco-results__dim"><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`
+                 `<div class="eco-results__dim"><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`,
              )
-             .join('')}
+             .join("")}
          </dl>
-         <h3 class="eco-results__subtitle">${esc(s('gen_res_parts_title'))}</h3>
+         <h3 class="eco-results__subtitle">${esc(s("gen_res_parts_title"))}</h3>
          <ul class="eco-results__parts">
            ${(data.parts || [])
              .map(
                (p) =>
                  `<li><span>${esc(STRINGS[`gen_part_${p.key}`] || p.part)}</span><strong>×${esc(
-                   p.quantity
-                 )}</strong></li>`
+                   p.quantity,
+                 )}</strong></li>`,
              )
-             .join('')}
+             .join("")}
          </ul>
          <div class="eco-results__actions">
            <button type="button" class="button" id="eco-confirm">
              <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> ${esc(
-               s('gen_res_confirm')
+               s("gen_res_confirm"),
              )}
            </button>
          </div>
-       </div>`
+       </div>`,
     );
 
-    const confirm = el('eco-confirm');
-    if (confirm) confirm.addEventListener('click', () => generate(confirm));
+    const confirm = el("eco-confirm");
+    if (confirm) confirm.addEventListener("click", () => generate(confirm));
   };
 
   const renderDownloads = (data) => {
@@ -420,10 +454,10 @@
       `<div class="eco-results__card eco-results__card--done">
          <h2 class="eco-results__title">
            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> ${esc(
-             s('gen_res_ready_title')
+             s("gen_res_ready_title"),
            )}
          </h2>
-         <p class="eco-results__lede">${esc(s('gen_res_ready_lede'))}</p>
+         <p class="eco-results__lede">${esc(s("gen_res_ready_lede"))}</p>
          <ul class="eco-results__files">
            ${files
              .map(
@@ -433,34 +467,40 @@
                    <span>${esc(STRINGS[f.label_key] || f.label)}</span>
                    <i class="fa-solid fa-download" aria-hidden="true"></i>
                  </a>
-               </li>`
+               </li>`,
              )
-             .join('')}
+             .join("")}
          </ul>
          ${(data.notices || [])
            .map((n) => `<p class="eco-results__notice">${esc(n)}</p>`)
-           .join('')}
-         <p class="eco-results__notice">${esc(s('gen_res_retention'))}</p>
-       </div>`
+           .join("")}
+         <p class="eco-results__notice">${esc(s("gen_res_retention"))}</p>
+       </div>`,
     );
   };
+
+  // Set after a successful generate, so Save can persist those exact files
+  // (utils/ecojoinerDesignFiles.js::persistDesignFiles) instead of saving a
+  // draft with no output yet. Cleared whenever the form changes, since a
+  // stale job_slug would point at geometry that no longer matches the form.
+  let lastGenerated = null;
 
   const generate = async (button) => {
     const original = button.innerHTML;
     button.disabled = true;
-    button.innerHTML =
-      `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${esc(
-        s('gen_res_generating')
-      )}`;
+    button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${esc(
+      s("gen_res_generating"),
+    )}`;
     try {
-      const { ok, body } = await post('/api/ecojoiner/generate', collect());
+      const { ok, body } = await post("/api/ecojoiner/generate", collect());
       if (!ok || !body.success) {
-        renderErrors(body.message || s('gen_res_err_generate'), body.errors);
+        renderErrors(body.message || s("gen_res_err_generate"), body.errors);
         return;
       }
+      lastGenerated = body.data;
       renderDownloads(body.data);
     } catch (error) {
-      renderErrors(s('gen_res_err_network'), [error.message]);
+      renderErrors(s("gen_res_err_network"), [error.message]);
     } finally {
       button.disabled = false;
       button.innerHTML = original;
@@ -469,25 +509,39 @@
 
   // Any edit invalidates the preview, so the user can never download files
   // built from numbers that are no longer on screen.
-  form.addEventListener('input', hideResults);
-  form.addEventListener('change', hideResults);
+  form.addEventListener("input", () => {
+    hideResults();
+    lastGenerated = null;
+  });
+  form.addEventListener("change", () => {
+    hideResults();
+    lastGenerated = null;
+  });
 
   // Ensure a panel is open so the user can see a flagged field.
   const openPanelFor = (key) => {
     const feedbackNode = form.querySelector(`.eco-feedback[data-for="${key}"]`);
-    const panel = feedbackNode ? feedbackNode.closest('.eco-panel') : null;
+    const panel = feedbackNode ? feedbackNode.closest(".eco-panel") : null;
     if (panel && !panel.open) panel.open = true;
     return panel;
   };
 
-  form.addEventListener('submit', async (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const order = [
-      'eco-brand', 'eco-volume',
-      'eco-diameter', 'eco-cap', 'eco-collar', 'eco-height', 'eco-top-tapper', 'eco-bottom-tapper',
-      'eco-material', 'eco-thickness',
-      'eco-type', 'eco-fabrication'
+      "eco-brand",
+      "eco-volume",
+      "eco-diameter",
+      "eco-cap",
+      "eco-collar",
+      "eco-height",
+      "eco-top-tapper",
+      "eco-bottom-tapper",
+      "eco-material",
+      "eco-thickness",
+      "eco-type",
+      "eco-fabrication",
     ];
 
     let firstInvalid = null;
@@ -499,9 +553,10 @@
     if (firstInvalid) {
       hideResults();
       const panel = openPanelFor(firstInvalid);
-      const focusTarget = el(firstInvalid) || (panel && panel.querySelector('input, select'));
-      if (focusTarget && typeof focusTarget.focus === 'function') {
-        focusTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const focusTarget =
+        el(firstInvalid) || (panel && panel.querySelector("input, select"));
+      if (focusTarget && typeof focusTarget.focus === "function") {
+        focusTarget.scrollIntoView({ behavior: "smooth", block: "center" });
         focusTarget.focus({ preventScroll: true });
       }
       return;
@@ -509,25 +564,232 @@
 
     // Step 1 — the server derives the real dimensions without writing files, so
     // the user can sanity-check the geometry before committing to a download.
-    busy(true, s('gen_res_working'));
+    busy(true, s("gen_res_working"));
     try {
-      const { ok, body } = await post('/api/ecojoiner/validate', collect());
+      const { ok, body } = await post("/api/ecojoiner/validate", collect());
       if (!ok || !body.success) {
-        renderErrors(body.message || s('gen_res_err_derive'), body.errors);
+        renderErrors(body.message || s("gen_res_err_derive"), body.errors);
         return;
       }
       renderPreview(body.data);
     } catch (error) {
-      renderErrors(s('gen_res_err_network'), [error.message]);
+      renderErrors(s("gen_res_err_network"), [error.message]);
     } finally {
       busy(false);
     }
   });
 
-  const saveBtn = el('eco-save');
-  if (saveBtn) {
-    saveBtn.addEventListener('click', () => {
-      window.alert(s('gen_alert_save_dev'));
+  // --- Saved bottle profiles -----------------------------------------------
+
+  const profilePicker = document.querySelector("[data-eco-profile-picker]");
+  let profilesById = {};
+
+  const applyProfileToForm = (profile) => {
+    el("eco-brand").value = profile.brand || "";
+    el("eco-volume").value = profile.volume_ml ?? "";
+    el("eco-diameter").value = profile.diameter_mm ?? "";
+    el("eco-cap").value = profile.cap_mm ?? "";
+    el("eco-collar").value = profile.collar_mm ?? "";
+    el("eco-height").value = profile.height_mm ?? "";
+    el("eco-top-tapper").value = profile.top_tapper_mm ?? "";
+    el("eco-bottom-tapper").value = profile.bottom_tapper_mm ?? "";
+    el("eco-material").value = profile.material || "";
+    el("eco-thickness").value = profile.thickness_mm ?? "";
+    [
+      "eco-brand",
+      "eco-volume",
+      "eco-diameter",
+      "eco-cap",
+      "eco-collar",
+      "eco-height",
+      "eco-top-tapper",
+      "eco-bottom-tapper",
+      "eco-material",
+      "eco-thickness",
+    ].forEach(check);
+    hideResults();
+    lastGenerated = null;
+  };
+
+  const loadProfiles = async () => {
+    if (!profilePicker) return;
+    try {
+      const response = await fetch("/api/ecojoiner/profiles");
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) return;
+      profilesById = {};
+      const selected = profilePicker.value;
+      profilePicker
+        .querySelectorAll('option[value]:not([value=""])')
+        .forEach((opt) => opt.remove());
+      (body.data || []).forEach((profile) => {
+        profilesById[profile.profile_id] = profile;
+        const option = document.createElement("option");
+        option.value = String(profile.profile_id);
+        option.textContent = profile.label;
+        profilePicker.appendChild(option);
+      });
+      if (selected && profilesById[selected]) profilePicker.value = selected;
+    } catch {
+      // A saved-profile list failing to load isn't fatal — the form still
+      // works for a fresh, unsaved bottle.
+    }
+  };
+
+  if (profilePicker) {
+    loadProfiles();
+    profilePicker.addEventListener("change", () => {
+      const profile = profilesById[profilePicker.value];
+      if (profile) applyProfileToForm(profile);
+    });
+  }
+
+  // --- Save flow ------------------------------------------------------------
+
+  const saveDialog = document.getElementById("ecoSaveDialog");
+  const saveForm = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-form]")
+    : null;
+  const saveFeedback = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-feedback]")
+    : null;
+  const saveShare = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-share]")
+    : null;
+  const saveLabelField = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-new-profile-field]")
+    : null;
+  const saveLabelInput = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-label]")
+    : null;
+  const saveVisibilityToggle = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-visibility]")
+    : null;
+
+  const setSaveFeedback = (message) => {
+    if (!saveFeedback) return;
+    saveFeedback.hidden = !message;
+    saveFeedback.textContent = message || "";
+  };
+
+  const saveBtn = el("eco-save");
+  if (saveBtn && saveDialog) {
+    saveBtn.addEventListener("click", () => {
+      setSaveFeedback("");
+      if (saveShare) saveShare.hidden = true;
+      const hasSelectedProfile = profilePicker && profilePicker.value;
+      if (saveLabelField) saveLabelField.hidden = Boolean(hasSelectedProfile);
+      if (saveLabelInput && !hasSelectedProfile) saveLabelInput.value = "";
+      if (typeof saveDialog.showModal === "function") saveDialog.showModal();
+      else saveDialog.setAttribute("open", "");
+    });
+  }
+
+  if (saveDialog) {
+    saveDialog
+      .querySelectorAll("[data-close-eco-save]")
+      .forEach((btn) =>
+        btn.addEventListener("click", () => saveDialog.close()),
+      );
+    saveDialog.addEventListener("click", (event) => {
+      if (event.target === saveDialog) saveDialog.close();
+    });
+  }
+
+  if (saveForm) {
+    saveForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      setSaveFeedback("");
+
+      const formValues = collect();
+      const formData = new FormData();
+      formData.set("label", saveLabelInput ? saveLabelInput.value.trim() : "");
+      formData.set("brand", formValues.brand);
+      formData.set("volume", formValues.volume);
+      formData.set("diameter", formValues.diameter);
+      formData.set("cap", formValues.cap);
+      formData.set("collar", formValues.collar);
+      formData.set("height", formValues.height);
+      formData.set("topTapper", formValues.topTapper);
+      formData.set("bottomTapper", formValues.bottomTapper);
+      formData.set("material", formValues.material);
+      formData.set("thickness", formValues.thickness);
+      formData.set("ecojoinerType", formValues.ecojoinerType);
+      formData.set(
+        "formats",
+        JSON.stringify(
+          Object.entries({
+            fabCarpentry: "pdf",
+            fab3d: "scad",
+            fabSvg: "svg",
+          })
+            .filter(([key]) => formValues[key])
+            .map(([, format]) => format),
+        ),
+      );
+      formData.set(
+        "visibility",
+        saveVisibilityToggle && saveVisibilityToggle.checked
+          ? "public"
+          : "private",
+      );
+
+      if (profilePicker && profilePicker.value) {
+        formData.set("profile_id", profilePicker.value);
+      }
+      if (lastGenerated) {
+        formData.set("job_id", lastGenerated.job_slug || "");
+        formData.set("files", JSON.stringify(lastGenerated.files || []));
+      }
+
+      const bottlePhotoInput = saveForm.querySelector(
+        'input[name="bottle_photo"]',
+      );
+      const ecojoinerPhotoInput = saveForm.querySelector(
+        'input[name="ecojoiner_photo"]',
+      );
+      if (bottlePhotoInput && bottlePhotoInput.files[0]) {
+        formData.set("bottle_photo", bottlePhotoInput.files[0]);
+      }
+      if (ecojoinerPhotoInput && ecojoinerPhotoInput.files[0]) {
+        formData.set("ecojoiner_photo", ecojoinerPhotoInput.files[0]);
+      }
+
+      const submitBtn = saveForm.querySelector('button[type="submit"]');
+      const originalLabel = submitBtn ? submitBtn.textContent : "";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving…";
+      }
+
+      try {
+        const response = await fetch("/api/ecojoiner/designs", {
+          method: "POST",
+          body: formData,
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.success) {
+          setSaveFeedback(body.message || "We could not save this design.");
+          return;
+        }
+        if (body.data.share_url && saveShare) {
+          saveShare.hidden = false;
+          saveShare.textContent = `Saved! Shareable link: ${body.data.share_url}`;
+        } else {
+          setSaveFeedback("Saved to your dashboard.");
+        }
+        loadProfiles();
+        setTimeout(() => saveDialog.close(), body.data.share_url ? 4000 : 1200);
+      } catch (error) {
+        setSaveFeedback(
+          error.message || "We could not reach the server. Please try again.",
+        );
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+        }
+      }
     });
   }
 })();

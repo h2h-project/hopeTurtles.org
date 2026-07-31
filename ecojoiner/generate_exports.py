@@ -813,8 +813,12 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
     c.setLineWidth(0.5)
     c.line(x1, y1, x2, y2)
 
-    # crude arrowheads; good enough for carpenter reference PDF.
-    ah = 5
+    # crude arrowheads; good enough for carpenter reference PDF. Scaled down
+    # on very short lines (e.g. a small true-scale dimension like the
+    # presser's nut-recess depth) so the two arrowheads don't cross over
+    # each other and collide with the label text.
+    line_len = math.hypot(x2 - x1, y2 - y1)
+    ah = min(5, line_len / 3)
     c.setFont(font, size)
     text_w = c.stringWidth(text, font, size)
     if abs(x2 - x1) >= abs(y2 - y1):
@@ -844,6 +848,22 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
         ty = (y1 + y2) / 2 - size * 0.32
 
     c.drawCentredString(tx, ty, text)
+
+
+def _draw_top_edge_with_gaps(c, x0, y_top, x1, gaps):
+    """Draw a horizontal top edge as a set of segments, skipping over `gaps`.
+
+    Each gap is an (start_x, end_x) pair in point coordinates where the slot
+    notch is cut into the top edge, so that stretch of the edge is open
+    material rather than a closed line.
+    """
+    segments_start = x0
+    for gap_start, gap_end in sorted(gaps):
+        if gap_start > segments_start:
+            c.line(segments_start, y_top, gap_start, y_top)
+        segments_start = max(segments_start, gap_end)
+    if segments_start < x1:
+        c.line(segments_start, y_top, x1, y_top)
 
 
 def _rounded_rect_text(c, x, y, w, h, title, lines, title_font, body_font):
@@ -936,7 +956,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # from the tallest constraint, vertical space) so they stay comparable,
     # and are spread evenly through the full column height instead of being
     # crammed into a small fixed-size block.
-    left_pad = 34  # room for the overall-height dimension line to the left of each slat
+    left_pad = 80  # room for the rotated part title, thickness callout, and
+    # the overall-height dimension line, all stacked to the left of each slat
     draw_x = margin + left_pad
     right_col_x = page_w - margin - 205  # Final Key / Presser column start
 
@@ -945,12 +966,14 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     n_rows = 3
     row_pitch = (content_top - content_bottom) / n_rows
 
-    # Reserve space above each slat for its label, the port-length/between-
-    # notch dimension row, and the slot-width dimension line, and below each
-    # slat for the side-offset and overall-length dimension lines, so arrows
-    # never collide with the geometry, the title, or the next row's title.
-    top_pad = 36
-    bottom_pad = 42
+    # Reserve space above each slat for the port-length/between-notch
+    # dimension row and the slot-width dimension line, and below each slat
+    # for the side-offset and overall-length dimension lines, so arrows never
+    # collide with the geometry or the next row. The part title has moved to
+    # a rotated label on the left of the slat, so it no longer needs room
+    # above the row.
+    top_pad = 30
+    bottom_pad = 34
     slat_h_budget = row_pitch - top_pad - bottom_pad
 
     available_width = right_col_x - draw_x - 20
@@ -959,18 +982,38 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
 
     def sx(v): return v * s
 
-    def draw_john(label, row_top, slot_depth, slots, hole_diam):
+    def draw_john(label, row_top, slot_depth, slots, hole_diam, show_thickness_note=False):
         x = draw_x
         y_top = row_top - top_pad
         y = y_top - sx(d.john_height)
+        x_right = x + sx(d.john_length)
         c.setStrokeColor(colors.black)
         c.setFillColor(colors.white)
         c.setLineWidth(1)
-        c.rect(x, y, sx(d.john_length), sx(d.john_height), fill=0, stroke=1)
 
-        # Slots.
+        # Outer profile: bottom, left, and right edges are solid. The top
+        # edge is drawn in segments that skip over each slot opening, since
+        # the slots are notches cut into the top edge, not closed pockets -
+        # a continuous line across them would misleadingly show them as
+        # closed.
+        c.line(x, y, x_right, y)
+        c.line(x, y, x, y_top)
+        c.line(x_right, y, x_right, y_top)
+        slot_gaps = [
+            (x + sx(cx - d.slot_width / 2), x + sx(cx + d.slot_width / 2))
+            for cx in slots
+        ]
+        _draw_top_edge_with_gaps(c, x, y_top, x_right, slot_gaps)
+
+        # Slots: left, right, and bottom only - no top line, since the slot
+        # is open into the board's top edge, not a closed pocket.
         for cx in slots:
-            c.rect(x + sx(cx - d.slot_width / 2), y_top - sx(slot_depth), sx(d.slot_width), sx(slot_depth), fill=0, stroke=1)
+            slot_left = x + sx(cx - d.slot_width / 2)
+            slot_right = x + sx(cx + d.slot_width / 2)
+            slot_bottom = y_top - sx(slot_depth)
+            c.line(slot_left, y_top, slot_left, slot_bottom)
+            c.line(slot_right, y_top, slot_right, slot_bottom)
+            c.line(slot_left, slot_bottom, slot_right, slot_bottom)
 
         # Center hole.
         c.circle(x + sx(d.john_length / 2), y + sx(d.john_height / 2), sx(hole_diam / 2), stroke=1, fill=0)
@@ -992,10 +1035,37 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
             else:
                 c.drawRightString(hcx - 7, hcy + 2, screw_label)
 
-        # Part title above the slat, clear of the slot/dimension line beneath it.
+        # Part title, rotated 90 degrees and set to the left of the slat
+        # rather than above it, so the vertical space above each row is free
+        # for the Johns to be spaced comfortably apart.
+        c.saveState()
         c.setFillColor(colors.HexColor("#111111"))
         c.setFont(title_font, 11)
-        c.drawString(x, row_top + 2, label)
+        c.translate(x - 58, (y + y_top) / 2)
+        c.rotate(90)
+        c.drawCentredString(0, 0, label)
+        c.restoreState()
+
+        # Thickness callout, shown once (to the left of the first John),
+        # since all pieces share the same wood thickness. A true-to-scale
+        # dimension line makes the thickness explicit instead of leaving it
+        # to be inferred from the slot width. The tick's own rotated label
+        # is kept to just the value so it doesn't bleed into the rotated
+        # title text beside it; the full "all pieces" wording goes in the
+        # horizontal caption above the row, in the space the title used to
+        # occupy before it moved to the left side.
+        if show_thickness_note:
+            th_x = x - 34
+            th_y0 = y_top - sx(inputs.slat_thickness)
+            _draw_dimension_line(
+                c, th_x, th_y0, th_x, y_top,
+                f"{inputs.slat_thickness:g}mm",
+                body_font, 6.5, label_side="left", rotate_label=True,
+                ext1=(x, th_y0), ext2=(x, y_top),
+            )
+            c.setFillColor(colors.HexColor("#111111"))
+            c.setFont(body_font, 8)
+            c.drawString(x, row_top + 16, f"Thickness (all pieces): {inputs.slat_thickness:g}mm")
 
         # Dimension lines for port length, the gap between the two notches,
         # slot width/depth, overall height, screw side offset, and overall
@@ -1049,7 +1119,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
 
-    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter)
+    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter, show_thickness_note=True)
     draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
     draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 
@@ -1096,27 +1166,33 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, f"M6 through-hole: ⌀{d.presser_through_hole_diameter:g}mm")
     c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, f"nut recess: ⌀{d.presser_nut_recess_diameter:g}mm x {d.presser_nut_recess_depth:g}mm deep")
 
-    # Side/section view under top view.
-    side_w = 82
-    side_h = 22
+    # Side/section view under top view. Uses the same points-per-mm scale as
+    # the top view (derived from p_r / presser radius) so the two views
+    # depict the same physical part at matching sizes - the section's width
+    # equals the top view's diameter, and its through-hole/recess widths
+    # match the top view's hole/recess circles, rather than being drawn at
+    # unrelated fixed sizes.
+    presser_scale = p_r / (d.presser_diameter / 2)
+    side_w = d.presser_diameter * presser_scale
+    side_h = d.presser_thickness * presser_scale
     side_x = p_top_cx - side_w / 2
     side_y = p_top_cy - 62
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.rect(side_x, side_y, side_w, side_h, fill=0, stroke=1)
     # Through hole in section.
-    hole_w = 9
+    hole_w = d.presser_through_hole_diameter * presser_scale
     c.rect(p_top_cx - hole_w / 2, side_y, hole_w, side_h, fill=0, stroke=1)
     # Recess from top.
-    recess_w = 28
-    recess_h = side_h * d.presser_nut_recess_depth / d.presser_thickness
+    recess_w = d.presser_nut_recess_diameter * presser_scale
+    recess_h = d.presser_nut_recess_depth * presser_scale
     c.rect(p_top_cx - recess_w / 2, side_y + side_h - recess_h, recess_w, recess_h, fill=0, stroke=1)
     _draw_dimension_line(
-        c, side_x + side_w + 8, side_y, side_x + side_w + 8, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5,
+        c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5,
         ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
     )
     _draw_dimension_line(
-        c, p_top_cx + recess_w / 2 + 8, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 8, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5,
+        c, p_top_cx + recess_w / 2 + 6, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 6, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5,
         ext1=(p_top_cx + recess_w / 2, side_y + side_h - recess_h), ext2=(p_top_cx + recess_w / 2, side_y + side_h),
     )
 

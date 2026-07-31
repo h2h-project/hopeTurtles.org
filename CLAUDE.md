@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**HopeTurtles.org** is the mission-control web platform for the Hope Turtle Project — a regenerative humanitarian initiative that deploys solar-powered marine drones (Hope Turtles) to deliver aid across oceans. This platform handles mission planning, turtle tracking, bottle registry, success logging, and Buwana-authenticated user accounts.
+**HopeTurtles.org** is the mission-control web platform for the Hope Turtle Project — a regenerative humanitarian initiative that deploys solar-powered marine drones (Hope Turtles) to deliver aid across oceans. This platform handles mission planning, turtle tracking, bottle registry, success logging, Buwana-authenticated user accounts, and (increasingly) the financial side of the project — contributions, turtle commissioning, and radically transparent open-book accounting. See [Contributions, Commissioning & OpenBooks](#contributions-commissioning--openbooks) below.
 
 The **big active project** is wiring up device telemetry ingestion so that physical turtle devices (running `turtleOS`) can POST their GPS/sensor/battery readings directly to this server, the same way they currently do to `air2.earthen.io` (the turtleAPI project). See [Telemetry Ingestion Project](#telemetry-ingestion-project) below.
 
@@ -263,7 +263,81 @@ Safety rules: user values are passed only inside a temp JSON file (`--json`), ne
 never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at
 `/ecojoiner_exports`); the trusted `ecojoiner/` source directory is never a write target.
 
-## Environment Variables
+## Contributions, Commissioning & OpenBooks
+
+Beyond mission/turtle/bottle logistics, the platform is expanding into the project's financial
+side. This is a philosophy commitment as much as a feature: the Hope Turtle Project intends to
+run on **radical financial transparency** — every dollar in and out should eventually be visible
+to anyone, not just admins. Three user-facing entry points anchor this on `/dashboard` (right-hand
+action sidebar, `views/dashboard.ejs`):
+
+1. **Make a Contribution** — a modal (`#contributeDialog`) where a user picks/enters a USD amount
+   and hits Contribute. Eventually this redirects to Stripe checkout and records the pledge.
+2. **Manifest a Turtle** (`/commission`) — a from-scratch turtle "build your own" flow, styled like
+   `/ecojoiners/generate`: the user steps through component panels (hull, power, navigation,
+   payload, ...), each with photo/price/description/availability, and commissions a turtle built
+   to spec.
+3. **Our OpenBooks** (`/openbooks`) — a public ledger page showing every transaction behind the
+   project (contributions in, expenses out), in the open. Not gated behind login — this is meant
+   to be visible to anyone as an accountability mechanism.
+
+### Current state (placeholder stage)
+
+All three entry points exist today as **UI-only placeholders** — no money moves yet:
+- `views/commission.ejs` (route `/commission`, `ensureAuth`) — "coming soon" panel, styled with the
+  same `.generate-page` / `.eco-panel` / `.eco-dev-notice` classes as the Ecojoiner generator.
+- `views/openbooks.ejs` (route `/openbooks`, public) — "coming soon" notice. The dashboard's
+  OpenBooks button (`data-openbooks-notice` in `public/js/dashboard.js`) currently intercepts the
+  click and shows `alert('Sorry! Our entire financial system is still in development.')` instead
+  of navigating, since there's nothing to show yet — remove that intercept once the ledger is real.
+- The Contribute modal's submit handler (`public/js/dashboard.js`) just shows an inline "thanks,
+  check back soon" message — no Stripe call, no DB write.
+
+### Schema draft: `sql/migrations/20260731_commissioning_transactions.sql`
+
+The tables below are **drafted, not yet applied** — the migration is written but hasn't been run
+against `hopeturtle_db`, and no model/controller code reads or writes them yet. `/commission`
+still runs entirely on the hardcoded sample data in `views/commission.ejs` /
+`public/js/commission.js` (foodstuffs, engraving messages, turtle types, add-on pricing).
+
+- **`components_tb`** — single catalog for everything a turtle can be built from, distinguished by
+  `category` (`turtle_base`, `foodstuff`, `electronics_addon`, `engraving`) with a stable
+  `key_name` slug per category. Foodstuffs were deliberately **not** split into their own
+  `foodstuffs_tb` — they're structurally identical to the other buildable options (photo, price,
+  description, availability), so one table keeps catalog/admin logic in one place. The migration
+  seeds it with the exact sample options + ballpark prices currently hardcoded in the commission
+  page, so swapping the front end from mock data to a real query should be a drop-in change.
+- **`commissions_tb`** — one row per user's saved/submitted turtle build (backs both the "Save"
+  and "Commission" buttons on `/commission`). Header row only — mission, deployment type, turtle
+  base component, engraving component, status (`draft` → `submitted` → `in_production` →
+  `fulfilled`/`cancelled`), and a snapshotted cost estimate. Links to `turtles_tb.turtle_id` once
+  the build is actually launched.
+- **`commission_items_tb`** — line items against `components_tb` for a commission's foodstuff
+  picks (one row per food bottle, via `bottle_slot`) and electronics add-ons (`bottle_slot` NULL).
+  Kept as real rows rather than a JSON column so per-component reporting (e.g. "how many coffee
+  bottles shipped this month") stays a plain query.
+- **`transactions_tb`** — the OpenBooks ledger. Every contribution, commission payment, expense,
+  and refund is a row here, typed via `type`/`direction`. The FK points from `transactions_tb` to
+  `commissions_tb` (not the reverse) since one commission can have several transactions — a
+  deposit, a balance payment, a refund.
+
+### What still needs to be built
+
+- **Run the migration** against `hopeturtle_db` and write the corresponding models
+  (`models/componentsModel.js`, `models/commissionsModel.js`, `models/transactionsModel.js`) plus
+  controllers/routes to read/write them.
+- **Stripe integration** — the Contribute modal and the Commission flow both need a real checkout
+  session created server-side (never trust a client-supplied amount straight to a charge) and a
+  webhook that confirms payment before writing a `completed` row to `transactions_tb`.
+- **Wire `/commission` to the catalog** — replace the hardcoded options in `views/commission.ejs` /
+  `public/js/commission.js` with a `components_tb` query, and make Save/Commission actually persist
+  a `commissions_tb` row (+ `commission_items_tb` lines) instead of the current client-only mockup.
+- **OpenBooks real ledger** — `/openbooks` should eventually query `transactions_tb` (filtered to
+  `is_public = 1`, donor identity anonymized at the display layer) and render a genuinely public,
+  filterable transaction list — this is the accountability payoff of the whole feature, so don't
+  let it regress back to a placeholder once the table exists.
+
+
 
 ```bash
 NODE_ENV=development
