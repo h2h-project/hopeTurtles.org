@@ -1,17 +1,40 @@
 <%- include('partials/header', { pageTitle, theme, lang, direction, metaDescription, ogImage, bodyClass }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout generate-page">
+  <div class="generate-intro">
+    <h1><%= t.gen_hero_title %></h1>
+    <p><%= t.gen_hero_blurb %></p>
+  </div>
+
+  <% if (!currentUser) { %>
+  <div class="eco-auth-required" role="status">
+    <i class="fa-solid fa-lock" aria-hidden="true"></i>
+    <div class="eco-auth-required__text">
+      <h2><%= t.gen_login_required_title %></h2>
+      <p><%= t.gen_login_required_body %></p>
+      <div class="eco-auth-required__actions">
+        <a class="button" href="<%= loginUrl %>">
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+          <%= t.gen_login_required_cta %>
+        </a>
+        <a
+          class="button ghost"
+          href="https://buwana.ecobricks.org/en/signup-1.php?app=hope_8fc3caabded4"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <%= t.nav_signup || 'Signup' %>
+        </a>
+      </div>
+    </div>
+  </div>
+  <% } else { %>
   <div class="eco-dev-notice eco-dev-notice--top" role="status">
     <i class="fa-solid fa-flask" aria-hidden="true"></i>
     <span>
       <strong><%= t.gen_notice_title %></strong>
       <%= t.gen_notice_body %>
     </span>
-  </div>
-
-  <div class="generate-intro">
-    <h1><%= t.gen_hero_title %></h1>
-    <p><%= t.gen_hero_blurb %></p>
   </div>
 
   <form class="eco-generate" id="eco-generate" novalidate>
@@ -322,6 +345,7 @@
       <p class="form-feedback" role="status" data-eco-save-share hidden></p>
     </form>
   </dialog>
+  <% } %>
 </main>
 <%# Strings the generator script paints into the page at runtime. %>
 <% const generateStrings = {}; %>

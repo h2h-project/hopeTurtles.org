@@ -100,7 +100,7 @@ router.get("/ecojoiners", (req, res) => {
   });
 });
 
-router.get("/ecojoiners/generate", ensureAuth, (req, res) => {
+router.get("/ecojoiners/generate", (req, res) => {
   res.render("generate", {
     pageTitle: res.locals.t.gen_page_title,
     bodyClass: "ocean-bg",
@@ -138,7 +138,7 @@ router.get("/team", teamController.renderTeamPage);
 router.get("/turtles/:id", turtlesController.renderTurtlePage);
 
 router.get("/login", (req, res) => {
-  res.redirect("/auth/callback");
+  res.redirect("/auth/login");
 });
 
 router.get("/dashboard", ensureAuth, dashboardController.renderDashboard);
