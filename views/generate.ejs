@@ -352,7 +352,7 @@
   </form>
 
   <dialog id="ecoSaveDialog" class="mission-dialog" aria-labelledby="ecoSaveDialogTitle">
-    <form class="mission-dialog__form" data-eco-save-form enctype="multipart/form-data">
+    <form class="form-card mission-dialog__form" data-eco-save-form enctype="multipart/form-data">
       <header class="mission-dialog__header">
         <div>
           <h2 id="ecoSaveDialogTitle">Save your ecojoiner</h2>
@@ -395,6 +395,15 @@
       <p class="form-feedback" role="status" data-eco-save-feedback hidden></p>
       <p class="form-feedback" role="status" data-eco-save-share hidden></p>
     </form>
+    <div class="form-card eco-save-success" data-eco-save-success hidden>
+      <i class="fa-solid fa-circle-check eco-save-success__icon" aria-hidden="true"></i>
+      <h1 class="eco-save-success__title">Your Ecojoiner Design is Saved</h1>
+      <p class="eco-save-success__desc">You can find your saved designs on your dashboard for handy revisiting.</p>
+      <p class="form-feedback" role="status" data-eco-save-success-share hidden></p>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button" data-close-eco-save>Done</button>
+      </div>
+    </div>
   </dialog>
   <% } %>
 </main>

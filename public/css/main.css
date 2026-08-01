@@ -5162,10 +5162,50 @@ body.ocean-bg {
 }
 
 .eco-connection-slider__ticks {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   font-size: 0.8rem;
   color: var(--color-muted);
+}
+
+.eco-connection-slider__ticks span {
+  text-align: center;
+}
+
+.eco-connection-slider__ticks span:first-child {
+  text-align: left;
+}
+
+.eco-connection-slider__ticks span:last-child {
+  text-align: right;
+}
+
+/* Ecojoiner save-success state ---------------------------------------------- */
+.eco-save-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1.5rem;
+}
+
+.eco-save-success__icon {
+  font-size: 3rem;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+}
+
+.eco-save-success__title {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.eco-save-success__desc {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  max-width: 32rem;
 }
 
 /* Visual ecojoiner-type picker -------------------------------------------- */

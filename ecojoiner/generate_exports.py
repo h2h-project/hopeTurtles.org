@@ -917,8 +917,25 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     p.wrapOn(c, para_width, 60)
     p.drawOn(c, margin, title_y - 48)
 
-    # Input and derived boxes, kept compact.
-    box_y = page_h - 92
+    # Board-thickness banner, sitting above the Input variables box. Called
+    # out on its own here (rather than left as a dimension line + arrows on
+    # the Long John drawing below) since one banner reads faster than a
+    # dimension line the reader has to trace back to a callout.
+    thickness_box_h = 22
+    thickness_box_gap = 6
+    thickness_font_size = 9
+    thickness_text = (
+        f"Board Thickness for this ecojoiner set at {inputs.slat_thickness:g} mm"
+    )
+    thickness_text_w = c.stringWidth(thickness_text, title_font, thickness_font_size)
+    thickness_box_w = thickness_text_w + 16  # right-aligned to the same edge
+    # as the Input variables / Derived dimensions boxes below, but sized to
+    # fit its own (longer) sentence rather than sharing their fixed 155pt.
+    thickness_box_x = page_w - margin - thickness_box_w
+
+    # Input and derived boxes, kept compact. Shifted down from the page top
+    # by the thickness banner's height so the two never overlap.
+    box_y = page_h - 92 - thickness_box_h - thickness_box_gap
     input_lines = [
         f"Wood: {inputs.slat_thickness:g}mm",
         f"Port length: {d.port_length:g}mm",
@@ -935,6 +952,19 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         f"Final Key: {d.final_key_length:g} x {d.final_key_width:g}mm",
         f"Presser: ⌀{d.presser_diameter:g}mm",
     ]
+
+    thickness_box_y = (box_y - 8) + 76 + thickness_box_gap
+    c.setStrokeColor(colors.HexColor("#aaaaaa"))
+    c.setFillColor(colors.HexColor("#f8f8f8"))
+    c.roundRect(thickness_box_x, thickness_box_y, thickness_box_w, thickness_box_h, 5, fill=1, stroke=1)
+    c.setFillColor(colors.HexColor("#111111"))
+    c.setFont(title_font, thickness_font_size)
+    c.drawCentredString(
+        thickness_box_x + thickness_box_w / 2,
+        thickness_box_y + thickness_box_h / 2 - 3.5,
+        thickness_text,
+    )
+
     _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, "Input variables", input_lines, title_font, body_font)
     derived_box_x, derived_box_y, derived_box_w = page_w - margin - 155, box_y - 94, 155
     _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, 76, "Derived dimensions", derived_lines, title_font, body_font)
@@ -962,8 +992,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # from the tallest constraint, vertical space) so they stay comparable,
     # and are spread evenly through the full column height instead of being
     # crammed into a small fixed-size block.
-    left_pad = 80  # room for the rotated part title, thickness callout, and
-    # the overall-height dimension line, all stacked to the left of each slat
+    left_pad = 80  # room for the rotated part title and the overall-height
+    # dimension line, stacked to the left of each slat
     draw_x = margin + left_pad
     right_col_x = page_w - margin - 205  # Final Key / Presser column start
 
@@ -988,7 +1018,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
 
     def sx(v): return v * s
 
-    def draw_john(label, row_top, slot_depth, slots, hole_diam, show_thickness_note=False):
+    def draw_john(label, row_top, slot_depth, slots, hole_diam):
         x = draw_x
         y_top = row_top - top_pad
         y = y_top - sx(d.john_height)
@@ -1052,27 +1082,6 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.drawCentredString(0, 0, label)
         c.restoreState()
 
-        # Thickness callout, shown once (to the left of the first John),
-        # since all pieces share the same wood thickness. A true-to-scale
-        # dimension line makes the thickness explicit instead of leaving it
-        # to be inferred from the slot width. The tick's own rotated label
-        # is kept to just the value so it doesn't bleed into the rotated
-        # title text beside it; the full "all pieces" wording goes in the
-        # horizontal caption above the row, in the space the title used to
-        # occupy before it moved to the left side.
-        if show_thickness_note:
-            th_x = x - 34
-            th_y0 = y_top - sx(inputs.slat_thickness)
-            _draw_dimension_line(
-                c, th_x, th_y0, th_x, y_top,
-                f"{inputs.slat_thickness:g}mm",
-                body_font, 6.5, label_side="left", rotate_label=True,
-                ext1=(x, th_y0), ext2=(x, y_top),
-            )
-            c.setFillColor(colors.HexColor("#111111"))
-            c.setFont(body_font, 8)
-            c.drawString(x, row_top + 16, f"Thickness (all pieces): {inputs.slat_thickness:g}mm")
-
         # Dimension lines for port length, the gap between the two notches,
         # slot width/depth, overall height, screw side offset, and overall
         # length, given generous clearance from the geometry so arrowheads,
@@ -1125,7 +1134,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
 
-    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter, show_thickness_note=True)
+    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter)
     draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
     draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 

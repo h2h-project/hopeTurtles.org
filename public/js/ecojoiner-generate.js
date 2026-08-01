@@ -702,6 +702,12 @@
   const saveVisibilityToggle = saveDialog
     ? saveDialog.querySelector("[data-eco-save-visibility]")
     : null;
+  const saveSuccess = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-success]")
+    : null;
+  const saveSuccessShare = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-success-share]")
+    : null;
 
   const setSaveFeedback = (message) => {
     if (!saveFeedback) return;
@@ -709,9 +715,30 @@
     saveFeedback.textContent = message || "";
   };
 
+  // Reset the dialog back to the editable form, hiding any prior success state.
+  const showSaveForm = () => {
+    if (saveForm) saveForm.hidden = false;
+    if (saveSuccess) saveSuccess.hidden = true;
+  };
+
+  const showSaveSuccess = (shareUrl) => {
+    if (saveForm) {
+      saveForm.reset();
+      saveForm.hidden = true;
+    }
+    if (saveSuccess) saveSuccess.hidden = false;
+    if (saveSuccessShare) {
+      saveSuccessShare.hidden = !shareUrl;
+      saveSuccessShare.textContent = shareUrl
+        ? `Shareable link: ${shareUrl}`
+        : "";
+    }
+  };
+
   const saveBtn = el("eco-save");
   if (saveBtn && saveDialog) {
     saveBtn.addEventListener("click", () => {
+      showSaveForm();
       setSaveFeedback("");
       if (saveShare) saveShare.hidden = true;
       const hasSelectedProfile = profilePicker && profilePicker.value;
@@ -733,6 +760,8 @@
     saveDialog.addEventListener("click", (event) => {
       if (event.target === saveDialog) saveDialog.close();
     });
+    // Always start fresh next time the dialog opens, regardless of how it closed.
+    saveDialog.addEventListener("close", showSaveForm);
   }
 
   if (saveForm) {
@@ -815,14 +844,8 @@
           setSaveFeedback(body.message || "We could not save this design.");
           return;
         }
-        if (body.data.share_url && saveShare) {
-          saveShare.hidden = false;
-          saveShare.textContent = `Saved! Shareable link: ${body.data.share_url}`;
-        } else {
-          setSaveFeedback("Saved to your dashboard.");
-        }
+        showSaveSuccess(body.data.share_url);
         loadProfiles();
-        setTimeout(() => saveDialog.close(), body.data.share_url ? 4000 : 1200);
       } catch (error) {
         setSaveFeedback(
           error.message || "We could not reach the server. Please try again.",
