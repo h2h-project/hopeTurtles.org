@@ -1,4 +1,7 @@
-<% const pageScripts = ['/js/about.js']; %>
+<% const pageScripts = [
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js',
+  '/js/about.js'
+]; %>
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
 <% const metrics = aboutMetrics || {}; %>
@@ -25,14 +28,47 @@
 
         <p><%= t.about_body_p2 %></p>
 
-        <p><%= t.about_body_p3 %></p>
+        <!-- <p><%= t.about_body_p3 %></p> -->
 
         <p><%= t.about_body_p4 %></p>
 
+        <h2><%= t.about_principles_title %></h2>
+        <ul class="about-principles-list">
+          <li><strong><%= t.about_principle_earth_label %>:</strong> <%= t.about_principle_earth_body %></li>
+          <li><strong><%= t.about_principle_love_label %>:</strong> <%= t.about_principle_love_body %></li>
+          <li><strong><%= t.about_principle_opensource_label %>:</strong> <%= t.about_principle_opensource_body %></li>
+          <li><strong><%= t.about_principle_locable_label %>:</strong> <%= t.about_principle_locable_body %></li>
+          <li><strong><%= t.about_principle_noncapital_label %>:</strong> <%= t.about_principle_noncapital_body %></li>
+          <li><strong><%= t.about_principle_spiral_label %>:</strong> <%= t.about_principle_spiral_body %></li>
+        </ul>
+
         <p><%= t.about_body_p5 %></p>
+
+        <h2><%= t.about_consequences_title %></h2>
+        <ol class="about-consequences-list">
+          <li><strong><%= t.about_consequence_reusable_label %>:</strong> <%= t.about_consequence_reusable_body %></li>
+          <li><strong><%= t.about_consequence_biodegradable_label %>:</strong> <%= t.about_consequence_biodegradable_body %></li>
+          <li><strong><%= t.about_consequence_fixable_label %>:</strong> <%= t.about_consequence_fixable_body %></li>
+          <li><strong><%= t.about_consequence_replicable_label %>:</strong> <%= t.about_consequence_replicable_body %></li>
+          <li><strong><%= t.about_consequence_lowcost_label %>:</strong> <%= t.about_consequence_lowcost_body %></li>
+        </ol>
       </div>
 
       <aside class="page-split__aside">
+        <div class="about-materials-card">
+          <h2><%= t.about_materials_title %></h2>
+          <canvas id="about-materials-chart" role="img" aria-label="<%= t.about_materials_title %>"></canvas>
+        </div>
+        <% const materialsBreakdown = [
+          { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },
+          { key: 'wood', pct: 9, label: t.about_material_wood, examples: t.about_material_wood_examples },
+          { key: 'metal', pct: 2, label: t.about_material_metal, examples: t.about_material_metal_examples },
+          { key: 'lithium', pct: 3, label: t.about_material_lithium, examples: t.about_material_lithium_examples },
+          { key: 'plastic', pct: 2, label: t.about_material_plastic, examples: t.about_material_plastic_examples },
+          { key: 'misc', pct: 1, label: t.about_material_misc, examples: t.about_material_misc_examples }
+        ]; %>
+        <%# `<` is escaped so a string containing markup cannot close this tag early. %>
+        <script id="about-materials-data" type="application/json"><%- JSON.stringify(materialsBreakdown).replace(/</g, '\\u003c') %></script>
         <figure class="about-figure">
           <img src="/images/turtle-floating.webp" alt="A Hope Turtle floating on the open sea" loading="lazy" />
           <figcaption><%= t.about_caption_prototype || 'A prototype turtle at sea' %></figcaption>

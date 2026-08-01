@@ -1,0 +1,83 @@
+<% const pageScripts = ['/js/contribute.js']; %>
+<%- include('partials/header', { pageTitle, theme, lang, direction, bodyClass }) %>
+<%- include('partials/nav') %>
+<main id="main" class="contribute-page">
+  <div class="layout">
+    <section class="page-split">
+      <div class="page-split__main">
+        <h1><%= t.contribute_heading %></h1>
+
+        <p><%= t.contribute_body_p1 %></p>
+
+        <p><%= t.contribute_body_p2 %></p>
+
+        <p><%= t.contribute_body_p3 %></p>
+      </div>
+
+      <aside class="page-split__aside" aria-label="Support the mission">
+        <div class="dashboard-action-sidebar">
+          <section class="panel dashboard-action-panel dashboard-action-panel--contribute">
+            <div class="dashboard-action-panel__icon" aria-hidden="true">
+              <i class="fa-solid fa-hand-holding-heart"></i>
+            </div>
+            <h2>Make a Contribution</h2>
+            <p class="panel-subtitle">Fuel the fleet — every contribution helps launch and maintain Hope Turtles.</p>
+            <button type="button" class="button dashboard-action-panel__button" data-open-contribute>
+              Contribute
+            </button>
+          </section>
+
+          <section class="panel dashboard-action-panel dashboard-action-panel--manifest">
+            <div class="dashboard-action-panel__icon" aria-hidden="true">
+              <i class="fa-solid fa-compass-drafting"></i>
+            </div>
+            <h2>Manifest a Turtle</h2>
+            <p class="panel-subtitle">Design and commission your own Hope Turtle, component by component.</p>
+            <a class="button dashboard-action-panel__button" href="/commission">
+              Start building
+            </a>
+          </section>
+
+          <section class="panel dashboard-action-panel dashboard-action-panel--openbooks">
+            <div class="dashboard-action-panel__icon" aria-hidden="true">
+              <i class="fa-solid fa-book-open-reader"></i>
+            </div>
+            <h2>Our OpenBooks</h2>
+            <p class="panel-subtitle">See every transaction behind the Hope Turtle Project, in the open.</p>
+            <a class="button dashboard-action-panel__button" href="/openbooks" data-openbooks-notice>
+              View OpenBooks
+            </a>
+          </section>
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <dialog id="contributeDialog" class="mission-dialog" aria-labelledby="contributeTitle">
+    <form class="form-card" data-contribute-form>
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="contributeTitle">Make a contribution</h2>
+          <p class="panel-subtitle">Choose an amount to support the Hope Turtle Project.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-contribute aria-label="Close">&times;</button>
+      </header>
+      <div class="contribute-amount-grid" role="group" aria-label="Preset contribution amounts">
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="10">$10</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="25">$25</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="50">$50</button>
+        <button type="button" class="pill-button contribute-amount-pill" data-contribute-amount="100">$100</button>
+      </div>
+      <label class="full-width">
+        Contribution amount (USD)
+        <input type="number" name="amount" min="1" step="1" required data-contribute-amount-input />
+      </label>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-close-contribute>Cancel</button>
+        <button type="submit" class="button">Contribute</button>
+      </div>
+      <p class="form-feedback" role="status" data-contribute-feedback hidden></p>
+    </form>
+  </dialog>
+</main>
+<%- include('partials/footer', { pageScripts }) %>

@@ -4403,6 +4403,38 @@ label.ht-toggle {
 }
 
 /* About page */
+.about-principles-list,
+.about-consequences-list {
+  margin: 0 0 1.25rem;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.about-principles-list li,
+.about-consequences-list li {
+  line-height: 1.6;
+}
+
+.about-materials-card {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1.2rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.about-materials-card h2 {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.about-materials-card canvas {
+  max-width: 100%;
+}
+
 .about-figure {
   margin: 0;
 }
@@ -4613,23 +4645,6 @@ label.ht-toggle {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin: 0.75rem 0;
-}
-
-.dashboard-content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
-}
-
-@media (min-width: 1024px) {
-  .dashboard-content-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-  }
-}
-
-.dashboard-main-col {
-  min-width: 0;
 }
 
 .dashboard-action-sidebar {

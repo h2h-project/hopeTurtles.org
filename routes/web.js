@@ -133,6 +133,13 @@ router.get("/openbooks", (req, res) => {
   });
 });
 
+router.get("/contribute", (req, res) => {
+  res.render("contribute", {
+    pageTitle: res.locals.t.contribute_heading || "Contribute",
+    bodyClass: "ocean-bg",
+  });
+});
+
 router.get("/missions", missionsController.renderExplorer);
 router.get("/team", teamController.renderTeamPage);
 router.get("/turtles/:id", turtlesController.renderTurtlePage);
