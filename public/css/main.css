@@ -4622,6 +4622,89 @@ label.ht-toggle {
   }
 }
 
+/* Ecojoiner generator — please log in split view, same template as .session-expired */
+.generate-login {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch;
+  min-height: calc(100dvh - 5.75rem - 100px);
+}
+
+.generate-login__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(2rem, 6vw, 5rem);
+  background-image: url("/images/ocean_texture.webp");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+[data-theme="dark"] .generate-login__content {
+  background-image: url("/images/ocean_texture_dark.webp");
+}
+
+.generate-login__inner {
+  max-width: 34rem;
+}
+
+.generate-login__eyebrow {
+  display: inline-block;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+}
+
+.generate-login h1 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  line-height: 1.2;
+  margin: 0 0 1rem;
+  color: var(--color-text);
+}
+
+.generate-login p {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--color-text);
+  margin: 0 0 1rem;
+}
+
+.generate-login__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
+}
+
+.generate-login__media {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-light);
+}
+
+.generate-login__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .generate-login {
+    grid-template-columns: 1fr;
+  }
+
+  .generate-login__media {
+    min-height: 220px;
+    max-height: 38vh;
+  }
+}
+
 /* Report a Found Turtle — explanatory copy */
 .report-intro-copy {
   max-width: 46rem;
@@ -4795,40 +4878,6 @@ body.ocean-bg {
 
 .eco-dev-notice--top {
   margin: 1.5rem 0 2rem;
-}
-
-.eco-auth-required {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  margin: 1.5rem 0 2rem;
-  padding: 1.75rem;
-  border-radius: 1rem;
-  background: var(--color-mist);
-  border: 1px solid var(--color-mint);
-}
-
-.eco-auth-required i {
-  color: var(--color-primary);
-  font-size: 1.5rem;
-  margin-top: 0.2rem;
-  flex-shrink: 0;
-}
-
-.eco-auth-required__text h2 {
-  margin: 0 0 0.5rem;
-  color: var(--color-forest);
-}
-
-.eco-auth-required__text p {
-  margin: 0 0 1.25rem;
-  line-height: 1.55;
-}
-
-.eco-auth-required__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
 }
 
 .eco-generate {
