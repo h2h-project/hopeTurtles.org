@@ -5143,6 +5143,31 @@ body.ocean-bg {
   color: #dc2626;
 }
 
+/* Connection (port fit) slider --------------------------------------------- */
+.eco-connection-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.eco-connection-slider__value {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-primary);
+}
+
+.eco-connection-slider input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-primary);
+}
+
+.eco-connection-slider__ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
 /* Visual ecojoiner-type picker -------------------------------------------- */
 .eco-type-grid {
   display: grid;

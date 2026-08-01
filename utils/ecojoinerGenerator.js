@@ -106,7 +106,8 @@ export const mapFormFields = (body = {}) => {
     ['screwDiameter', 'screw_diameter'],
     ['fitClearance', 'fit_clearance'],
     ['portAllowance', 'port_allowance'],
-    ['portLength', 'port_length']
+    ['portLength', 'port_length'],
+    ['portFitMm', 'port_fit_mm']
   ]) {
     const parsed = toNumber(body[field]);
     if (parsed === null) continue;

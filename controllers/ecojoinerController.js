@@ -83,6 +83,9 @@ const parseProfileFields = (body = {}, { requireLabel = true } = {}) => {
   if (bottomTapper !== null && !Number.isNaN(bottomTapper))
     optional.bottom_tapper_mm = bottomTapper;
   if (body.material) optional.material = String(body.material);
+  const portFitMm = toNumberOrNull(body.portFitMm);
+  optional.port_fit_mm =
+    portFitMm !== null && !Number.isNaN(portFitMm) ? portFitMm : 0;
 
   if (errors.length) {
     throw new EcojoinerRequestError(

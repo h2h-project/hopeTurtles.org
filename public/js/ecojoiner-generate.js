@@ -19,9 +19,9 @@
       gen_fb_looks_wrong: "This doesn't look right.",
       gen_fb_looks_good: "Looks good.",
       gen_fb_tapper_long:
-        "That's a long top tapper — not an ideal bottle type. Aim for under 15%.",
+        "That's a long top tapper — not an ideal bottle type. Aim for under 20%.",
       gen_fb_tapper_tall:
-        "A touch tall — ideally the top tapper is under 15% of the height.",
+        "A touch tall — ideally the top tapper is under 20% of the height.",
       gen_fb_tapper_ok: "Nice short tapper.",
       gen_fb_bottom_deep:
         "That's a deep bottom tapper — not the ideal bottle type.",
@@ -174,7 +174,7 @@
       return true;
     },
 
-    // Top tapper: soft warnings only. Ideal < 15% of bottle height, flag > 25%.
+    // Top tapper: soft warnings only. Ideal < 20% of bottle height, flag > 25%.
     "eco-top-tapper": () => {
       const v = num("eco-top-tapper");
       const height = num("eco-height");
@@ -185,7 +185,7 @@
           setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_long"));
           return true;
         }
-        if (ratio > 0.15) {
+        if (ratio > 0.2) {
           setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_tall"));
           return true;
         }
@@ -280,6 +280,33 @@
     if (FAB_IDS.includes(event.target.id)) check("eco-fabrication");
   });
 
+  // --- Connection (port fit) slider -----------------------------------------
+  // Slider position 0-4 maps to a port-width offset in mm applied against the
+  // bottle diameter: Loose adds 1mm, each step tighter removes 1mm more.
+  const CONNECTION_STEPS = [
+    { mm: 1, key: "gen_connection_loose" },
+    { mm: 0, key: "gen_connection_exact" },
+    { mm: -1, key: "gen_connection_snug" },
+    { mm: -2, key: "gen_connection_tight" },
+    { mm: -3, key: "gen_connection_supertight" },
+  ];
+  const connectionSlider = el("eco-connection");
+  const connectionMmInput = el("eco-connection-mm");
+  const connectionValueLabel = document.querySelector(
+    "[data-eco-connection-value]",
+  );
+  const applyConnectionStep = () => {
+    if (!connectionSlider) return;
+    const step =
+      CONNECTION_STEPS[Number(connectionSlider.value)] || CONNECTION_STEPS[1];
+    if (connectionMmInput) connectionMmInput.value = String(step.mm);
+    if (connectionValueLabel) connectionValueLabel.textContent = s(step.key);
+  };
+  if (connectionSlider) {
+    applyConnectionStep();
+    connectionSlider.addEventListener("input", applyConnectionStep);
+  }
+
   // Visual ecojoiner-type picker. Only the "Normal" card is available; the rest
   // are still in development and just alert the user when clicked.
   const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
@@ -370,6 +397,7 @@
     material: el("eco-material").value,
     thickness: el("eco-thickness").value,
     ecojoinerType: el("eco-type").value,
+    portFitMm: el("eco-connection-mm").value,
     fabCarpentry: el("eco-fab-carpentry").checked,
     fab3d: el("eco-fab-3d").checked,
     fabDxf: el("eco-fab-dxf").checked,
@@ -595,6 +623,12 @@
     el("eco-bottom-tapper").value = profile.bottom_tapper_mm ?? "";
     el("eco-material").value = profile.material || "";
     el("eco-thickness").value = profile.thickness_mm ?? "";
+    if (connectionSlider) {
+      const mm = Number(profile.port_fit_mm ?? 0);
+      const stepIndex = CONNECTION_STEPS.findIndex((step) => step.mm === mm);
+      connectionSlider.value = String(stepIndex >= 0 ? stepIndex : 1);
+      applyConnectionStep();
+    }
     [
       "eco-brand",
       "eco-volume",
@@ -662,6 +696,9 @@
   const saveLabelInput = saveDialog
     ? saveDialog.querySelector("[data-eco-save-label]")
     : null;
+  const saveBrandInput = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-brand]")
+    : null;
   const saveVisibilityToggle = saveDialog
     ? saveDialog.querySelector("[data-eco-save-visibility]")
     : null;
@@ -680,6 +717,8 @@
       const hasSelectedProfile = profilePicker && profilePicker.value;
       if (saveLabelField) saveLabelField.hidden = Boolean(hasSelectedProfile);
       if (saveLabelInput && !hasSelectedProfile) saveLabelInput.value = "";
+      if (saveBrandInput)
+        saveBrandInput.value = el("eco-brand") ? el("eco-brand").value.trim() : "";
       if (typeof saveDialog.showModal === "function") saveDialog.showModal();
       else saveDialog.setAttribute("open", "");
     });
@@ -704,7 +743,10 @@
       const formValues = collect();
       const formData = new FormData();
       formData.set("label", saveLabelInput ? saveLabelInput.value.trim() : "");
-      formData.set("brand", formValues.brand);
+      formData.set(
+        "brand",
+        saveBrandInput ? saveBrandInput.value.trim() : formValues.brand,
+      );
       formData.set("volume", formValues.volume);
       formData.set("diameter", formValues.diameter);
       formData.set("cap", formValues.cap);
@@ -715,6 +757,7 @@
       formData.set("material", formValues.material);
       formData.set("thickness", formValues.thickness);
       formData.set("ecojoinerType", formValues.ecojoinerType);
+      formData.set("portFitMm", formValues.portFitMm);
       formData.set(
         "formats",
         JSON.stringify(

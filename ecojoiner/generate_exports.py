@@ -127,6 +127,11 @@ class EcojoinerInputs:
     The backend may provide port_length directly. If port_length is omitted,
     this script calculates it as:
         port_length = taper_height + port_allowance
+
+    port_height already has the "Adjust Connection" fit offset folded in by
+    parse_inputs_from_dict() / main() — see port_fit_mm there. Nothing past
+    parsing needs to know about the offset separately; it's just a tighter
+    (or looser) port_height.
     """
 
     slat_thickness: float = 12.0
@@ -234,7 +239,8 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         taper_height=_to_float(get("taperHeight", "taper_height"), None),
         port_length=_to_float(get("portLength", "port_length"), None),
         port_allowance=_to_float(get("portAllowance", "port_allowance"), DEFAULT_PORT_ALLOWANCE_MM),
-        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 85.0),
+        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 85.0)
+        + _to_float(get("portFitMm", "port_fit_mm"), 0.0),
         bottle_volume_l=_to_float(get("bottleVolumeL", "bottle_volume_l", "volume", "bottleVolume"), 1.5),
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),
         screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 4.5),
@@ -1308,6 +1314,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--port-length", type=float, default=None, help="Optional direct port length in mm. Overrides taper height.")
     p.add_argument("--port-allowance", type=float, default=DEFAULT_PORT_ALLOWANCE_MM, help="Extra seating allowance added to taper height.")
     p.add_argument("--port-height", type=float, default=85.0, help="Bottle diameter / port height in mm.")
+    p.add_argument("--port-fit-mm", type=float, default=0.0, help="Connection fit offset in mm, added to port height (negative = tighter).")
     p.add_argument("--bottle-volume-l", type=float, default=1.5, help="Bottle volume in litres, used for naming/stats.")
     p.add_argument("--bottle-brand", type=str, default="generic", help="Bottle brand, used for naming/stats.")
     p.add_argument("--screw-diameter", type=float, default=4.5, help="M6 pilot-hole cut diameter in mm.")
@@ -1336,7 +1343,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             taper_height=args.taper_height,
             port_length=args.port_length,
             port_allowance=args.port_allowance,
-            port_height=args.port_height,
+            port_height=args.port_height + args.port_fit_mm,
             bottle_volume_l=args.bottle_volume_l,
             bottle_brand=args.bottle_brand,
             screw_diameter=args.screw_diameter,
