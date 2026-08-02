@@ -258,7 +258,16 @@ Field mapping worth remembering: the form's **volume is in millilitres** and is 
 bottle **diameter** becomes `port_height`; the **top tapper** becomes `taper_height` (port length =
 taper + allowance); the DXF checkbox produces a real 1:1 DXF cutting file via `write_dxf()` in
 `ecojoiner/generate_exports.py` (pure Python, using the `ezdxf` pip package — no OpenSCAD CLI
-dependency). STL export is still unimplemented and would need the OpenSCAD CLI if added later.
+dependency).
+
+**Backlog (low priority): STL export.** Not yet implemented — there's no `fab3d`/STL option on
+the page. Harder than DXF was: DXF just serialized independent flat outlines from geometry we
+already had, but STL needs an actual watertight 3D solid — each part's outer profile with its
+holes truly subtracted (not just overlapping outlines), extruded to board thickness, and
+triangulated into a mesh. Preferred approach, consistent with the DXF decision above: pure
+Python via `shapely` (polygon-with-holes) + `trimesh` (`extrude_polygon` + `.export('.stl')`),
+not the OpenSCAD CLI (still not installed on this machine, still not worth taking on as a system
+dependency for this).
 
 Safety rules: user values are passed only inside a temp JSON file (`--json`), never as argv, and
 never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at

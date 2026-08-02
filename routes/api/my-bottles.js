@@ -33,7 +33,9 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
+
+const upload = multer({ storage, limits: { fileSize: MAX_PHOTO_BYTES } });
 
 router.use(ensureAuth);
 
@@ -43,10 +45,23 @@ router.delete('/:id', deleteMyBottle);
 router.get('/turtles/:id', listBottlesForManagedTurtle);
 router.post(
   '/:id/delivery',
-  upload.fields([
-    { name: 'bottle_basic_photo', maxCount: 1 },
-    { name: 'bottle_selfie_photo', maxCount: 1 }
-  ]),
+  (req, res, next) => {
+    upload.fields([
+      { name: 'bottle_basic_photo', maxCount: 1 },
+      { name: 'bottle_selfie_photo', maxCount: 1 }
+    ])(req, res, (err) => {
+      if (!err) {
+        return next();
+      }
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          message: `Your photo is too large. Please upload one under ${MAX_PHOTO_BYTES / (1024 * 1024)}MB.`
+        });
+      }
+      return next(err);
+    });
+  },
   submitBottleDeliveryDetails
 );
 router.patch('/:id/turtle', reassignBottleToTurtle);

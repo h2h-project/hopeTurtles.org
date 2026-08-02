@@ -1,6 +1,6 @@
 <% const githubRepo = 'https://github.com/h2h-project/turtleOS'; %>
-<% const installCommand = 'curl -sSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/install_turtleOS.sh | bash'; %>
-<% const syncCommand = 'curl -sSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/sync_turtleOS.sh | bash'; %>
+<% const installCommand = 'bash <(curl -fsSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/install_turtleOS.sh)'; %>
+<% const syncCommand = 'bash <(curl -fsSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/sync_turtleOS.sh)'; %>
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
 <%- include('partials/nav') %>
 <main id="main" class="turtleos-page">

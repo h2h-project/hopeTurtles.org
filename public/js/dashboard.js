@@ -12,6 +12,11 @@ const parseJsonResponse = async (response) => {
   try {
     return JSON.parse(text);
   } catch (error) {
+    if (response.status === 413) {
+      throw new Error(
+        "That file is too large for the server to accept. Please upload a smaller photo (under 8MB) and try again.",
+      );
+    }
     throw new Error("Unexpected response from server.");
   }
 };
