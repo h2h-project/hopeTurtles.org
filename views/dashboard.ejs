@@ -309,6 +309,7 @@
                   data-open-reassign-bottle
                   aria-label="Change turtle connection"
                 >
+                  <i class="fa-solid fa-gear" aria-hidden="true"></i>
                   <%= turtleLabel %>
                 </button>
               </td>
@@ -723,13 +724,21 @@
         </div>
         <button type="button" class="dialog-close" data-close-reassign-bottle aria-label="Close">&times;</button>
       </header>
-      <p class="muted" data-reassign-bottle-hub></p>
+      <label>
+        Hub
+        <select name="hub_id" data-reassign-bottle-hub-select>
+          <option value="">Select a hub</option>
+          <% hubs.forEach(function (hub) { %>
+            <option value="<%= hub.hub_id %>"><%= hub.name %></option>
+          <% }) %>
+        </select>
+      </label>
       <label>
         Available turtles at this hub
         <select name="turtle_id" data-reassign-bottle-select required></select>
       </label>
       <p class="muted" data-reassign-bottle-empty hidden>
-        You don't have any turtles assigned to this hub yet.
+        No turtles are connected to this hub yet.
       </p>
       <div class="mission-dialog__actions">
         <button type="button" class="button ghost" data-close-reassign-bottle>Cancel</button>

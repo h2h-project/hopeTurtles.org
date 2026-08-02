@@ -1,4 +1,5 @@
 import hubsModel from '../models/hubsModel.js';
+import turtlesModel from '../models/turtlesModel.js';
 
 const normalizeHubPayload = (payload = {}) => {
   const normalized = { ...payload };
@@ -41,6 +42,20 @@ export const getHubs = async (req, res, next) => {
   }
 };
 
+export const getHubTurtles = async (req, res, next) => {
+  try {
+    const hubId = Number(req.params.id);
+    if (!Number.isFinite(hubId)) {
+      return res.status(400).json({ success: false, message: 'Invalid hub identifier.' });
+    }
+
+    const turtles = await turtlesModel.getForHub(hubId);
+    return res.json({ success: true, data: turtles });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const createHub = async (req, res, next) => {
   try {
     const hub = await hubsModel.create(normalizeHubPayload(req.body));
@@ -70,6 +85,7 @@ export const deleteHub = async (req, res, next) => {
 
 export default {
   getHubs,
+  getHubTurtles,
   createHub,
   updateHub,
   deleteHub

@@ -209,6 +209,33 @@ turtlesModel.getDeviceInfo = async (turtleId) => {
   return rows[0] ?? null;
 };
 
+turtlesModel.getForHub = async (hubId) => {
+  if (!hubId) {
+    return [];
+  }
+
+  const sql = `
+    SELECT
+      t.turtle_id,
+      t.name,
+      t.status,
+      t.hub_id,
+      t.turtle_manager,
+      COALESCE(
+        NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''),
+        NULLIF(u.full_name, ''),
+        u.email,
+        ''
+      ) AS manager_name
+    FROM turtles_tb t
+    LEFT JOIN users_tb u ON t.turtle_manager = u.buwana_id
+    WHERE t.hub_id = ?
+    ORDER BY t.name, t.turtle_id
+  `;
+
+  return query(sql, [hubId]);
+};
+
 turtlesModel.getTelemetrySummary = async () => {
   const latestTimestamps = await query(
     `SELECT turtle_id, MAX(timestamp) AS last_contact FROM telemetry_tb GROUP BY turtle_id`

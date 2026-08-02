@@ -183,6 +183,11 @@ bottlesModel.searchPublicBySerial = async (serialQuery, limit = 20) => {
     return [];
   }
 
+  // mysql2's `execute()` (prepared statements) can't bind LIMIT as a `?`
+  // placeholder — it throws "Incorrect arguments to mysqld_stmt_execute".
+  // Validate to a plain integer and inline it instead.
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 50);
+
   const sql = `
     SELECT
       b.bottle_id,
@@ -204,10 +209,10 @@ bottlesModel.searchPublicBySerial = async (serialQuery, limit = 20) => {
     LEFT JOIN photos_tb photo ON photo.photo_id = b.bottle_basic_pic
     WHERE b.serial_number LIKE ?
     ORDER BY b.updated_at DESC, b.created_at DESC
-    LIMIT ?
+    LIMIT ${safeLimit}
   `;
 
-  return query(sql, [`%${serialQuery}%`, limit]);
+  return query(sql, [`%${serialQuery}%`]);
 };
 
 export default bottlesModel;

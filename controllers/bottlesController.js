@@ -440,26 +440,28 @@ export const reassignBottleToTurtle = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Bottle not found.' });
     }
 
-    if (!bottle.hub_id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Assign this bottle to a hub before connecting it to a turtle.'
-      });
-    }
-
-    const targetTurtle = await turtlesModel.getManagedById(targetTurtleId, userId);
+    // Any turtle at the chosen hub is a valid target, not just ones the
+    // current user manages — bottles are shared cargo, not turtle-owned.
+    const targetTurtle = await turtlesModel.getById(targetTurtleId);
     if (!targetTurtle) {
       return res.status(404).json({ success: false, message: 'Turtle not found.' });
     }
 
-    if (!targetTurtle.hub_id || String(targetTurtle.hub_id) !== String(bottle.hub_id)) {
+    if (!targetTurtle.hub_id) {
       return res.status(400).json({
         success: false,
-        message: 'Please choose a turtle connected to the same hub as this bottle.'
+        message: 'That turtle is not connected to a hub yet.'
       });
     }
 
-    await bottlesModel.update(bottleId, { turtle_id: targetTurtleId });
+    const updates = { turtle_id: targetTurtleId };
+    // Keep the bottle's hub in sync with the turtle it now rides in, so the
+    // bottle's shipping hub always reflects where it will actually launch from.
+    if (String(bottle.hub_id) !== String(targetTurtle.hub_id)) {
+      updates.hub_id = targetTurtle.hub_id;
+    }
+
+    await bottlesModel.update(bottleId, updates);
 
     const updatedBottle = await bottlesModel.getByIdForPacker(bottleId, userId);
     return res.json({ success: true, data: updatedBottle });

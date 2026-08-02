@@ -326,10 +326,11 @@ const reassignBottleForm =
   reassignBottleDialog?.querySelector("[data-reassign-bottle-form]") ?? null;
 const reassignBottleSelect =
   reassignBottleForm?.querySelector("[data-reassign-bottle-select]") ?? null;
+const reassignBottleHubSelect =
+  reassignBottleForm?.querySelector("[data-reassign-bottle-hub-select]") ??
+  null;
 const reassignBottleFeedback =
   reassignBottleForm?.querySelector("[data-reassign-bottle-feedback]") ?? null;
-const reassignBottleHubLabel =
-  reassignBottleForm?.querySelector("[data-reassign-bottle-hub]") ?? null;
 const reassignBottleSummaryLabel =
   reassignBottleForm?.querySelector("[data-reassign-bottle-summary]") ?? null;
 const reassignBottleEmptyState =
@@ -794,6 +795,7 @@ const createBottleRow = (bottle) => {
         data-open-reassign-bottle
         aria-label="Change turtle connection"
       >
+        <i class="fa-solid fa-gear" aria-hidden="true"></i>
         ${escapeHtml(turtleLabel)}
       </button>
     </td>
@@ -828,32 +830,23 @@ const createBottleRow = (bottle) => {
   return row;
 };
 
-const managedTurtlesData = Array.from(
-  document.querySelectorAll("[data-manageable-turtle]"),
-)
-  .map((row) => {
-    const idRaw = row.dataset.turtleId;
-    const hubIdRaw = row.dataset.turtleHub;
-    const parsedId = idRaw ? Number(idRaw) : null;
-    if (!Number.isFinite(parsedId)) {
-      return null;
-    }
-    return {
-      id: parsedId,
-      name: row.dataset.turtleName?.trim() || `Turtle #${idRaw}`,
-      hubId: hubIdRaw ? String(hubIdRaw) : "",
-      hubName: row.dataset.turtleHubName?.trim() || "",
-    };
-  })
-  .filter(Boolean);
+const hubTurtlesCache = new Map();
 
-const getManagedTurtlesForHub = (hubId) => {
+const fetchTurtlesForHub = async (hubId) => {
   if (!hubId) {
     return [];
   }
-  return managedTurtlesData.filter(
-    (turtle) => turtle.hubId && String(turtle.hubId) === String(hubId),
-  );
+  if (hubTurtlesCache.has(hubId)) {
+    return hubTurtlesCache.get(hubId);
+  }
+  const response = await fetch(`/api/hubs/${encodeURIComponent(hubId)}/turtles`);
+  const json = await parseJsonResponse(response);
+  if (!response.ok || !json.success) {
+    throw new Error(json?.message || "Unable to load turtles for that hub.");
+  }
+  const turtles = Array.isArray(json.data) ? json.data : [];
+  hubTurtlesCache.set(hubId, turtles);
+  return turtles;
 };
 
 const setReassignFeedback = (message, isError = false) => {
@@ -878,28 +871,73 @@ const resetReassignDialog = () => {
     reassignBottleSelect.innerHTML = "";
     reassignBottleSelect.disabled = false;
   }
+  if (reassignBottleHubSelect) {
+    reassignBottleHubSelect.value = "";
+  }
   if (reassignBottleEmptyState) {
     reassignBottleEmptyState.hidden = true;
   }
   setReassignFeedback("");
 };
 
-const populateReassignOptions = (hubId, currentTurtleId) => {
+const populateReassignTurtleOptions = async (hubId, currentTurtleId) => {
   if (!reassignBottleSelect) {
-    return false;
+    return;
   }
+
+  if (!hubId) {
+    reassignBottleSelect.innerHTML = "";
+    reassignBottleSelect.disabled = true;
+    if (reassignBottleSubmitButton) {
+      reassignBottleSubmitButton.disabled = true;
+    }
+    if (reassignBottleEmptyState) {
+      reassignBottleEmptyState.textContent = "Choose a hub to see its turtles.";
+      reassignBottleEmptyState.hidden = false;
+    }
+    return;
+  }
+
+  reassignBottleSelect.disabled = true;
+  reassignBottleSelect.innerHTML = '<option value="">Loading turtles…</option>';
+  if (reassignBottleSubmitButton) {
+    reassignBottleSubmitButton.disabled = true;
+  }
+  if (reassignBottleEmptyState) {
+    reassignBottleEmptyState.hidden = true;
+  }
+
+  let turtles = [];
+  try {
+    turtles = await fetchTurtlesForHub(hubId);
+  } catch (error) {
+    setReassignFeedback(
+      error?.message || "Unable to load turtles for that hub.",
+      true,
+    );
+  }
+
   reassignBottleSelect.innerHTML = "";
-  const turtles = getManagedTurtlesForHub(hubId);
   turtles.forEach((turtle) => {
     const option = document.createElement("option");
-    option.value = String(turtle.id);
-    option.textContent = turtle.name;
-    if (currentTurtleId && String(turtle.id) === String(currentTurtleId)) {
+    option.value = String(turtle.turtle_id);
+    const managerLabel = turtle.manager_name ? ` — ${turtle.manager_name}` : "";
+    option.textContent = `${turtle.name || `Turtle #${turtle.turtle_id}`}${managerLabel}`;
+    if (currentTurtleId && String(turtle.turtle_id) === String(currentTurtleId)) {
       option.selected = true;
     }
     reassignBottleSelect.appendChild(option);
   });
-  return turtles.length > 0;
+
+  const hasOptions = turtles.length > 0;
+  reassignBottleSelect.disabled = !hasOptions;
+  if (reassignBottleSubmitButton) {
+    reassignBottleSubmitButton.disabled = !hasOptions;
+  }
+  if (reassignBottleEmptyState) {
+    reassignBottleEmptyState.textContent = "No turtles are connected to this hub yet.";
+    reassignBottleEmptyState.hidden = hasOptions;
+  }
 };
 
 const showReassignDialog = () => {
@@ -926,7 +964,7 @@ const hideReassignDialog = () => {
   }
 };
 
-const openReassignDialogFromRow = (row) => {
+const openReassignDialogFromRow = async (row) => {
   if (!row || !reassignBottleDialog) {
     return;
   }
@@ -935,7 +973,6 @@ const openReassignDialogFromRow = (row) => {
     return;
   }
   const serialNumber = row.dataset.serialNumber?.trim();
-  const hubName = row.dataset.hubName?.trim();
   const hubId = row.dataset.hubId ? String(row.dataset.hubId) : "";
   const currentTurtleId = row.dataset.turtleId
     ? Number(row.dataset.turtleId)
@@ -946,30 +983,12 @@ const openReassignDialogFromRow = (row) => {
       ? `Bottle #${serialNumber}`
       : "Bottle without serial number";
   }
-  if (reassignBottleHubLabel) {
-    reassignBottleHubLabel.textContent = hubName
-      ? `Hub: ${hubName}`
-      : "Hub not assigned yet";
-  }
-  const hasOptions = populateReassignOptions(hubId, currentTurtleId);
-  if (reassignBottleEmptyState) {
-    if (!hubId) {
-      reassignBottleEmptyState.textContent =
-        "Assign this bottle to a hub before connecting it to a turtle.";
-    } else {
-      reassignBottleEmptyState.textContent =
-        "You do not have any turtles connected to this hub yet.";
-    }
-    reassignBottleEmptyState.hidden = hasOptions;
-  }
-  if (reassignBottleSelect) {
-    reassignBottleSelect.disabled = !hasOptions;
-  }
-  if (reassignBottleSubmitButton) {
-    reassignBottleSubmitButton.disabled = !hasOptions;
+  if (reassignBottleHubSelect) {
+    reassignBottleHubSelect.value = hubId;
   }
   setReassignFeedback("");
   showReassignDialog();
+  await populateReassignTurtleOptions(hubId, currentTurtleId);
 };
 
 const closeReassignDialog = () => {
@@ -1312,6 +1331,13 @@ if (reassignBottleDialog) {
 
 if (reassignBottleForm) {
   reassignBottleForm.addEventListener("submit", handleReassignSubmit);
+}
+
+if (reassignBottleHubSelect) {
+  reassignBottleHubSelect.addEventListener("change", () => {
+    setReassignFeedback("");
+    populateReassignTurtleOptions(reassignBottleHubSelect.value, null);
+  });
 }
 
 toggleBottlesTableState();
