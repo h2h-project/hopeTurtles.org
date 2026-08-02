@@ -178,4 +178,36 @@ bottlesModel.getForTurtle = async (turtleId) => {
   return query(sql, [turtleId]);
 };
 
+bottlesModel.searchPublicBySerial = async (serialQuery, limit = 20) => {
+  if (!serialQuery) {
+    return [];
+  }
+
+  const sql = `
+    SELECT
+      b.bottle_id,
+      b.serial_number,
+      b.status,
+      b.verified,
+      b.contents,
+      b.brand,
+      b.volume_ml,
+      b.date_packed,
+      m.full_name AS mission_name,
+      t.name AS turtle_name,
+      h.name AS hub_name,
+      photo.url AS basic_photo_url
+    FROM bottles_tb b
+    LEFT JOIN missions_tb m ON b.mission_id = m.mission_id
+    LEFT JOIN turtles_tb t ON t.turtle_id = b.turtle_id
+    LEFT JOIN hubs_tb h ON h.hub_id = b.hub_id
+    LEFT JOIN photos_tb photo ON photo.photo_id = b.bottle_basic_pic
+    WHERE b.serial_number LIKE ?
+    ORDER BY b.updated_at DESC, b.created_at DESC
+    LIMIT ?
+  `;
+
+  return query(sql, [`%${serialQuery}%`, limit]);
+};
+
 export default bottlesModel;

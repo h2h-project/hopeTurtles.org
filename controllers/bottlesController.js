@@ -286,6 +286,37 @@ export const submitBottleDeliveryDetails = async (req, res, next) => {
   }
 };
 
+export const searchBottlesPublic = async (req, res, next) => {
+  try {
+    const rawSerial = typeof req.query.serial === 'string' ? req.query.serial.trim() : '';
+
+    if (rawSerial.length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const results = await bottlesModel.searchPublicBySerial(rawSerial);
+
+    const data = results.map((bottle) => ({
+      bottle_id: bottle.bottle_id,
+      serial_number: bottle.serial_number,
+      status: bottle.status,
+      verified: Boolean(bottle.verified),
+      contents: bottle.contents,
+      brand: bottle.brand,
+      volume_ml: bottle.volume_ml,
+      date_packed: bottle.date_packed,
+      mission_name: bottle.mission_name,
+      turtle_name: bottle.turtle_name,
+      hub_name: bottle.hub_name,
+      basic_photo_url: bottle.basic_photo_url
+    }));
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const listBottlesForManagedTurtle = async (req, res, next) => {
   try {
     const managerId = getCurrentUserId(req);
@@ -445,6 +476,7 @@ export default {
   deleteBottle,
   listMyBottles,
   registerMyBottle,
+  searchBottlesPublic,
   deleteMyBottle,
   submitBottleDeliveryDetails,
   listBottlesForManagedTurtle,

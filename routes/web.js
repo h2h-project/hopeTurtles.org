@@ -140,6 +140,13 @@ router.get("/contribute", (req, res) => {
   });
 });
 
+router.get("/bottle-lookup", (req, res) => {
+  res.render("bottle_lookup", {
+    pageTitle: "Bottle Lookup",
+    bodyClass: "ocean-bg",
+  });
+});
+
 router.get("/missions", missionsController.renderExplorer);
 router.get("/team", teamController.renderTeamPage);
 router.get("/turtles/:id", turtlesController.renderTurtlePage);
