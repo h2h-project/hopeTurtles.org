@@ -256,8 +256,9 @@ Flow:
 
 Field mapping worth remembering: the form's **volume is in millilitres** and is divided by 1000;
 bottle **diameter** becomes `port_height`; the **top tapper** becomes `taper_height` (port length =
-taper + allowance); the DXF checkbox yields the `.scad` plus a notice, since DXF/STL still need the
-OpenSCAD CLI.
+taper + allowance); the DXF checkbox produces a real 1:1 DXF cutting file via `write_dxf()` in
+`ecojoiner/generate_exports.py` (pure Python, using the `ezdxf` pip package — no OpenSCAD CLI
+dependency). STL export is still unimplemented and would need the OpenSCAD CLI if added later.
 
 Safety rules: user values are passed only inside a temp JSON file (`--json`), never as argv, and
 never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at

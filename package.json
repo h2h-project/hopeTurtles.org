@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "ecojoiner:setup": "python3 -m venv ecojoiner/.venv && ecojoiner/.venv/bin/pip install reportlab",
+    "ecojoiner:setup": "python3 -m venv ecojoiner/.venv && ecojoiner/.venv/bin/pip install reportlab ezdxf",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

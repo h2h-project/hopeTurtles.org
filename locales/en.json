@@ -390,7 +390,6 @@
   "gen_fab_3d_desc": "3D file (STL)",
   "gen_fab_cnc": "CNC & laser",
   "gen_fab_cnc_desc": "For CNC machines and laser cutters (DXF)",
-  "gen_fab_dxf_note": "Sorry, we haven't quite got this format working yet!",
   "gen_fab_vector": "Vector patterns",
   "gen_fab_vector_desc": "Editable and traceable 1:1 carpenter patterns (SVG)",
   "gen_p5_title": "Select ecojoiner type",

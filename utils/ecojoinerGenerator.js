@@ -16,7 +16,7 @@ const execFileAsync = promisify(execFile);
 const { ecojoiner } = config;
 
 // Formats the Python generator can currently write.
-const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg'];
+const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg', 'dxf'];
 
 // v3.2 part list, kept alongside PART_QUANTITIES in generate_exports.py so the
 // confirmation screen can show what the user is about to cut.
@@ -35,6 +35,8 @@ const FILE_LABEL_KEYS = [
   [/_carpenter_sheet\.pdf$/, 'gen_file_pdf'],
   [/_full_set_1to1\.svg$/, 'gen_file_svg_full'],
   [/_one_each_1to1\.svg$/, 'gen_file_svg_one'],
+  [/_full_set_1to1\.dxf$/, 'gen_file_dxf_full'],
+  [/_one_each_1to1\.dxf$/, 'gen_file_dxf_one'],
   [/\.scad$/, 'gen_file_scad']
 ];
 
@@ -42,9 +44,6 @@ const labelKeyFor = (url = '') => {
   const match = FILE_LABEL_KEYS.find(([pattern]) => pattern.test(url));
   return match ? match[1] : null;
 };
-
-const DXF_NOTICE =
-  'DXF export is not available yet — open the OpenSCAD file and export DXF/STL with the OpenSCAD CLI.';
 
 export class EcojoinerRequestError extends Error {
   constructor(message, errors = []) {
@@ -118,14 +117,12 @@ export const mapFormFields = (body = {}) => {
     }
   }
 
-  // Fabrication checkboxes → generator formats. DXF has no writer yet, so it
-  // yields the SCAD it would be derived from rather than failing the request.
+  // Fabrication checkboxes → generator formats.
   const formats = new Set();
   if (isTruthy(body.fabCarpentry)) formats.add('pdf');
   if (isTruthy(body.fab3d)) formats.add('scad');
   if (isTruthy(body.fabSvg)) formats.add('svg');
-  const dxfRequested = isTruthy(body.fabDxf);
-  if (dxfRequested) formats.add('scad');
+  if (isTruthy(body.fabDxf)) formats.add('dxf');
   if (!formats.size) errors.push('Choose at least one fabrication format.');
 
   if (errors.length) {
@@ -153,7 +150,7 @@ export const mapFormFields = (body = {}) => {
       material: body.material ? String(body.material) : null,
       ecojoinerType: body.ecojoinerType ? String(body.ecojoinerType) : null
     },
-    notices: dxfRequested ? [DXF_NOTICE] : []
+    notices: []
   };
 };
 
@@ -228,6 +225,11 @@ export const runGenerator = async (body, { dryRun = false } = {}) => {
           'The PDF generator is not installed on this server. Run `npm run ecojoiner:setup` and restart.'
         );
       }
+      if (/ezdxf is not installed/i.test(detail)) {
+        throw new Error(
+          'The DXF generator is not installed on this server. Run `npm run ecojoiner:setup` and restart.'
+        );
+      }
       if (error.code === 'ENOENT') {
         throw new Error(`Python interpreter not found: ${ecojoiner.python}`);
       }
@@ -270,10 +272,10 @@ export const runGenerator = async (body, { dryRun = false } = {}) => {
 };
 
 /**
- * Boot-time probe. Validation runs fine without reportlab and only the PDF
- * write fails, so an unhealthy install would otherwise stay invisible until a
- * visitor pressed "generate". Warns rather than throws — SCAD and SVG still
- * work, and the site should not refuse to start over this.
+ * Boot-time probe. Validation runs fine without reportlab/ezdxf and only the
+ * PDF/DXF write fails, so an unhealthy install would otherwise stay invisible
+ * until a visitor pressed "generate". Warns rather than throws — SCAD and SVG
+ * still work, and the site should not refuse to start over this.
  */
 export const checkGeneratorHealth = async () => {
   try {
@@ -281,6 +283,16 @@ export const checkGeneratorHealth = async () => {
   } catch {
     console.warn(
       `⚠️  Ecojoiner PDF generation is unavailable: ${ecojoiner.python} cannot import reportlab.\n` +
+        '   Run `npm run ecojoiner:setup` (or set ECOJOINER_PYTHON) and restart.'
+    );
+    return false;
+  }
+
+  try {
+    await execFileAsync(ecojoiner.python, ['-c', 'import ezdxf'], { timeout: 10000 });
+  } catch {
+    console.warn(
+      `⚠️  Ecojoiner DXF generation is unavailable: ${ecojoiner.python} cannot import ezdxf.\n` +
         '   Run `npm run ecojoiner:setup` (or set ECOJOINER_PYTHON) and restart.'
     );
     return false;

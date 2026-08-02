@@ -7,6 +7,7 @@ Generates backend-ready Ecojoiner files from bottle + wood measurements:
   - Letter landscape PDF carpenter sheet
   - Self-contained OpenSCAD .scad file
   - 1:1 SVG cutting files
+  - 1:1 DXF cutting files
   - JSON manifest with inputs, derived dimensions, and exported file paths
 
 Current design logic: Flatpack Ecojoiner v3.2
@@ -72,6 +73,13 @@ except Exception:  # pragma: no cover - useful in backend deployments
     getSampleStyleSheet = None
     pdfmetrics = None
     TTFont = None
+
+# ezdxf is used only for DXF generation. SVG and SCAD generation use only
+# Python's standard library.
+try:
+    import ezdxf
+except Exception:  # pragma: no cover - useful in backend deployments
+    ezdxf = None
 
 
 # ---------------------------------------------------------------------------
@@ -298,12 +306,12 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
             errors.append("Collar hole leaves less than 4mm of material above/below the hole.")
 
-    allowed_formats = {"pdf", "scad", "svg"}
+    allowed_formats = {"pdf", "scad", "svg", "dxf"}
     unknown_formats = [f for f in inputs.formats if f not in allowed_formats]
     if unknown_formats:
         errors.append(
             "Unsupported export format(s): " + ", ".join(unknown_formats) +
-            ". This Python generator currently supports pdf, scad, and svg."
+            ". This Python generator currently supports pdf, scad, svg, and dxf."
         )
 
     return errors
@@ -536,6 +544,180 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
 
     out += "</svg>\n"
     path.write_text(out, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# DXF generation
+# ---------------------------------------------------------------------------
+
+DXF_CUT_LAYER = "CUT"
+DXF_MARK_LAYER = "MARK"
+DXF_LABEL_LAYER = "LABEL"
+
+
+def _dxf_setup(doc) -> None:
+    """Create the CUT/MARK/LABEL layers (and DASHED linetype) write_dxf() uses.
+
+    Mirrors the SVG output's `.cut` (solid, real cut geometry) and `.mark`
+    (dashed, non-cutting reference such as a nut recess) CSS classes.
+    """
+    if "DASHED" not in doc.linetypes:
+        doc.linetypes.add("DASHED", pattern=[3.0, 2.0, -1.0])
+    if DXF_CUT_LAYER not in doc.layers:
+        doc.layers.add(DXF_CUT_LAYER, color=7)
+    if DXF_MARK_LAYER not in doc.layers:
+        doc.layers.add(DXF_MARK_LAYER, color=8, linetype="DASHED")
+    if DXF_LABEL_LAYER not in doc.layers:
+        doc.layers.add(DXF_LABEL_LAYER, color=3)
+
+
+def _dxf_rect(msp, x: float, y: float, w: float, h: float, layer: str = DXF_CUT_LAYER) -> None:
+    pline = msp.add_lwpolyline(
+        [(x, y), (x + w, y), (x + w, y + h), (x, y + h)],
+        dxfattribs={"layer": layer},
+    )
+    pline.closed = True
+
+
+def _dxf_circle(msp, cx: float, cy: float, diameter: float, layer: str = DXF_CUT_LAYER) -> None:
+    msp.add_circle(center=(cx, cy), radius=diameter / 2, dxfattribs={"layer": layer})
+
+
+def _dxf_label(msp, x: float, y: float, text: str) -> None:
+    msp.add_text(text, dxfattribs={"layer": DXF_LABEL_LAYER, "height": 2.5, "insert": (x, y)})
+
+
+def _john_dxf_group(
+    msp,
+    name: str,
+    x: float,
+    y: float,
+    inputs: EcojoinerInputs,
+    d: EcojoinerDerived,
+    slot_depth: float,
+    slot_centres: Tuple[float, float],
+    center_hole_diameter: float,
+    include_labels: bool = True,
+) -> None:
+    """DXF equivalent of _john_svg_group: outer rect, slot rects, center hole,
+    two screw pilot holes, and an optional label - all offset by (x, y).
+
+    DXF has no `<g transform="translate()">` equivalent, so every coordinate
+    below has (x, y) added directly rather than relying on a transform. Any
+    geometry change ported over from _john_svg_group must add the offset by
+    hand here too.
+    """
+    _dxf_rect(msp, x, y, d.john_length, d.john_height, DXF_CUT_LAYER)
+
+    for cx in slot_centres:
+        _dxf_rect(msp, x + cx - d.slot_width / 2, y, d.slot_width, slot_depth, DXF_CUT_LAYER)
+
+    _dxf_circle(msp, x + d.john_length / 2, y + d.john_height / 2, center_hole_diameter, DXF_CUT_LAYER)
+    _dxf_circle(msp, x + d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER)
+    _dxf_circle(
+        msp, x + d.john_length - d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER
+    )
+
+    if include_labels:
+        _dxf_label(msp, x, y - 3, name)
+
+
+def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_set: bool = True) -> None:
+    """Write a 1:1 DXF cutting file.
+
+    A direct structural port of write_svg(): same margins, gaps, and
+    full_set/one-each row layout, just emitting DXF entities instead of SVG
+    element strings. Every cut/mark shape is an independent, non-boolean
+    closed entity (LWPOLYLINE or CIRCLE), same as the SVG output - CAM
+    software can interpret these as inner/outer cuts. Use inner cuts before
+    outer cuts in the CAM workflow.
+    """
+    if ezdxf is None:
+        raise RuntimeError("ezdxf is not installed. Install with: pip install ezdxf")
+
+    doc = ezdxf.new(dxfversion="R2010")
+    doc.units = ezdxf.units.MM
+    _dxf_setup(doc)
+    msp = doc.modelspace()
+
+    gap = 12.0
+    margin = 10.0
+    row_h = max(d.john_height, d.final_key_width, d.presser_diameter) + gap
+
+    y = margin
+    long_slots = (
+        d.long_end_span + inputs.slat_thickness / 2,
+        d.john_length - d.long_end_span - inputs.slat_thickness / 2,
+    )
+    little_slots = (
+        d.little_end_span + inputs.slat_thickness / 2,
+        d.john_length - d.little_end_span - inputs.slat_thickness / 2,
+    )
+
+    if full_set:
+        for i in range(PART_QUANTITIES["Long John"]):
+            _john_dxf_group(
+                msp, f"Long John {i+1}", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter
+            )
+            y += row_h
+        for i in range(PART_QUANTITIES["Little John"]):
+            _john_dxf_group(
+                msp, f"Little John {i+1}", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter
+            )
+            y += row_h
+        _john_dxf_group(
+            msp, "Master John", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter
+        )
+        y += row_h
+
+        # Final Keys on one row.
+        x = margin
+        for i in range(PART_QUANTITIES["Final Key"]):
+            _dxf_rect(msp, x, y, d.final_key_length, d.final_key_width, DXF_CUT_LAYER)
+            _dxf_label(msp, x, y - 3, f"Final Key {i+1}")
+            x += d.final_key_length + gap
+        y += row_h
+
+        # Pressers on one or more rows, wrapping at the same width write_svg
+        # uses for its full_set canvas.
+        x = margin
+        width_limit = margin * 2 + d.john_length
+        for i in range(PART_QUANTITIES["Presser"]):
+            if x + d.presser_diameter > width_limit - margin:
+                x = margin
+                y += d.presser_diameter + gap
+            cx, cy = x + d.presser_diameter / 2, y + d.presser_diameter / 2
+            _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
+            _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
+            _dxf_circle(msp, cx, cy, d.presser_nut_recess_diameter, DXF_MARK_LAYER)
+            _dxf_label(msp, x, y - 3, f"Presser {i+1}")
+            x += d.presser_diameter + gap
+    else:
+        _john_dxf_group(
+            msp, "Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter
+        )
+        y += row_h
+        _john_dxf_group(
+            msp, "Little John x5", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter
+        )
+        y += row_h
+        _john_dxf_group(
+            msp, "Master John x1", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter
+        )
+
+        # Final key and presser column.
+        x2 = margin + d.john_length + gap
+        _dxf_rect(msp, x2, margin, d.final_key_length, d.final_key_width, DXF_CUT_LAYER)
+        _dxf_label(msp, x2, margin - 3, "Final Key x4")
+
+        presser_y = margin + d.final_key_width + gap
+        cx, cy = x2 + d.presser_diameter / 2, presser_y + d.presser_diameter / 2
+        _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
+        _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
+        _dxf_circle(msp, cx, cy, d.presser_nut_recess_diameter, DXF_MARK_LAYER)
+        _dxf_label(msp, x2, presser_y - 3, "Presser x12")
+
+    doc.saveas(str(path))
 
 
 # ---------------------------------------------------------------------------
@@ -1271,7 +1453,8 @@ def generate_exports(
     files: List[GeneratedFile] = []
 
     # SCAD is useful both as a user download and as an intermediate file for
-    # later OpenSCAD CLI generation of DXF/STL if you add those formats.
+    # later OpenSCAD CLI generation of STL if you add that format. DXF is
+    # written directly by write_dxf() below, not derived from this file.
     if "scad" in inputs.formats:
         scad_path = job_dir / f"{slug}.scad"
         write_scad(scad_path, inputs, d)
@@ -1285,6 +1468,15 @@ def generate_exports(
         preview_svg_path = job_dir / f"{slug}_one_each_1to1.svg"
         write_svg(preview_svg_path, inputs, d, full_set=False)
         files.append(GeneratedFile("svg", "1:1 SVG one-each layout", str(preview_svg_path), f"{public_url_prefix}/{slug}/{preview_svg_path.name}"))
+
+    if "dxf" in inputs.formats:
+        dxf_path = job_dir / f"{slug}_full_set_1to1.dxf"
+        write_dxf(dxf_path, inputs, d, full_set=True)
+        files.append(GeneratedFile("dxf", "1:1 DXF full-set cutting file", str(dxf_path), f"{public_url_prefix}/{slug}/{dxf_path.name}"))
+
+        preview_dxf_path = job_dir / f"{slug}_one_each_1to1.dxf"
+        write_dxf(preview_dxf_path, inputs, d, full_set=False)
+        files.append(GeneratedFile("dxf", "1:1 DXF one-each layout", str(preview_dxf_path), f"{public_url_prefix}/{slug}/{preview_dxf_path.name}"))
 
     if "pdf" in inputs.formats:
         pdf_path = job_dir / f"{slug}_carpenter_sheet.pdf"
