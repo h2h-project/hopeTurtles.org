@@ -30,17 +30,17 @@
 </main>
 <% } else { %>
 <main id="main" class="layout generate-page">
-  <div class="generate-intro">
-    <h1><%= t.gen_hero_title %></h1>
-    <p><%= t.gen_hero_blurb %></p>
-  </div>
-
   <div class="eco-dev-notice eco-dev-notice--top" role="status">
     <i class="fa-solid fa-flask" aria-hidden="true"></i>
     <span>
       <strong><%= t.gen_notice_title %></strong>
       <%= t.gen_notice_body %>
     </span>
+  </div>
+
+  <div class="generate-intro">
+    <h1><%= t.gen_hero_title %></h1>
+    <p><%= t.gen_hero_blurb %></p>
   </div>
 
   <form class="eco-generate" id="eco-generate" novalidate>
@@ -139,6 +139,12 @@
             <figure class="eco-panel__figure">
               <img src="/images/ecojoiners/bottle_keys.webp" alt="<%= t.gen_p2_alt %>" loading="lazy" />
             </figure>
+          </div>
+          <div class="eco-panel__footer eco-panel__footer--end" data-eco-save-profile-footer hidden>
+            <span class="eco-feedback" data-eco-save-profile-feedback></span>
+            <button type="button" class="button ghost" id="eco-save-profile-btn">
+              <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_save_profile_btn %>
+            </button>
           </div>
         </div>
       </details>

@@ -65,6 +65,13 @@
       gen_dim_final_key: "Final Key",
       gen_dim_presser: "Presser diameter",
       gen_dim_screw: "Screw pilot hole",
+      gen_save_profile_btn: "Save bottle profile",
+      gen_save_profile_prompt: "Name this bottle profile",
+      gen_save_profile_saving: "Saving…",
+      gen_save_profile_success: "Bottle profile saved.",
+      gen_save_profile_missing_fields:
+        "Fill in the bottle brand and specs above before saving.",
+      gen_save_profile_error: "We could not save this bottle profile.",
     };
     const node = document.getElementById("eco-i18n");
     if (!node) return defaults;
@@ -670,11 +677,117 @@
     }
   };
 
+  // Step 2's own "Save bottle profile" button — only useful while the user
+  // is building a brand-new profile (an existing loaded one is already
+  // saved), so it stays hidden whenever the Step 1 picker has a selection.
+  const saveProfileFooter = document.querySelector(
+    "[data-eco-save-profile-footer]",
+  );
+  const saveProfileBtn = el("eco-save-profile-btn");
+  const saveProfileFeedback = document.querySelector(
+    "[data-eco-save-profile-feedback]",
+  );
+
+  const updateSaveProfileVisibility = () => {
+    if (!saveProfileFooter) return;
+    const hasSelectedProfile = Boolean(profilePicker && profilePicker.value);
+    saveProfileFooter.hidden = hasSelectedProfile;
+  };
+
+  const setSaveProfileFeedback = (message, isError) => {
+    if (!saveProfileFeedback) return;
+    saveProfileFeedback.textContent = message || "";
+    saveProfileFeedback.classList.toggle("eco-feedback--error", Boolean(isError));
+    saveProfileFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
+  };
+
   if (profilePicker) {
     loadProfiles();
+    updateSaveProfileVisibility();
     profilePicker.addEventListener("change", () => {
       const profile = profilesById[profilePicker.value];
       if (profile) applyProfileToForm(profile);
+      updateSaveProfileVisibility();
+      setSaveProfileFeedback("");
+    });
+  }
+
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener("click", async () => {
+      setSaveProfileFeedback("");
+      const values = collect();
+      const required = [
+        "brand",
+        "volume",
+        "diameter",
+        "cap",
+        "collar",
+        "topTapper",
+        "thickness",
+      ];
+      const missing = required.some(
+        (key) => values[key] === "" || values[key] === null || values[key] === undefined,
+      );
+      if (missing) {
+        setSaveProfileFeedback(s("gen_save_profile_missing_fields"), true);
+        return;
+      }
+
+      const suggestedLabel = values.volume
+        ? `${values.brand} ${values.volume}ml`
+        : values.brand;
+      const label = window.prompt(
+        s("gen_save_profile_prompt"),
+        suggestedLabel,
+      );
+      if (label === null) return; // user cancelled
+      const trimmedLabel = label.trim();
+      if (!trimmedLabel) {
+        setSaveProfileFeedback(s("gen_save_profile_missing_fields"), true);
+        return;
+      }
+
+      saveProfileBtn.disabled = true;
+      const originalLabel = saveProfileBtn.innerHTML;
+      saveProfileBtn.textContent = s("gen_save_profile_saving");
+
+      try {
+        const { ok, body } = await post("/api/ecojoiner/profiles", {
+          label: trimmedLabel,
+          brand: values.brand,
+          volume: values.volume,
+          diameter: values.diameter,
+          cap: values.cap,
+          collar: values.collar,
+          height: values.height,
+          topTapper: values.topTapper,
+          bottomTapper: values.bottomTapper,
+          material: values.material,
+          thickness: values.thickness,
+          portFitMm: values.portFitMm,
+        });
+        if (!ok || !body.success) {
+          setSaveProfileFeedback(
+            body.message || s("gen_save_profile_error"),
+            true,
+          );
+          return;
+        }
+        setSaveProfileFeedback(s("gen_save_profile_success"), false);
+        await loadProfiles();
+        if (profilePicker && body.data && body.data.profile_id) {
+          profilePicker.value = String(body.data.profile_id);
+        }
+        updateSaveProfileVisibility();
+      } catch (error) {
+        setSaveProfileFeedback(
+          error.message || s("gen_save_profile_error"),
+          true,
+        );
+      } finally {
+        saveProfileBtn.disabled = false;
+        saveProfileBtn.innerHTML = originalLabel;
+      }
     });
   }
 

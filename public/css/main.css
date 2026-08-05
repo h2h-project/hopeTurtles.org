@@ -4983,7 +4983,9 @@ body.ocean-bg {
 }
 
 .eco-dev-notice--top {
-  margin: 1.5rem 0 2rem;
+  /* .layout's own top padding is only ~6px, so this margin alone must clear
+     30px between the nav bar and the notice above the page heading. */
+  margin: 30px 0 2rem;
 }
 
 .eco-generate {
@@ -5091,6 +5093,20 @@ body.ocean-bg {
 
 .eco-panel__content--single {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.eco-panel__footer--end {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid rgba(1, 121, 25, 0.1);
+}
+
+.eco-panel__footer--end .eco-feedback {
+  margin: 0;
 }
 
 .eco-panel__text p {

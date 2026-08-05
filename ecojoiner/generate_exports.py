@@ -156,9 +156,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         ),
     },
     "board_thickness": {
-        "en": "Board Thickness for this ecojoiner set at {thickness:g} mm",
-        "id": "Ketebalan Papan untuk set ecojoiner ini diatur ke {thickness:g} mm",
-        "tr": "Bu ecojoiner seti için Tahta Kalınlığı {thickness:g} mm olarak ayarlandı",
+        "en": "Board Thickness for this ecojoiner set at {thickness} mm",
+        "id": "Ketebalan Papan untuk set ecojoiner ini diatur ke {thickness} mm",
+        "tr": "Bu ecojoiner seti için Tahta Kalınlığı {thickness} mm olarak ayarlandı",
     },
     "input_variables_title": {
         "en": "Input variables",
@@ -171,64 +171,64 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "Türetilmiş ölçüler",
     },
     "wood": {
-        "en": "Wood: {value:g}mm",
-        "id": "Kayu: {value:g}mm",
-        "tr": "Ahşap: {value:g}mm",
+        "en": "Wood: {value}mm",
+        "id": "Kayu: {value}mm",
+        "tr": "Ahşap: {value}mm",
     },
     "port_length_line": {
-        "en": "Port length: {value:g}mm",
-        "id": "Panjang port: {value:g}mm",
-        "tr": "Port uzunluğu: {value:g}mm",
+        "en": "Port length: {value}mm",
+        "id": "Panjang port: {value}mm",
+        "tr": "Port uzunluğu: {value}mm",
     },
     "bottle_diameter": {
-        "en": "Bottle diameter: {value:g}mm",
-        "id": "Diameter botol: {value:g}mm",
-        "tr": "Şişe çapı: {value:g}mm",
+        "en": "Bottle diameter: {value}mm",
+        "id": "Diameter botol: {value}mm",
+        "tr": "Şişe çapı: {value}mm",
     },
     "cap_line": {
-        "en": "Cap: ⌀{value:g}mm",
-        "id": "Tutup: ⌀{value:g}mm",
-        "tr": "Kapak: ⌀{value:g}mm",
+        "en": "Cap: ⌀{value}mm",
+        "id": "Tutup: ⌀{value}mm",
+        "tr": "Kapak: ⌀{value}mm",
     },
     "collar_line": {
-        "en": "Collar: ⌀{value:g}mm",
-        "id": "Kerah: ⌀{value:g}mm",
-        "tr": "Yaka: ⌀{value:g}mm",
+        "en": "Collar: ⌀{value}mm",
+        "id": "Kerah: ⌀{value}mm",
+        "tr": "Yaka: ⌀{value}mm",
     },
     "fit_clearance_line": {
-        "en": "Fit clearance: {value:g}mm",
-        "id": "Toleransi pas: {value:g}mm",
-        "tr": "Geçme boşluğu: {value:g}mm",
+        "en": "Fit clearance: {value}mm",
+        "id": "Toleransi pas: {value}mm",
+        "tr": "Geçme boşluğu: {value}mm",
     },
     "john_dim": {
-        "en": "John: {length:g} x {height:g}mm",
-        "id": "John: {length:g} x {height:g}mm",
-        "tr": "John: {length:g} x {height:g}mm",
+        "en": "John: {length} x {height}mm",
+        "id": "John: {length} x {height}mm",
+        "tr": "John: {length} x {height}mm",
     },
     "slot_width_line": {
-        "en": "Slot width: {value:g}mm",
-        "id": "Lebar slot: {value:g}mm",
-        "tr": "Yuva genişliği: {value:g}mm",
+        "en": "Slot width: {value}mm",
+        "id": "Lebar slot: {value}mm",
+        "tr": "Yuva genişliği: {value}mm",
     },
     "std_slot_depth_line": {
-        "en": "Std slot depth: {value:g}mm",
-        "id": "Kedalaman slot standar: {value:g}mm",
-        "tr": "Standart yuva derinliği: {value:g}mm",
+        "en": "Std slot depth: {value}mm",
+        "id": "Kedalaman slot standar: {value}mm",
+        "tr": "Standart yuva derinliği: {value}mm",
     },
     "master_slot_depth_line": {
-        "en": "Master slot depth: {value:g}mm",
-        "id": "Kedalaman slot master: {value:g}mm",
-        "tr": "Ana yuva derinliği: {value:g}mm",
+        "en": "Master slot depth: {value}mm",
+        "id": "Kedalaman slot master: {value}mm",
+        "tr": "Ana yuva derinliği: {value}mm",
     },
     "final_key_dim": {
-        "en": "Final Key: {length:g} x {width:g}mm",
-        "id": "Final Key: {length:g} x {width:g}mm",
-        "tr": "Final Key: {length:g} x {width:g}mm",
+        "en": "Final Key: {length} x {width}mm",
+        "id": "Final Key: {length} x {width}mm",
+        "tr": "Final Key: {length} x {width}mm",
     },
     "presser_dim": {
-        "en": "Presser: ⌀{value:g}mm",
-        "id": "Presser: ⌀{value:g}mm",
-        "tr": "Presser: ⌀{value:g}mm",
+        "en": "Presser: ⌀{value}mm",
+        "id": "Presser: ⌀{value}mm",
+        "tr": "Presser: ⌀{value}mm",
     },
     "notes": {
         "en": (
@@ -247,19 +247,19 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         ),
     },
     "port_label": {
-        "en": "port {value:g}mm",
-        "id": "port {value:g}mm",
-        "tr": "port {value:g}mm",
+        "en": "port {value}mm",
+        "id": "port {value}mm",
+        "tr": "port {value}mm",
     },
     "between_notches_label": {
-        "en": "{value:g}mm (bottle ⌀)",
-        "id": "{value:g}mm (⌀ botol)",
-        "tr": "{value:g}mm (şişe ⌀)",
+        "en": "{value}mm (bottle ⌀)",
+        "id": "{value}mm (⌀ botol)",
+        "tr": "{value}mm (şişe ⌀)",
     },
     "slot_label": {
-        "en": "slot {value:g}mm",
-        "id": "slot {value:g}mm",
-        "tr": "yuva {value:g}mm",
+        "en": "slot {value}mm",
+        "id": "slot {value}mm",
+        "tr": "yuva {value}mm",
     },
     "from_side_label": {
         "en": "25mm from side",
@@ -267,14 +267,14 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "kenardan 25mm",
     },
     "through_hole_label": {
-        "en": "M6 through-hole: ⌀{value:g}mm",
-        "id": "Lubang tembus M6: ⌀{value:g}mm",
-        "tr": "M6 geçme deliği: ⌀{value:g}mm",
+        "en": "M6 through-hole: ⌀{value}mm",
+        "id": "Lubang tembus M6: ⌀{value}mm",
+        "tr": "M6 geçme deliği: ⌀{value}mm",
     },
     "nut_recess_label": {
-        "en": "nut recess: ⌀{diam:g}mm x {depth:g}mm deep",
-        "id": "dudukan mur: ⌀{diam:g}mm x {depth:g}mm dalam",
-        "tr": "somun yuvası: ⌀{diam:g}mm x {depth:g}mm derinlik",
+        "en": "nut recess: ⌀{diam}mm x {depth}mm deep",
+        "id": "dudukan mur: ⌀{diam}mm x {depth}mm dalam",
+        "tr": "somun yuvası: ⌀{diam}mm x {depth}mm derinlik",
     },
     "version_credit": {
         "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.",
@@ -304,6 +304,18 @@ def T(lang: str, key: str, **kwargs) -> str:
     entry = PDF_STRINGS.get(key, {})
     template = entry.get(lang) or entry.get("en") or key
     return template.format(**kwargs) if kwargs else template
+
+
+def _ceil_mm(value: float) -> int:
+    """Round a millimetre dimension up to the nearest whole mm for the PDF.
+
+    The PDF is a scaled carpenter reference (the SVG/DXF carry the exact 1:1
+    geometry), and carpenters work off a tape measure with mm graduations —
+    rounding down could leave a part fractionally short, so every displayed
+    dimension rounds up instead. `round(value, 6)` first absorbs float noise
+    (e.g. 12.000000001) so it doesn't get bumped up to the next mm.
+    """
+    return int(math.ceil(round(value, 6)))
 
 
 # ---------------------------------------------------------------------------
@@ -1293,7 +1305,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     )
     p = Paragraph(html.escape(T(lang, "vision_statement")), style)
     p.wrapOn(c, para_width, 60)
-    p.drawOn(c, margin, title_y - 48)
+    p.drawOn(c, margin, title_y - 58)  # 10pt more clearance below the title than before
 
     # Board-thickness banner, sitting above the Input variables box. Called
     # out on its own here (rather than left as a dimension line + arrows on
@@ -1302,7 +1314,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     thickness_box_h = 22
     thickness_box_gap = 6
     thickness_font_size = 9
-    thickness_text = T(lang, "board_thickness", thickness=inputs.slat_thickness)
+    thickness_text = T(lang, "board_thickness", thickness=_ceil_mm(inputs.slat_thickness))
     thickness_text_w = c.stringWidth(thickness_text, safe_title_font, thickness_font_size)
     thickness_box_w = thickness_text_w + 16  # right-aligned to the same edge
     # as the Input variables / Derived dimensions boxes below, but sized to
@@ -1313,20 +1325,20 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # by the thickness banner's height so the two never overlap.
     box_y = page_h - 92 - thickness_box_h - thickness_box_gap
     input_lines = [
-        T(lang, "wood", value=inputs.slat_thickness),
-        T(lang, "port_length_line", value=d.port_length),
-        T(lang, "bottle_diameter", value=inputs.port_height),
-        T(lang, "cap_line", value=inputs.cap_diameter),
-        T(lang, "collar_line", value=inputs.collar_diameter),
-        T(lang, "fit_clearance_line", value=inputs.fit_clearance),
+        T(lang, "wood", value=_ceil_mm(inputs.slat_thickness)),
+        T(lang, "port_length_line", value=_ceil_mm(d.port_length)),
+        T(lang, "bottle_diameter", value=_ceil_mm(inputs.port_height)),
+        T(lang, "cap_line", value=_ceil_mm(inputs.cap_diameter)),
+        T(lang, "collar_line", value=_ceil_mm(inputs.collar_diameter)),
+        T(lang, "fit_clearance_line", value=_ceil_mm(inputs.fit_clearance)),
     ]
     derived_lines = [
-        T(lang, "john_dim", length=d.john_length, height=d.john_height),
-        T(lang, "slot_width_line", value=d.slot_width),
-        T(lang, "std_slot_depth_line", value=d.standard_slot_depth),
-        T(lang, "master_slot_depth_line", value=d.master_slot_depth),
-        T(lang, "final_key_dim", length=d.final_key_length, width=d.final_key_width),
-        T(lang, "presser_dim", value=d.presser_diameter),
+        T(lang, "john_dim", length=_ceil_mm(d.john_length), height=_ceil_mm(d.john_height)),
+        T(lang, "slot_width_line", value=_ceil_mm(d.slot_width)),
+        T(lang, "std_slot_depth_line", value=_ceil_mm(d.standard_slot_depth)),
+        T(lang, "master_slot_depth_line", value=_ceil_mm(d.master_slot_depth)),
+        T(lang, "final_key_dim", length=_ceil_mm(d.final_key_length), width=_ceil_mm(d.final_key_width)),
+        T(lang, "presser_dim", value=_ceil_mm(d.presser_diameter)),
     ]
 
     thickness_box_y = (box_y - 8) + 76 + thickness_box_gap
@@ -1427,12 +1439,12 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.circle(x + sx(d.john_length / 2), y + sx(d.john_height / 2), sx(hole_diam / 2), stroke=1, fill=0)
         c.setFillColor(colors.HexColor("#111111"))
         c.setFont(symbol_font, 9)
-        c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{hole_diam:g}")
+        c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{_ceil_mm(hole_diam)}")
 
         # Screw pilot holes. The left hole's label grows rightward and the
         # right hole's label grows leftward, back toward the hole, so
         # neither one runs past the slat's outer edge.
-        screw_label = f"M6 (⌀{inputs.screw_diameter:g}mm)"
+        screw_label = f"M6 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
         for i, hx in enumerate((d.screw_side_offset, d.john_length - d.screw_side_offset)):
             hcx, hcy = x + sx(hx), y + sx(d.screw_y_center)
             c.circle(hcx, hcy, sx(inputs.screw_diameter / 2), stroke=1, fill=0)
@@ -1475,23 +1487,23 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         slot2_left = x + sx(slot2_left_mm)
         port_row_y = y_top + 26
         _draw_dimension_line(
-            c, x, port_row_y, slot_left, port_row_y, T(lang, "port_label", value=port_length_mm), body_font, 6.5,
+            c, x, port_row_y, slot_left, port_row_y, T(lang, "port_label", value=_ceil_mm(port_length_mm)), body_font, 6.5,
             ext1=(x, y_top), ext2=(slot_left, y_top),
         )
         _draw_dimension_line(
-            c, slot_right, port_row_y, slot2_left, port_row_y, T(lang, "between_notches_label", value=between_notches_mm), body_font, 6.5,
+            c, slot_right, port_row_y, slot2_left, port_row_y, T(lang, "between_notches_label", value=_ceil_mm(between_notches_mm)), body_font, 6.5,
             ext1=(slot_right, y_top), ext2=(slot2_left, y_top),
         )
 
         _draw_dimension_line(
-            c, slot_left, y_top + 9, slot_right, y_top + 9, T(lang, "slot_label", value=d.slot_width), body_font, 6.5,
+            c, slot_left, y_top + 9, slot_right, y_top + 9, T(lang, "slot_label", value=_ceil_mm(d.slot_width)), body_font, 6.5,
             ext1=(slot_left, y_top), ext2=(slot_right, y_top),
         )
         _draw_dimension_line(
-            c, slot_cx_pt, y_top, slot_cx_pt, y_top - sx(slot_depth), f"{slot_depth:g}mm", body_font, 6.5, rotate_label=True,
+            c, slot_cx_pt, y_top, slot_cx_pt, y_top - sx(slot_depth), f"{_ceil_mm(slot_depth)}mm", body_font, 6.5, rotate_label=True,
         )
         _draw_dimension_line(
-            c, x - 14, y, x - 14, y_top, f"{d.john_height:g}mm", body_font, 6.5, label_side="left",
+            c, x - 14, y, x - 14, y_top, f"{_ceil_mm(d.john_height)}mm", body_font, 6.5, label_side="left",
             ext1=(x, y), ext2=(x, y_top),
         )
         _draw_dimension_line(
@@ -1499,7 +1511,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
             ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
         )
         _draw_dimension_line(
-            c, x, y - 27, x + sx(d.john_length), y - 27, f"{d.john_length:g}mm", body_font, 6.5,
+            c, x, y - 27, x + sx(d.john_length), y - 27, f"{_ceil_mm(d.john_length)}mm", body_font, 6.5,
             ext1=(x, y), ext2=(x + sx(d.john_length), y),
         )
 
@@ -1524,11 +1536,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setLineWidth(1)
     c.rect(right_x, right_y + 90, d.final_key_length * fk_scale, d.final_key_width * fk_scale, fill=0, stroke=1)
     _draw_dimension_line(
-        c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{d.final_key_length:g}mm", body_font, 5,
+        c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{_ceil_mm(d.final_key_length)}mm", body_font, 5,
         ext1=(right_x, right_y + 90), ext2=(right_x + d.final_key_length * fk_scale, right_y + 90),
     )
     _draw_dimension_line(
-        c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{d.final_key_width:g}mm", body_font, 5, label_side="left",
+        c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{_ceil_mm(d.final_key_width)}mm", body_font, 5, label_side="left",
         ext1=(right_x, right_y + 90), ext2=(right_x, right_y + 90 + d.final_key_width * fk_scale),
     )
 
@@ -1546,12 +1558,12 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.circle(p_top_cx, p_top_cy, p_r * d.presser_nut_recess_diameter / d.presser_diameter, stroke=1, fill=0)
     c.setDash()
     _draw_dimension_line(
-        c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{d.presser_diameter:g}mm", body_font, 5,
+        c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{_ceil_mm(d.presser_diameter)}mm", body_font, 5,
         ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
     )
     c.setFont(body_font, 6)
-    c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, T(lang, "through_hole_label", value=d.presser_through_hole_diameter))
-    c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, T(lang, "nut_recess_label", diam=d.presser_nut_recess_diameter, depth=d.presser_nut_recess_depth))
+    c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter)))
+    c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, T(lang, "nut_recess_label", diam=_ceil_mm(d.presser_nut_recess_diameter), depth=_ceil_mm(d.presser_nut_recess_depth)))
 
     # Side/section view under top view. Uses the same points-per-mm scale as
     # the top view (derived from p_r / presser radius) so the two views
@@ -1575,23 +1587,27 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     recess_h = d.presser_nut_recess_depth * presser_scale
     c.rect(p_top_cx - recess_w / 2, side_y + side_h - recess_h, recess_w, recess_h, fill=0, stroke=1)
     _draw_dimension_line(
-        c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{d.presser_thickness:g}mm", body_font, 5,
+        c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{_ceil_mm(d.presser_thickness)}mm", body_font, 5,
         ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
     )
     _draw_dimension_line(
-        c, p_top_cx + recess_w / 2 + 6, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 6, side_y + side_h, f"{d.presser_nut_recess_depth:g}mm", body_font, 5,
+        c, p_top_cx + recess_w / 2 + 6, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 6, side_y + side_h, f"{_ceil_mm(d.presser_nut_recess_depth)}mm", body_font, 5,
         ext1=(p_top_cx + recess_w / 2, side_y + side_h - recess_h), ext2=(p_top_cx + recess_w / 2, side_y + side_h),
     )
 
-    # Credit box.
-    credit_h = 44
+    # Credit box, sized to hug its two lines of text rather than leaving a
+    # tall band of empty space below them (the box used to be 44pt tall for
+    # ~20pt of actual text).
+    credit_h = 32
+    credit_line2_y = 15
+    credit_line1_y = credit_line2_y + 11
     c.setStrokeColor(colors.HexColor("#aaaaaa"))
     c.setFillColor(colors.HexColor("#f8f8f8"))
     c.roundRect(margin, 8, page_w - 2 * margin, credit_h, 5, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#222222"))
     c.setFont(body_font, 6.5)
-    c.drawString(margin + 8, 39, T(lang, "license_statement"))
-    c.drawString(margin + 8, 28, T(lang, "version_credit", version=DESIGN_VERSION))
+    c.drawString(margin + 8, credit_line1_y, T(lang, "license_statement"))
+    c.drawString(margin + 8, credit_line2_y, T(lang, "version_credit", version=DESIGN_VERSION))
 
     c.showPage()
     c.save()
