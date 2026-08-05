@@ -115,6 +115,198 @@ PART_QUANTITIES = {
 
 
 # ---------------------------------------------------------------------------
+# PDF text translations
+# ---------------------------------------------------------------------------
+# The generated PDF is the only export with prose/labels baked into it (SVG
+# and DXF only carry part names like "Long John 3", which — like the
+# `gen_part_*` locale keys the frontend uses for the same names — are kept in
+# English in every language, matching the site's existing convention).
+# Site language codes not listed here fall back to English; part names,
+# units (mm), and screw callouts (M6) are not translated anywhere.
+SUPPORTED_PDF_LANGS = ("en", "id", "tr")
+
+PDF_STRINGS: Dict[str, Dict[str, str]] = {
+    "vision_statement": {
+        "en": VISION_STATEMENT,
+        "id": (
+            "Ecojoiner dibagikan secara bebas kepada dunia untuk membantu orang-orang di mana "
+            "pun merancang, membangun, dan berinovasi dengan botol dan kayu - menciptakan mebel, "
+            "struktur, tempat berlindung, dan apa pun yang membuat kehidupan di Bumi lebih hijau "
+            "bagi manusia, makhluk hidup, dan ekosistem yang kita bagi bersama. Turunan dan versi "
+            "mendatang harus tetap memakai nama Ecojoiner, mencantumkan kredit untuk ecobricks.org, "
+            "dan dibagikan secara timbal balik di bawah lisensi CERN-OHL-S-2.0 yang sama."
+        ),
+        "tr": (
+            "Ecojoiner, insanların şişe ve ahşap kullanarak mobilya, yapı, barınak ve Dünya'daki "
+            "yaşamı insanlar, canlılar ve paylaştığımız ekosistemler için daha yeşil kılan her şeyi "
+            "tasarlamasına, inşa etmesine ve yenilik yapmasına yardımcı olmak için dünyayla özgürce "
+            "paylaşılmaktadır. Türevler ve gelecek sürümler Ecojoiner adını taşımalı, ecobricks.org'u "
+            "kaynak göstermeli ve aynı CERN-OHL-S-2.0 lisansı altında karşılıklı olarak paylaşılmalıdır."
+        ),
+    },
+    "license_statement": {
+        "en": LICENSE_STATEMENT,
+        "id": (
+            "Desain ecojoiner yang dibuat otomatis ini dikembangkan dan dibagikan di bawah CERN "
+            "Open Hardware Licence, Strongly Reciprocal license (CERN-OHL-S-2.0)."
+        ),
+        "tr": (
+            "Bu otomatik oluşturulan ecojoiner tasarımı, CERN Açık Donanım Lisansı, Güçlü Karşılıklı "
+            "lisans (CERN-OHL-S-2.0) kapsamında geliştirilmiş ve paylaşılmıştır."
+        ),
+    },
+    "board_thickness": {
+        "en": "Board Thickness for this ecojoiner set at {thickness:g} mm",
+        "id": "Ketebalan Papan untuk set ecojoiner ini diatur ke {thickness:g} mm",
+        "tr": "Bu ecojoiner seti için Tahta Kalınlığı {thickness:g} mm olarak ayarlandı",
+    },
+    "input_variables_title": {
+        "en": "Input variables",
+        "id": "Variabel input",
+        "tr": "Girdi değişkenleri",
+    },
+    "derived_dimensions_title": {
+        "en": "Derived dimensions",
+        "id": "Dimensi turunan",
+        "tr": "Türetilmiş ölçüler",
+    },
+    "wood": {
+        "en": "Wood: {value:g}mm",
+        "id": "Kayu: {value:g}mm",
+        "tr": "Ahşap: {value:g}mm",
+    },
+    "port_length_line": {
+        "en": "Port length: {value:g}mm",
+        "id": "Panjang port: {value:g}mm",
+        "tr": "Port uzunluğu: {value:g}mm",
+    },
+    "bottle_diameter": {
+        "en": "Bottle diameter: {value:g}mm",
+        "id": "Diameter botol: {value:g}mm",
+        "tr": "Şişe çapı: {value:g}mm",
+    },
+    "cap_line": {
+        "en": "Cap: ⌀{value:g}mm",
+        "id": "Tutup: ⌀{value:g}mm",
+        "tr": "Kapak: ⌀{value:g}mm",
+    },
+    "collar_line": {
+        "en": "Collar: ⌀{value:g}mm",
+        "id": "Kerah: ⌀{value:g}mm",
+        "tr": "Yaka: ⌀{value:g}mm",
+    },
+    "fit_clearance_line": {
+        "en": "Fit clearance: {value:g}mm",
+        "id": "Toleransi pas: {value:g}mm",
+        "tr": "Geçme boşluğu: {value:g}mm",
+    },
+    "john_dim": {
+        "en": "John: {length:g} x {height:g}mm",
+        "id": "John: {length:g} x {height:g}mm",
+        "tr": "John: {length:g} x {height:g}mm",
+    },
+    "slot_width_line": {
+        "en": "Slot width: {value:g}mm",
+        "id": "Lebar slot: {value:g}mm",
+        "tr": "Yuva genişliği: {value:g}mm",
+    },
+    "std_slot_depth_line": {
+        "en": "Std slot depth: {value:g}mm",
+        "id": "Kedalaman slot standar: {value:g}mm",
+        "tr": "Standart yuva derinliği: {value:g}mm",
+    },
+    "master_slot_depth_line": {
+        "en": "Master slot depth: {value:g}mm",
+        "id": "Kedalaman slot master: {value:g}mm",
+        "tr": "Ana yuva derinliği: {value:g}mm",
+    },
+    "final_key_dim": {
+        "en": "Final Key: {length:g} x {width:g}mm",
+        "id": "Final Key: {length:g} x {width:g}mm",
+        "tr": "Final Key: {length:g} x {width:g}mm",
+    },
+    "presser_dim": {
+        "en": "Presser: ⌀{value:g}mm",
+        "id": "Presser: ⌀{value:g}mm",
+        "tr": "Presser: ⌀{value:g}mm",
+    },
+    "notes": {
+        "en": (
+            "Note: This one-page PDF is a scaled carpenter reference. Use the SVG file for 1:1 digital cutting geometry. "
+            "Cut order suggestion: inner holes and slots first; outer profiles last. CNC router users may need dogbone slot reliefs."
+        ),
+        "id": (
+            "Catatan: PDF satu halaman ini adalah referensi tukang kayu berskala. Gunakan file SVG untuk geometri "
+            "pemotongan digital 1:1. Saran urutan potong: lubang dan slot bagian dalam terlebih dahulu; profil luar "
+            "terakhir. Pengguna router CNC mungkin memerlukan pelonggaran slot dogbone."
+        ),
+        "tr": (
+            "Not: Bu tek sayfalık PDF, ölçekli bir marangoz referansıdır. 1:1 dijital kesim geometrisi için SVG "
+            "dosyasını kullanın. Kesim sırası önerisi: önce iç delikler ve yuvalar; en son dış profiller. CNC router "
+            "kullanıcılarının dogbone yuva rahatlatmalarına ihtiyacı olabilir."
+        ),
+    },
+    "port_label": {
+        "en": "port {value:g}mm",
+        "id": "port {value:g}mm",
+        "tr": "port {value:g}mm",
+    },
+    "between_notches_label": {
+        "en": "{value:g}mm (bottle ⌀)",
+        "id": "{value:g}mm (⌀ botol)",
+        "tr": "{value:g}mm (şişe ⌀)",
+    },
+    "slot_label": {
+        "en": "slot {value:g}mm",
+        "id": "slot {value:g}mm",
+        "tr": "yuva {value:g}mm",
+    },
+    "from_side_label": {
+        "en": "25mm from side",
+        "id": "25mm dari sisi",
+        "tr": "kenardan 25mm",
+    },
+    "through_hole_label": {
+        "en": "M6 through-hole: ⌀{value:g}mm",
+        "id": "Lubang tembus M6: ⌀{value:g}mm",
+        "tr": "M6 geçme deliği: ⌀{value:g}mm",
+    },
+    "nut_recess_label": {
+        "en": "nut recess: ⌀{diam:g}mm x {depth:g}mm deep",
+        "id": "dudukan mur: ⌀{diam:g}mm x {depth:g}mm dalam",
+        "tr": "somun yuvası: ⌀{diam:g}mm x {depth:g}mm derinlik",
+    },
+    "version_credit": {
+        "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.",
+        "id": "Versi {version} dari Ecojoiner. Ditemukan oleh Russell Maier. Direkayasa oleh Richard Graham. Lihat ecobricks.org/ecojoiner.",
+        "tr": "Ecojoiner'ın {version} sürümü. Russell Maier tarafından icat edildi. Richard Graham tarafından mühendisliği yapıldı. ecobricks.org/ecojoiner adresine bakın.",
+    },
+}
+
+
+def _pdf_lang(inputs: "EcojoinerInputs") -> str:
+    lang = (getattr(inputs, "lang", "en") or "en").lower()
+    return lang if lang in SUPPORTED_PDF_LANGS else "en"
+
+
+# Arvo (the title font) has no glyphs for Turkish ş/ğ/İ, so translated text
+# drawn in the title style falls back to Mulish (the body font, which does)
+# for Turkish specifically. Indonesian and English need no such fallback.
+TITLE_FONT_UNSUPPORTED_LANGS = {"tr"}
+
+
+def _title_font_for(lang: str, title_font: str, body_font: str) -> str:
+    return body_font if lang in TITLE_FONT_UNSUPPORTED_LANGS else title_font
+
+
+def T(lang: str, key: str, **kwargs) -> str:
+    """Look up a PDF string in `lang`, falling back to English, then format it."""
+    entry = PDF_STRINGS.get(key, {})
+    template = entry.get(lang) or entry.get("en") or key
+    return template.format(**kwargs) if kwargs else template
+
+
+# ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
 
@@ -156,6 +348,7 @@ class EcojoinerInputs:
     fit_clearance: float = 0.20
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
     job_id: str = ""
+    lang: str = "en"  # site language; see PDF_STRINGS/_pdf_lang for supported codes
 
 
 @dataclass(frozen=True)
@@ -255,6 +448,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         fit_clearance=_to_float(get("fitClearance", "fit_clearance"), 0.20),
         formats=formats,
         job_id=str(get("jobId", "job_id", default="") or ""),
+        lang=str(get("lang", default="en") or "en").lower(),
     )
 
 
@@ -1074,6 +1268,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
     title_font, body_font, symbol_font = _register_fonts(font_dir)
+    lang = _pdf_lang(inputs)
+    safe_title_font = _title_font_for(lang, title_font, body_font)
 
     page_w, page_h = landscape(letter)  # points
     c = canvas.Canvas(str(path), pagesize=landscape(letter))
@@ -1095,7 +1291,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         leading=10.8,
         textColor=colors.HexColor("#333333"),
     )
-    p = Paragraph(html.escape(VISION_STATEMENT), style)
+    p = Paragraph(html.escape(T(lang, "vision_statement")), style)
     p.wrapOn(c, para_width, 60)
     p.drawOn(c, margin, title_y - 48)
 
@@ -1106,10 +1302,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     thickness_box_h = 22
     thickness_box_gap = 6
     thickness_font_size = 9
-    thickness_text = (
-        f"Board Thickness for this ecojoiner set at {inputs.slat_thickness:g} mm"
-    )
-    thickness_text_w = c.stringWidth(thickness_text, title_font, thickness_font_size)
+    thickness_text = T(lang, "board_thickness", thickness=inputs.slat_thickness)
+    thickness_text_w = c.stringWidth(thickness_text, safe_title_font, thickness_font_size)
     thickness_box_w = thickness_text_w + 16  # right-aligned to the same edge
     # as the Input variables / Derived dimensions boxes below, but sized to
     # fit its own (longer) sentence rather than sharing their fixed 155pt.
@@ -1119,20 +1313,20 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # by the thickness banner's height so the two never overlap.
     box_y = page_h - 92 - thickness_box_h - thickness_box_gap
     input_lines = [
-        f"Wood: {inputs.slat_thickness:g}mm",
-        f"Port length: {d.port_length:g}mm",
-        f"Bottle diameter: {inputs.port_height:g}mm",
-        f"Cap: ⌀{inputs.cap_diameter:g}mm",
-        f"Collar: ⌀{inputs.collar_diameter:g}mm",
-        f"Fit clearance: {inputs.fit_clearance:g}mm",
+        T(lang, "wood", value=inputs.slat_thickness),
+        T(lang, "port_length_line", value=d.port_length),
+        T(lang, "bottle_diameter", value=inputs.port_height),
+        T(lang, "cap_line", value=inputs.cap_diameter),
+        T(lang, "collar_line", value=inputs.collar_diameter),
+        T(lang, "fit_clearance_line", value=inputs.fit_clearance),
     ]
     derived_lines = [
-        f"John: {d.john_length:g} x {d.john_height:g}mm",
-        f"Slot width: {d.slot_width:g}mm",
-        f"Std slot depth: {d.standard_slot_depth:g}mm",
-        f"Master slot depth: {d.master_slot_depth:g}mm",
-        f"Final Key: {d.final_key_length:g} x {d.final_key_width:g}mm",
-        f"Presser: ⌀{d.presser_diameter:g}mm",
+        T(lang, "john_dim", length=d.john_length, height=d.john_height),
+        T(lang, "slot_width_line", value=d.slot_width),
+        T(lang, "std_slot_depth_line", value=d.standard_slot_depth),
+        T(lang, "master_slot_depth_line", value=d.master_slot_depth),
+        T(lang, "final_key_dim", length=d.final_key_length, width=d.final_key_width),
+        T(lang, "presser_dim", value=d.presser_diameter),
     ]
 
     thickness_box_y = (box_y - 8) + 76 + thickness_box_gap
@@ -1140,16 +1334,16 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setFillColor(colors.HexColor("#f8f8f8"))
     c.roundRect(thickness_box_x, thickness_box_y, thickness_box_w, thickness_box_h, 5, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#111111"))
-    c.setFont(title_font, thickness_font_size)
+    c.setFont(safe_title_font, thickness_font_size)
     c.drawCentredString(
         thickness_box_x + thickness_box_w / 2,
         thickness_box_y + thickness_box_h / 2 - 3.5,
         thickness_text,
     )
 
-    _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, "Input variables", input_lines, title_font, body_font)
+    _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, T(lang, "input_variables_title"), input_lines, safe_title_font, body_font)
     derived_box_x, derived_box_y, derived_box_w = page_w - margin - 155, box_y - 94, 155
-    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, 76, "Derived dimensions", derived_lines, title_font, body_font)
+    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, 76, T(lang, "derived_dimensions_title"), derived_lines, safe_title_font, body_font)
 
     # Notes, placed under the Derived dimensions box rather than at the foot
     # of the page so the John drawings can use the full page height.
@@ -1160,11 +1354,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         leading=7.4,
         textColor=colors.HexColor("#333333"),
     )
-    notes_text = (
-        "Note: This one-page PDF is a scaled carpenter reference. Use the SVG file for 1:1 digital cutting geometry. "
-        "Cut order suggestion: inner holes and slots first; outer profiles last. CNC router users may need dogbone slot reliefs."
-    )
-    notes_p = Paragraph(html.escape(notes_text), notes_style)
+    notes_p = Paragraph(html.escape(T(lang, "notes")), notes_style)
     notes_p.wrapOn(c, derived_box_w, 60)
     notes_p.drawOn(c, derived_box_x, derived_box_y - 10 - notes_p.height)
 
@@ -1285,16 +1475,16 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         slot2_left = x + sx(slot2_left_mm)
         port_row_y = y_top + 26
         _draw_dimension_line(
-            c, x, port_row_y, slot_left, port_row_y, f"port {port_length_mm:g}mm", body_font, 6.5,
+            c, x, port_row_y, slot_left, port_row_y, T(lang, "port_label", value=port_length_mm), body_font, 6.5,
             ext1=(x, y_top), ext2=(slot_left, y_top),
         )
         _draw_dimension_line(
-            c, slot_right, port_row_y, slot2_left, port_row_y, f"{between_notches_mm:g}mm (bottle ⌀)", body_font, 6.5,
+            c, slot_right, port_row_y, slot2_left, port_row_y, T(lang, "between_notches_label", value=between_notches_mm), body_font, 6.5,
             ext1=(slot_right, y_top), ext2=(slot2_left, y_top),
         )
 
         _draw_dimension_line(
-            c, slot_left, y_top + 9, slot_right, y_top + 9, f"slot {d.slot_width:g}mm", body_font, 6.5,
+            c, slot_left, y_top + 9, slot_right, y_top + 9, T(lang, "slot_label", value=d.slot_width), body_font, 6.5,
             ext1=(slot_left, y_top), ext2=(slot_right, y_top),
         )
         _draw_dimension_line(
@@ -1305,7 +1495,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
             ext1=(x, y), ext2=(x, y_top),
         )
         _draw_dimension_line(
-            c, x, y - 11, x + sx(d.screw_side_offset), y - 11, "25mm from side", body_font, 6.5,
+            c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label"), body_font, 6.5,
             ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
         )
         _draw_dimension_line(
@@ -1360,8 +1550,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
     )
     c.setFont(body_font, 6)
-    c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, f"M6 through-hole: ⌀{d.presser_through_hole_diameter:g}mm")
-    c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, f"nut recess: ⌀{d.presser_nut_recess_diameter:g}mm x {d.presser_nut_recess_depth:g}mm deep")
+    c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, T(lang, "through_hole_label", value=d.presser_through_hole_diameter))
+    c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, T(lang, "nut_recess_label", diam=d.presser_nut_recess_diameter, depth=d.presser_nut_recess_depth))
 
     # Side/section view under top view. Uses the same points-per-mm scale as
     # the top view (derived from p_r / presser radius) so the two views
@@ -1400,8 +1590,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.roundRect(margin, 8, page_w - 2 * margin, credit_h, 5, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#222222"))
     c.setFont(body_font, 6.5)
-    c.drawString(margin + 8, 39, LICENSE_STATEMENT)
-    c.drawString(margin + 8, 28, f"Version {DESIGN_VERSION} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.")
+    c.drawString(margin + 8, 39, T(lang, "license_statement"))
+    c.drawString(margin + 8, 28, T(lang, "version_credit", version=DESIGN_VERSION))
 
     c.showPage()
     c.save()

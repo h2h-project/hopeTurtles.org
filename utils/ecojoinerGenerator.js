@@ -170,12 +170,18 @@ const assertInsideExports = (jobSlug) => {
  * without touching the disk; otherwise it writes one job folder under
  * public/ecojoiner_exports/ and returns the manifest.
  */
-export const runGenerator = async (body, { dryRun = false } = {}) => {
+// The Python generator only ships translations for these; any other site
+// language falls back to English there too, but resolving it here avoids
+// shipping an unsupported code through at all.
+const SUPPORTED_PDF_LANGS = ['en', 'id', 'tr'];
+
+export const runGenerator = async (body, { dryRun = false, lang = 'en' } = {}) => {
   const { inputs, context, notices } = mapFormFields(body);
 
   const payload = {
     ...inputs,
-    job_id: dryRun ? '' : crypto.randomBytes(4).toString('hex')
+    job_id: dryRun ? '' : crypto.randomBytes(4).toString('hex'),
+    lang: SUPPORTED_PDF_LANGS.includes(lang) ? lang : 'en'
   };
 
   // User values travel in a temp JSON file, never as argv, so no form text can
