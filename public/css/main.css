@@ -1676,6 +1676,181 @@ body.mobile-menu-open {
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.35);
 }
 
+/* ── Ecojoiner design/profile thumbnails (dashboard) ───────────────────── */
+.design-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.design-photo {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 0.7rem;
+  background: rgba(1, 121, 25, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: rgba(1, 121, 25, 0.75);
+}
+
+.design-photo--placeholder {
+  background: rgba(1, 121, 25, 0.05);
+}
+
+.design-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.design-cell__label {
+  font-weight: 600;
+}
+
+.eco-profile-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eco-profile-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(1, 121, 25, 0.04);
+}
+
+[data-theme="dark"] .eco-profile-list li {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+[data-theme="dark"] .design-photo {
+  background: rgba(34, 197, 94, 0.14);
+  color: #d1fae5;
+}
+
+[data-theme="dark"] .design-photo--placeholder {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+/* ── Row action menu (cog button + popup) ──────────────────────────────── */
+.row-menu-cell {
+  text-align: right;
+  position: relative;
+}
+
+.row-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.row-menu__trigger {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 121, 25, 0.2);
+  background: rgba(1, 121, 25, 0.06);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.row-menu__trigger:hover,
+.row-menu__trigger[aria-expanded="true"] {
+  background: rgba(1, 121, 25, 0.14);
+}
+
+.row-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 160px;
+  background: var(--color-surface, #fff);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  z-index: 20;
+}
+
+.row-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: none;
+  background: none;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.row-menu__item:hover:not(:disabled) {
+  background: rgba(1, 121, 25, 0.08);
+}
+
+.row-menu__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.row-menu__item--danger {
+  color: #b91c1c;
+}
+
+.row-menu__item--danger:hover:not(:disabled) {
+  background: rgba(185, 28, 28, 0.08);
+}
+
+[data-theme="dark"] .row-menu__trigger {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+[data-theme="dark"] .row-menu__trigger:hover,
+[data-theme="dark"] .row-menu__trigger[aria-expanded="true"] {
+  background: rgba(34, 197, 94, 0.22);
+}
+
+[data-theme="dark"] .row-menu__panel {
+  background: #1f2937;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .row-menu__item {
+  color: #e5e7eb;
+}
+
+[data-theme="dark"] .row-menu__item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .row-menu__item--danger {
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .row-menu__item--danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.14);
+}
+
 .turtle-profile__photo {
   width: 88px;
   height: 88px;
@@ -4985,7 +5160,11 @@ body.ocean-bg {
 .eco-dev-notice--top {
   /* .layout's own top padding is only ~6px, so this margin alone must clear
      30px between the nav bar and the notice above the page heading. */
-  margin: 30px 0 2rem;
+  margin: 30px 0 0.75rem;
+}
+
+.eco-profile-picker-row {
+  max-width: 22rem;
 }
 
 .eco-generate {

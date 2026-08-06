@@ -359,7 +359,6 @@
           <tr>
             <th scope="col">Design</th>
             <th scope="col">Type</th>
-            <th scope="col">Formats</th>
             <th scope="col">Status</th>
             <th scope="col">Visibility</th>
             <th scope="col">Saved</th>
@@ -371,18 +370,36 @@
             <% const snapshot = (function () {
               try { return JSON.parse(design.profile_snapshot || '{}'); } catch { return {}; }
             })(); %>
-            <% const formats = (function () {
-              try { return JSON.parse(design.formats || '[]'); } catch { return []; }
+            <% const fileManifest = (function () {
+              try { return JSON.parse(design.file_manifest || '[]'); } catch { return []; }
             })(); %>
+            <% const primaryFileUrl = (fileManifest[0] && fileManifest[0].url) || ''; %>
             <tr
               data-eco-design-row
               data-design-id="<%= design.design_id %>"
               data-visibility="<%= design.visibility %>"
               data-share-token="<%= design.share_token || '' %>"
             >
-              <td data-label="Design"><%= snapshot.label || snapshot.brand || 'Untitled bottle' %></td>
+              <td data-label="Design">
+                <div class="design-cell">
+                  <div class="design-photo <%= design.bottle_photo_url ? '' : 'design-photo--placeholder' %>" title="Bottle">
+                    <% if (design.bottle_photo_url) { %>
+                      <img src="<%= design.bottle_photo_url %>" alt="Bottle for <%= snapshot.label || snapshot.brand || 'this design' %>" loading="lazy" />
+                    <% } else { %>
+                      <i class="fa-solid fa-bottle-water" aria-hidden="true"></i>
+                    <% } %>
+                  </div>
+                  <div class="design-photo <%= design.ecojoiner_photo_url ? '' : 'design-photo--placeholder' %>" title="Ecojoiner">
+                    <% if (design.ecojoiner_photo_url) { %>
+                      <img src="<%= design.ecojoiner_photo_url %>" alt="Finished ecojoiner for <%= snapshot.label || snapshot.brand || 'this design' %>" loading="lazy" />
+                    <% } else { %>
+                      <i class="fa-solid fa-turtle" aria-hidden="true"></i>
+                    <% } %>
+                  </div>
+                  <span class="design-cell__label"><%= snapshot.label || snapshot.brand || 'Untitled bottle' %></span>
+                </div>
+              </td>
               <td data-label="Type"><%= design.ecojoiner_type %></td>
-              <td data-label="Formats"><%= formats.join(', ') || '—' %></td>
               <td data-label="Status">
                 <span class="status-pill" data-status="<%= design.status %>"><%= design.status %></span>
               </td>
@@ -400,15 +417,39 @@
               <td data-label="Saved">
                 <%= design.created_at ? new Date(design.created_at).toLocaleDateString() : '—' %>
               </td>
-              <td data-label="Actions">
-                <% if (design.visibility === 'public' && design.share_token) { %>
-                  <button type="button" class="button ghost" data-copy-eco-share data-design-id="<%= design.design_id %>">
-                    Copy link
+              <td data-label="Actions" class="row-menu-cell">
+                <div class="row-menu" data-row-menu>
+                  <button
+                    type="button"
+                    class="row-menu__trigger"
+                    data-row-menu-trigger
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    aria-label="Design options"
+                  >
+                    <i class="fa-solid fa-gear" aria-hidden="true"></i>
                   </button>
-                <% } %>
-                <button type="button" class="button ghost" data-delete-eco-design data-design-id="<%= design.design_id %>">
-                  Delete
-                </button>
+                  <div class="row-menu__panel" data-row-menu-panel role="menu" hidden>
+                    <button
+                      type="button"
+                      class="row-menu__item"
+                      role="menuitem"
+                      data-open-eco-design
+                      data-open-url="<%= primaryFileUrl %>"
+                      <%= primaryFileUrl ? '' : 'disabled' %>
+                    >
+                      <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i> Open
+                    </button>
+                    <% if (design.visibility === 'public' && design.share_token) { %>
+                      <button type="button" class="row-menu__item" role="menuitem" data-copy-eco-share data-design-id="<%= design.design_id %>">
+                        <i class="fa-solid fa-link" aria-hidden="true"></i> Copy link
+                      </button>
+                    <% } %>
+                    <button type="button" class="row-menu__item row-menu__item--danger" role="menuitem" data-delete-eco-design data-design-id="<%= design.design_id %>">
+                      <i class="fa-solid fa-trash" aria-hidden="true"></i> Delete
+                    </button>
+                  </div>
+                </div>
               </td>
             </tr>
           <% }) %>
@@ -424,7 +465,16 @@
       <ul class="eco-profile-list">
         <% myEcojoinerProfiles.forEach(function (profile) { %>
           <li>
-            <span><%= profile.label %> (<%= profile.brand %>, <%= profile.volume_ml %>ml)</span>
+            <div class="design-cell">
+              <div class="design-photo <%= profile.bottle_photo_url ? '' : 'design-photo--placeholder' %>">
+                <% if (profile.bottle_photo_url) { %>
+                  <img src="<%= profile.bottle_photo_url %>" alt="Bottle for <%= profile.label %>" loading="lazy" />
+                <% } else { %>
+                  <i class="fa-solid fa-bottle-water" aria-hidden="true"></i>
+                <% } %>
+              </div>
+              <span><%= profile.label %> (<%= profile.brand %>, <%= profile.volume_ml %>ml)</span>
+            </div>
             <button type="button" class="button ghost" data-delete-eco-profile data-profile-id="<%= profile.profile_id %>">
               Delete
             </button>

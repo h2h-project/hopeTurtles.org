@@ -8,6 +8,7 @@ import {
   generateEcojoiner,
   listProfiles,
   createProfile,
+  updateProfile,
   deleteProfile,
   listDesigns,
   getDesign,
@@ -91,6 +92,12 @@ router.post(
   rateLimit({ key: "ecojoiner-profiles", max: 20 }),
   upload.single("bottle_photo"),
   createProfile,
+);
+router.put(
+  "/profiles/:id",
+  rateLimit({ key: "ecojoiner-profiles", max: 20 }),
+  upload.single("bottle_photo"),
+  updateProfile,
 );
 router.delete(
   "/profiles/:id",

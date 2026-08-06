@@ -267,8 +267,20 @@
   const check = (key) => (validators[key] ? validators[key]() : true);
 
   // Live feedback as the user edits.
+  const WHOLE_NUMBER_IDS = [
+    "eco-volume",
+    "eco-diameter",
+    "eco-cap",
+    "eco-collar",
+    "eco-height",
+    "eco-top-tapper",
+    "eco-bottom-tapper",
+  ];
   form.addEventListener("input", (event) => {
     const key = event.target.id;
+    if (WHOLE_NUMBER_IDS.includes(key) && event.target.value.includes(".")) {
+      event.target.value = event.target.value.split(".")[0];
+    }
     if (validators[key]) check(key);
     // Tapper ratios depend on height, so re-run them when height changes.
     if (key === "eco-height") {
@@ -619,6 +631,20 @@
   const profilePicker = document.querySelector("[data-eco-profile-picker]");
   let profilesById = {};
 
+  // Spec fields tracked to detect edits against an already-saved profile.
+  const SPEC_FIELD_IDS = [
+    "eco-diameter",
+    "eco-cap",
+    "eco-collar",
+    "eco-height",
+    "eco-top-tapper",
+    "eco-bottom-tapper",
+  ];
+  let loadedProfileSpecs = null;
+
+  const currentSpecValues = () =>
+    SPEC_FIELD_IDS.map((id) => el(id).value);
+
   const applyProfileToForm = (profile) => {
     el("eco-brand").value = profile.brand || "";
     el("eco-volume").value = profile.volume_ml ?? "";
@@ -650,6 +676,8 @@
     ].forEach(check);
     hideResults();
     lastGenerated = null;
+    loadedProfileSpecs = currentSpecValues();
+    updateSaveChangesVisibility();
   };
 
   const loadProfiles = async () => {
@@ -701,16 +729,51 @@
     saveProfileFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
   };
 
+  // A second Step 2 footer: only relevant once a saved profile is loaded and
+  // its bottle specs have since been edited, offering to update that same
+  // profile rather than saving a new one.
+  const saveProfileChangesFooter = document.querySelector(
+    "[data-eco-save-profile-changes-footer]",
+  );
+  const saveProfileChangesBtn = el("eco-save-profile-changes-btn");
+  const saveProfileChangesFeedback = document.querySelector(
+    "[data-eco-save-profile-changes-feedback]",
+  );
+
+  const updateSaveChangesVisibility = () => {
+    if (!saveProfileChangesFooter) return;
+    const hasSelectedProfile = Boolean(profilePicker && profilePicker.value);
+    const isDirty =
+      hasSelectedProfile &&
+      loadedProfileSpecs !== null &&
+      JSON.stringify(currentSpecValues()) !== JSON.stringify(loadedProfileSpecs);
+    saveProfileChangesFooter.hidden = !isDirty;
+  };
+
+  const setSaveProfileChangesFeedback = (message, isError) => {
+    if (!saveProfileChangesFeedback) return;
+    saveProfileChangesFeedback.textContent = message || "";
+    saveProfileChangesFeedback.classList.toggle("eco-feedback--error", Boolean(isError));
+    saveProfileChangesFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
+  };
+
   if (profilePicker) {
     loadProfiles();
     updateSaveProfileVisibility();
     profilePicker.addEventListener("change", () => {
       const profile = profilesById[profilePicker.value];
       if (profile) applyProfileToForm(profile);
+      else loadedProfileSpecs = null;
       updateSaveProfileVisibility();
+      updateSaveChangesVisibility();
       setSaveProfileFeedback("");
+      setSaveProfileChangesFeedback("");
     });
   }
+
+  form.addEventListener("input", (event) => {
+    if (SPEC_FIELD_IDS.includes(event.target.id)) updateSaveChangesVisibility();
+  });
 
   if (saveProfileBtn) {
     saveProfileBtn.addEventListener("click", async () => {
@@ -787,6 +850,59 @@
       } finally {
         saveProfileBtn.disabled = false;
         saveProfileBtn.innerHTML = originalLabel;
+      }
+    });
+  }
+
+  if (saveProfileChangesBtn) {
+    saveProfileChangesBtn.addEventListener("click", async () => {
+      const profileId = profilePicker && profilePicker.value;
+      if (!profileId) return;
+      setSaveProfileChangesFeedback("");
+      const values = collect();
+
+      saveProfileChangesBtn.disabled = true;
+      const originalLabel = saveProfileChangesBtn.innerHTML;
+      saveProfileChangesBtn.textContent = s("gen_save_profile_saving");
+
+      try {
+        const response = await fetch(`/api/ecojoiner/profiles/${profileId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brand: values.brand,
+            volume: values.volume,
+            diameter: values.diameter,
+            cap: values.cap,
+            collar: values.collar,
+            height: values.height,
+            topTapper: values.topTapper,
+            bottomTapper: values.bottomTapper,
+            material: values.material,
+            thickness: values.thickness,
+            portFitMm: values.portFitMm,
+          }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || !body.success) {
+          setSaveProfileChangesFeedback(
+            body.message || s("gen_save_profile_error"),
+            true,
+          );
+          return;
+        }
+        setSaveProfileChangesFeedback(s("gen_save_profile_success"), false);
+        loadedProfileSpecs = currentSpecValues();
+        updateSaveChangesVisibility();
+        await loadProfiles();
+      } catch (error) {
+        setSaveProfileChangesFeedback(
+          error.message || s("gen_save_profile_error"),
+          true,
+        );
+      } finally {
+        saveProfileChangesBtn.disabled = false;
+        saveProfileChangesBtn.innerHTML = originalLabel;
       }
     });
   }

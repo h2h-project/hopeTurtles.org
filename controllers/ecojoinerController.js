@@ -160,6 +160,52 @@ export const createProfile = async (req, res, next) => {
   }
 };
 
+export const updateProfile = async (req, res, next) => {
+  try {
+    const buwanaId = getCurrentUserId(req);
+    const profileId = Number(req.params.id);
+    const existing = await ecojoinerProfilesModel.getByIdForUser(
+      profileId,
+      buwanaId,
+    );
+    if (!existing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Bottle profile not found." });
+    }
+    const fields = parseProfileFields(req.body, { requireLabel: false });
+    await ecojoinerProfilesModel.update(profileId, fields);
+
+    const bottlePhotoId = await attachPhoto({
+      relatedType: "ecojoiner_bottle_profile",
+      relatedId: profileId,
+      uploadedBy: buwanaId,
+      file: req.file,
+    }).catch((error) => {
+      console.error("Failed to attach bottle profile photo", error);
+      return null;
+    });
+    if (bottlePhotoId) {
+      await ecojoinerProfilesModel.update(profileId, {
+        bottle_photo_id: bottlePhotoId,
+      });
+    }
+
+    const saved = await ecojoinerProfilesModel.getByIdForUser(
+      profileId,
+      buwanaId,
+    );
+    return res.json({ success: true, data: saved });
+  } catch (error) {
+    if (error instanceof EcojoinerRequestError) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message, errors: error.errors });
+    }
+    return next(error);
+  }
+};
+
 export const deleteProfile = async (req, res, next) => {
   try {
     const buwanaId = getCurrentUserId(req);

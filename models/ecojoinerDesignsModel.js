@@ -5,9 +5,11 @@ const ecojoinerDesignsModel = createModel("ecojoiner_designs_tb", "design_id");
 
 ecojoinerDesignsModel.getForUser = async (buwanaId) => {
   return query(
-    `SELECT d.*, ph.url AS ecojoiner_photo_url
+    `SELECT d.*, ph.url AS ecojoiner_photo_url, bph.url AS bottle_photo_url
      FROM ecojoiner_designs_tb d
      LEFT JOIN photos_tb ph ON ph.photo_id = d.ecojoiner_photo_id
+     LEFT JOIN ecojoiner_bottle_profiles_tb p ON p.profile_id = d.profile_id
+     LEFT JOIN photos_tb bph ON bph.photo_id = p.bottle_photo_id
      WHERE d.buwana_id = ?
      ORDER BY d.created_at DESC`,
     [buwanaId],

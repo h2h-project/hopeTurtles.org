@@ -43,6 +43,15 @@
     <p><%= t.gen_hero_blurb %></p>
   </div>
 
+  <div class="eco-fields eco-profile-picker-row">
+    <label class="eco-field eco-field--full">
+      <span class="eco-field__label">Load a saved bottle profile</span>
+      <select id="eco-profile-picker" data-eco-profile-picker>
+        <option value="">Start a new profile</option>
+      </select>
+    </label>
+  </div>
+
   <form class="eco-generate" id="eco-generate" novalidate>
     <div class="eco-panels">
 
@@ -59,14 +68,6 @@
         <div class="eco-panel__body">
           <div class="eco-panel__content">
             <div class="eco-panel__text">
-              <div class="eco-fields">
-                <label class="eco-field eco-field--full">
-                  <span class="eco-field__label">Load a saved bottle profile</span>
-                  <select id="eco-profile-picker" data-eco-profile-picker>
-                    <option value="">Start a new profile</option>
-                  </select>
-                </label>
-              </div>
               <p><%= t.gen_p1_body %></p>
               <div class="eco-fields">
                 <label class="eco-field">
@@ -106,32 +107,32 @@
               <div class="eco-fields eco-fields--grid">
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_diameter %></span>
-                  <input type="number" id="eco-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_diameter_ph %>" />
+                  <input type="number" id="eco-diameter" name="diameter" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_diameter_ph %>" />
                   <span class="eco-feedback" data-for="eco-diameter"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_cap %></span>
-                  <input type="number" id="eco-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_ph %>" />
+                  <input type="number" id="eco-cap" name="cap" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_cap_ph %>" />
                   <span class="eco-feedback" data-for="eco-cap"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_collar %></span>
-                  <input type="number" id="eco-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_collar_ph %>" />
+                  <input type="number" id="eco-collar" name="collar" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_collar_ph %>" />
                   <span class="eco-feedback" data-for="eco-collar"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_height %></span>
-                  <input type="number" id="eco-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_height_ph %>" />
+                  <input type="number" id="eco-height" name="height" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_height_ph %>" />
                   <span class="eco-feedback" data-for="eco-height"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_top_tapper %></span>
-                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
+                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-top-tapper"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_bottom_tapper %></span>
-                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
+                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-bottom-tapper"></span>
                 </label>
               </div>
@@ -144,6 +145,12 @@
             <span class="eco-feedback" data-eco-save-profile-feedback></span>
             <button type="button" class="button ghost" id="eco-save-profile-btn">
               <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_save_profile_btn %>
+            </button>
+          </div>
+          <div class="eco-panel__footer eco-panel__footer--end" data-eco-save-profile-changes-footer hidden>
+            <span class="eco-feedback" data-eco-save-profile-changes-feedback></span>
+            <button type="button" class="button ghost" id="eco-save-profile-changes-btn">
+              <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> Save Bottle Changes
             </button>
           </div>
         </div>

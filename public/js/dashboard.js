@@ -1469,11 +1469,54 @@ toggleBottlesTableState();
         await navigator.clipboard.writeText(url);
         button.textContent = "Copied!";
         setTimeout(() => {
-          button.textContent = "Copy link";
+          button.innerHTML = '<i class="fa-solid fa-link" aria-hidden="true"></i> Copy link';
         }, 1500);
       } catch {
         window.prompt("Shareable link (copy it now):", url);
       }
+      closeAllRowMenus();
     });
+  });
+
+  document.querySelectorAll("[data-open-eco-design]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const url = button.dataset.openUrl;
+      closeAllRowMenus();
+      if (!url) {
+        window.alert("This design has no generated files yet.");
+        return;
+      }
+      window.open(url, "_blank", "noopener");
+    });
+  });
+
+  // --- Row action menus (cog button + popup) --------------------------------
+  const closeAllRowMenus = () => {
+    document.querySelectorAll("[data-row-menu-panel]").forEach((panel) => {
+      panel.hidden = true;
+    });
+    document.querySelectorAll("[data-row-menu-trigger]").forEach((trigger) => {
+      trigger.setAttribute("aria-expanded", "false");
+    });
+  };
+
+  document.querySelectorAll("[data-row-menu]").forEach((menu) => {
+    const trigger = menu.querySelector("[data-row-menu-trigger]");
+    const panel = menu.querySelector("[data-row-menu-panel]");
+    if (!trigger || !panel) return;
+    trigger.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const isOpen = !panel.hidden;
+      closeAllRowMenus();
+      if (!isOpen) {
+        panel.hidden = false;
+        trigger.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  document.addEventListener("click", () => closeAllRowMenus());
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeAllRowMenus();
   });
 })();
