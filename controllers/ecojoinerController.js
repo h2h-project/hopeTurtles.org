@@ -100,6 +100,23 @@ const parseProfileFields = (body = {}, { requireLabel = true } = {}) => {
   return { ...(label ? { label } : {}), brand, ...numbers, ...optional };
 };
 
+// Auto-names a bottle profile created on the fly during a design save, since
+// the save modal no longer asks the user for a profile name directly.
+const autoProfileLabel = (body = {}) => {
+  const brand = String(body.brand ?? "").trim();
+  const volume = toNumberOrNull(body.volume);
+  return volume && !Number.isNaN(volume) ? `${brand} ${volume}ml` : brand;
+};
+
+// `body.label` on a design-save request is the design's own name, not the
+// bottle profile's — strip it before handing the body to parseProfileFields()
+// so it can't leak into the profile row's label column.
+const withoutDesignLabel = (body = {}) => {
+  const rest = { ...body };
+  delete rest.label;
+  return rest;
+};
+
 const attachPhoto = async ({ relatedType, relatedId, uploadedBy, file }) => {
   if (!file) return null;
   const photo = await photosModel.create({
@@ -260,28 +277,49 @@ export const listDesigns = async (req, res, next) => {
   }
 };
 
+export const listPublicDesigns = async (req, res, next) => {
+  try {
+    const buwanaId = getCurrentUserId(req);
+    const designs = await ecojoinerDesignsModel.getPublic(buwanaId);
+    const anonymized = designs.map((design) => {
+      const rest = { ...design };
+      delete rest.buwana_id;
+      return rest;
+    });
+    return res.json({ success: true, data: anonymized });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// Loads a design for the generate page's "Load a saved ecojoiner design"
+// picker. Owned designs load normally; a design owned by someone else only
+// loads when it's public, and comes back flagged `is_owner: false` so the
+// client knows re-saving must create a new design rather than overwrite it.
 export const getDesign = async (req, res, next) => {
   try {
     const buwanaId = getCurrentUserId(req);
-    const design = await ecojoinerDesignsModel.getByIdForUser(
-      Number(req.params.id),
+    const designId = Number(req.params.id);
+    let design = await ecojoinerDesignsModel.getByIdForUser(
+      designId,
       buwanaId,
     );
+    const isOwner = Boolean(design);
     if (!design) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Design not found." });
+      design = await ecojoinerDesignsModel.getById(designId);
+      if (!design || design.visibility !== "public") {
+        return res
+          .status(404)
+          .json({ success: false, message: "Design not found." });
+      }
     }
-    return res.json({
-      success: true,
-      data: {
-        ...design,
-        share_url:
-          design.visibility === "public"
-            ? shareUrlFor(req, design.share_token)
-            : null,
-      },
-    });
+    const data = { ...design, is_owner: isOwner };
+    if (!isOwner) delete data.buwana_id;
+    data.share_url =
+      design.visibility === "public"
+        ? shareUrlFor(req, design.share_token)
+        : null;
+    return res.json({ success: true, data });
   } catch (error) {
     return next(error);
   }
@@ -313,6 +351,12 @@ export const createDesign = async (req, res, next) => {
   try {
     const buwanaId = getCurrentUserId(req);
     const body = req.body || {};
+    const designLabel = String(body.label ?? "").trim();
+    if (!designLabel) {
+      throw new EcojoinerRequestError("Please give this design a name.", [
+        "Please give this design a name.",
+      ]);
+    }
     const files = req.files ?? {};
     const bottlePhotoFile = Array.isArray(files.bottle_photo)
       ? files.bottle_photo[0]
@@ -339,7 +383,9 @@ export const createDesign = async (req, res, next) => {
           .status(404)
           .json({ success: false, message: "Bottle profile not found." });
       }
-      const fields = parseProfileFields(body, { requireLabel: false });
+      const fields = parseProfileFields(withoutDesignLabel(body), {
+        requireLabel: false,
+      });
       await ecojoinerProfilesModel.update(requestedProfileId, fields);
 
       if (bottlePhotoFile) {
@@ -362,10 +408,13 @@ export const createDesign = async (req, res, next) => {
         profileId,
         buwanaId,
       );
-    } else if (body.label && body.brand) {
-      const fields = parseProfileFields(body);
+    } else if (body.brand) {
+      const fields = parseProfileFields(withoutDesignLabel(body), {
+        requireLabel: false,
+      });
       const created = await ecojoinerProfilesModel.create({
         buwana_id: buwanaId,
+        label: autoProfileLabel(body),
         ...fields,
       });
       const bottlePhotoId = await attachPhoto({
@@ -402,6 +451,7 @@ export const createDesign = async (req, res, next) => {
     const design = await ecojoinerDesignsModel.create({
       buwana_id: buwanaId,
       profile_id: profileId,
+      label: designLabel,
       profile_snapshot: JSON.stringify(profileSnapshot),
       ecojoiner_type: body.ecojoinerType ? String(body.ecojoinerType) : "6fc",
       formats: JSON.stringify(formats),
@@ -455,6 +505,152 @@ export const createDesign = async (req, res, next) => {
 
     const saved = await ecojoinerDesignsModel.getByIdForUser(
       design.design_id,
+      buwanaId,
+    );
+    return res.json({
+      success: true,
+      data: {
+        design_id: saved.design_id,
+        status: saved.status,
+        visibility: saved.visibility,
+        share_url:
+          saved.visibility === "public"
+            ? shareUrlFor(req, saved.share_token)
+            : null,
+      },
+    });
+  } catch (error) {
+    if (error instanceof EcojoinerRequestError) {
+      return res
+        .status(error.status)
+        .json({ success: false, message: error.message, errors: error.errors });
+    }
+    return next(error);
+  }
+};
+
+// Re-saving a design that's already loaded and owned by the requester —
+// mirrors createDesign's "reusing a saved profile" branch, but updates the
+// existing design row in place instead of creating a new one.
+export const updateDesign = async (req, res, next) => {
+  try {
+    const buwanaId = getCurrentUserId(req);
+    const designId = Number(req.params.id);
+    const existing = await ecojoinerDesignsModel.getByIdForUser(
+      designId,
+      buwanaId,
+    );
+    if (!existing) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Design not found." });
+    }
+
+    const body = req.body || {};
+    const designLabel = String(body.label ?? "").trim();
+    if (!designLabel) {
+      throw new EcojoinerRequestError("Please give this design a name.", [
+        "Please give this design a name.",
+      ]);
+    }
+
+    const files = req.files ?? {};
+    const bottlePhotoFile = Array.isArray(files.bottle_photo)
+      ? files.bottle_photo[0]
+      : null;
+    const ecojoinerPhotoFile = Array.isArray(files.ecojoiner_photo)
+      ? files.ecojoiner_photo[0]
+      : null;
+
+    let profileSnapshot = existing.profile_snapshot;
+    if (existing.profile_id) {
+      const fields = parseProfileFields(withoutDesignLabel(body), {
+        requireLabel: false,
+      });
+      await ecojoinerProfilesModel.update(existing.profile_id, fields);
+
+      if (bottlePhotoFile) {
+        const bottlePhotoId = await attachPhoto({
+          relatedType: "ecojoiner_bottle_profile",
+          relatedId: existing.profile_id,
+          uploadedBy: buwanaId,
+          file: bottlePhotoFile,
+        }).catch((error) => {
+          console.error("Failed to attach bottle profile photo", error);
+          return null;
+        });
+        if (bottlePhotoId)
+          await ecojoinerProfilesModel.update(existing.profile_id, {
+            bottle_photo_id: bottlePhotoId,
+          });
+      }
+      profileSnapshot = JSON.stringify(
+        await ecojoinerProfilesModel.getByIdForUser(
+          existing.profile_id,
+          buwanaId,
+        ),
+      );
+    }
+
+    const formats = parseJsonField(body.formats, JSON.parse(existing.formats || "[]"));
+    const jobSlug = body.job_id ? String(body.job_id) : null;
+    const manifestFiles = parseJsonField(body.files, []);
+    const visibility = body.visibility === "public" ? "public" : "private";
+
+    const updates = {
+      label: designLabel,
+      profile_snapshot: profileSnapshot,
+      ecojoiner_type: body.ecojoinerType
+        ? String(body.ecojoinerType)
+        : existing.ecojoiner_type,
+      formats: JSON.stringify(formats),
+      visibility,
+    };
+    if (visibility === "public" && !existing.share_token) {
+      updates.share_token = crypto.randomBytes(16).toString("base64url");
+    }
+    if (jobSlug) updates.status = "generated";
+    await ecojoinerDesignsModel.update(designId, updates);
+
+    const ecojoinerPhotoId = await attachPhoto({
+      relatedType: "ecojoiner_design",
+      relatedId: designId,
+      uploadedBy: buwanaId,
+      file: ecojoinerPhotoFile,
+    }).catch((error) => {
+      console.error("Failed to attach ecojoiner photo", error);
+      return null;
+    });
+    if (ecojoinerPhotoId) {
+      await ecojoinerDesignsModel.update(designId, {
+        ecojoiner_photo_id: ecojoinerPhotoId,
+      });
+    }
+
+    if (jobSlug && Array.isArray(manifestFiles) && manifestFiles.length) {
+      try {
+        const persisted = await persistDesignFiles(
+          jobSlug,
+          designId,
+          manifestFiles,
+        );
+        await ecojoinerDesignsModel.update(designId, {
+          file_manifest: JSON.stringify(persisted),
+          generated_at: new Date(),
+          job_id: null,
+        });
+      } catch (error) {
+        console.error("Failed to persist ecojoiner design files", error);
+        return res.status(500).json({
+          success: false,
+          message:
+            "Your design was saved, but its files could not be copied. Please try generating again.",
+        });
+      }
+    }
+
+    const saved = await ecojoinerDesignsModel.getByIdForUser(
+      designId,
       buwanaId,
     );
     return res.json({
@@ -540,11 +736,14 @@ export default {
   generateEcojoiner,
   listProfiles,
   createProfile,
+  updateProfile,
   deleteProfile,
   listDesigns,
+  listPublicDesigns,
   getDesign,
   getSharedDesign,
   createDesign,
+  updateDesign,
   deleteDesign,
   updateDesignVisibility,
 };

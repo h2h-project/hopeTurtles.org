@@ -11,9 +11,11 @@ import {
   updateProfile,
   deleteProfile,
   listDesigns,
+  listPublicDesigns,
   getDesign,
   getSharedDesign,
   createDesign,
+  updateDesign,
   deleteDesign,
   updateDesignVisibility,
 } from "../../controllers/ecojoinerController.js";
@@ -119,10 +121,25 @@ router.post(
   ]),
   createDesign,
 );
+// Registered before /designs/:id so "public" isn't swallowed as an :id.
+router.get(
+  "/designs/public",
+  rateLimit({ key: "ecojoiner-designs", max: 60 }),
+  listPublicDesigns,
+);
 router.get(
   "/designs/:id",
   rateLimit({ key: "ecojoiner-designs", max: 60 }),
   getDesign,
+);
+router.put(
+  "/designs/:id",
+  rateLimit({ key: "ecojoiner-designs", max: 20 }),
+  upload.fields([
+    { name: "bottle_photo", maxCount: 1 },
+    { name: "ecojoiner_photo", maxCount: 1 },
+  ]),
+  updateDesign,
 );
 router.delete(
   "/designs/:id",

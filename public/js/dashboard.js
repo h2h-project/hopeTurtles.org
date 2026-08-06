@@ -1478,18 +1478,6 @@ toggleBottlesTableState();
     });
   });
 
-  document.querySelectorAll("[data-open-eco-design]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const url = button.dataset.openUrl;
-      closeAllRowMenus();
-      if (!url) {
-        window.alert("This design has no generated files yet.");
-        return;
-      }
-      window.open(url, "_blank", "noopener");
-    });
-  });
-
   // --- Row action menus (cog button + popup) --------------------------------
   const closeAllRowMenus = () => {
     document.querySelectorAll("[data-row-menu-panel]").forEach((panel) => {

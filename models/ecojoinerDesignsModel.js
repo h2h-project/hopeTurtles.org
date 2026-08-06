@@ -24,6 +24,22 @@ ecojoinerDesignsModel.getByIdForUser = async (designId, buwanaId) => {
   return rows[0] || null;
 };
 
+// Public designs from other users, for the generate page's "Load a saved
+// ecojoiner design" picker. Excludes the requester's own so it doesn't
+// duplicate what getForUser already lists.
+ecojoinerDesignsModel.getPublic = async (excludeBuwanaId) => {
+  return query(
+    `SELECT d.*, ph.url AS ecojoiner_photo_url, bph.url AS bottle_photo_url
+     FROM ecojoiner_designs_tb d
+     LEFT JOIN photos_tb ph ON ph.photo_id = d.ecojoiner_photo_id
+     LEFT JOIN ecojoiner_bottle_profiles_tb p ON p.profile_id = d.profile_id
+     LEFT JOIN photos_tb bph ON bph.photo_id = p.bottle_photo_id
+     WHERE d.visibility = 'public' AND d.buwana_id != ?
+     ORDER BY d.created_at DESC`,
+    [excludeBuwanaId],
+  );
+};
+
 // Un-publishing a design leaves share_token in place (so re-publishing
 // reuses the same link) but must stop resolving immediately, hence the
 // visibility filter here rather than clearing the token on un-publish.

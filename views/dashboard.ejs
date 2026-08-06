@@ -370,10 +370,7 @@
             <% const snapshot = (function () {
               try { return JSON.parse(design.profile_snapshot || '{}'); } catch { return {}; }
             })(); %>
-            <% const fileManifest = (function () {
-              try { return JSON.parse(design.file_manifest || '[]'); } catch { return []; }
-            })(); %>
-            <% const primaryFileUrl = (fileManifest[0] && fileManifest[0].url) || ''; %>
+            <% const designLabel = design.label || snapshot.label || snapshot.brand || 'Untitled design'; %>
             <tr
               data-eco-design-row
               data-design-id="<%= design.design_id %>"
@@ -384,19 +381,19 @@
                 <div class="design-cell">
                   <div class="design-photo <%= design.bottle_photo_url ? '' : 'design-photo--placeholder' %>" title="Bottle">
                     <% if (design.bottle_photo_url) { %>
-                      <img src="<%= design.bottle_photo_url %>" alt="Bottle for <%= snapshot.label || snapshot.brand || 'this design' %>" loading="lazy" />
+                      <img src="<%= design.bottle_photo_url %>" alt="Bottle for <%= designLabel %>" loading="lazy" />
                     <% } else { %>
                       <i class="fa-solid fa-bottle-water" aria-hidden="true"></i>
                     <% } %>
                   </div>
                   <div class="design-photo <%= design.ecojoiner_photo_url ? '' : 'design-photo--placeholder' %>" title="Ecojoiner">
                     <% if (design.ecojoiner_photo_url) { %>
-                      <img src="<%= design.ecojoiner_photo_url %>" alt="Finished ecojoiner for <%= snapshot.label || snapshot.brand || 'this design' %>" loading="lazy" />
+                      <img src="<%= design.ecojoiner_photo_url %>" alt="Finished ecojoiner for <%= designLabel %>" loading="lazy" />
                     <% } else { %>
                       <i class="fa-solid fa-turtle" aria-hidden="true"></i>
                     <% } %>
                   </div>
-                  <span class="design-cell__label"><%= snapshot.label || snapshot.brand || 'Untitled bottle' %></span>
+                  <span class="design-cell__label"><%= designLabel %></span>
                 </div>
               </td>
               <td data-label="Type"><%= design.ecojoiner_type %></td>
@@ -430,16 +427,13 @@
                     <i class="fa-solid fa-gear" aria-hidden="true"></i>
                   </button>
                   <div class="row-menu__panel" data-row-menu-panel role="menu" hidden>
-                    <button
-                      type="button"
+                    <a
                       class="row-menu__item"
                       role="menuitem"
-                      data-open-eco-design
-                      data-open-url="<%= primaryFileUrl %>"
-                      <%= primaryFileUrl ? '' : 'disabled' %>
+                      href="/ecojoiners/generate?design=<%= design.design_id %>"
                     >
                       <i class="fa-solid fa-up-right-from-square" aria-hidden="true"></i> Open
-                    </button>
+                    </a>
                     <% if (design.visibility === 'public' && design.share_token) { %>
                       <button type="button" class="row-menu__item" role="menuitem" data-copy-eco-share data-design-id="<%= design.design_id %>">
                         <i class="fa-solid fa-link" aria-hidden="true"></i> Copy link

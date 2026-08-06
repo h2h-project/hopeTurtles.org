@@ -1801,6 +1801,7 @@ body.mobile-menu-open {
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
 }
 
 .row-menu__item:hover:not(:disabled) {
@@ -5164,7 +5165,7 @@ body.ocean-bg {
 }
 
 .eco-profile-picker-row {
-  max-width: 22rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 22rem));
 }
 
 .eco-generate {

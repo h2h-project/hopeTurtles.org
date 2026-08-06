@@ -44,7 +44,13 @@
   </div>
 
   <div class="eco-fields eco-profile-picker-row">
-    <label class="eco-field eco-field--full">
+    <label class="eco-field">
+      <span class="eco-field__label">Load a saved ecojoiner design</span>
+      <select id="eco-design-picker" data-eco-design-picker>
+        <option value="">Start a new design</option>
+      </select>
+    </label>
+    <label class="eco-field">
       <span class="eco-field__label">Load a saved bottle profile</span>
       <select id="eco-profile-picker" data-eco-profile-picker>
         <option value="">Start a new profile</option>
@@ -79,6 +85,10 @@
                   <span class="eco-field__label"><%= t.gen_field_volume %> <span class="eco-field__unit"><%= t.gen_unit_ml %></span></span>
                   <input type="number" id="eco-volume" name="volume" inputmode="numeric" min="0" step="10" placeholder="<%= t.gen_field_volume_ph %>" />
                   <span class="eco-feedback" data-for="eco-volume"></span>
+                </label>
+                <label class="eco-field eco-field--full">
+                  <span class="eco-field__label">Photo of your bottle</span>
+                  <input type="file" id="eco-bottle-photo" name="bottlePhoto" accept="image/*" />
                 </label>
               </div>
             </div>
@@ -366,22 +376,14 @@
       <header class="mission-dialog__header">
         <div>
           <h2 id="ecoSaveDialogTitle">Save your ecojoiner</h2>
-          <p class="panel-subtitle">Save this bottle profile and design to your dashboard.</p>
+          <p class="panel-subtitle">Save this design to your dashboard.</p>
         </div>
         <button type="button" class="dialog-close" data-close-eco-save aria-label="Close">&times;</button>
       </header>
       <div class="mission-form-grid">
-        <label class="full-width" data-eco-save-new-profile-field>
-          Name this bottle profile
-          <input type="text" name="label" placeholder="e.g. Aqua 1.5L" data-eco-save-label />
-        </label>
         <label class="full-width">
-          Bottle brand
-          <input type="text" name="brand" placeholder="e.g. Aqua" data-eco-save-brand required />
-        </label>
-        <label class="full-width">
-          Photo of your bottle
-          <input type="file" name="bottle_photo" accept="image/*" />
+          Name this design
+          <input type="text" name="label" placeholder="e.g. Aqua 1.5L Ecojoiner" data-eco-save-label required />
         </label>
         <label class="full-width">
           Photo of your finished ecojoiner

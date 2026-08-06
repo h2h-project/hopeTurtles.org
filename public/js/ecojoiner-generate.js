@@ -433,6 +433,34 @@
     return { ok: response.ok, body };
   };
 
+  // Builds the multipart body for saving/updating a bottle profile, picking
+  // up the photo from Panel 1's own file input (there's no photo field left
+  // in any save dialog — the bottle photo always travels with the bottle).
+  const profileFormData = (values, extra = {}) => {
+    const formData = new FormData();
+    Object.entries({
+      brand: values.brand,
+      volume: values.volume,
+      diameter: values.diameter,
+      cap: values.cap,
+      collar: values.collar,
+      height: values.height,
+      topTapper: values.topTapper,
+      bottomTapper: values.bottomTapper,
+      material: values.material,
+      thickness: values.thickness,
+      portFitMm: values.portFitMm,
+      ...extra,
+    }).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) formData.set(key, value);
+    });
+    const bottlePhotoInput = el("eco-bottle-photo");
+    if (bottlePhotoInput && bottlePhotoInput.files[0]) {
+      formData.set("bottle_photo", bottlePhotoInput.files[0]);
+    }
+    return formData;
+  };
+
   const renderPreview = (data) => {
     const d = data.derived || {};
     const rows = [
@@ -815,20 +843,13 @@
       saveProfileBtn.textContent = s("gen_save_profile_saving");
 
       try {
-        const { ok, body } = await post("/api/ecojoiner/profiles", {
-          label: trimmedLabel,
-          brand: values.brand,
-          volume: values.volume,
-          diameter: values.diameter,
-          cap: values.cap,
-          collar: values.collar,
-          height: values.height,
-          topTapper: values.topTapper,
-          bottomTapper: values.bottomTapper,
-          material: values.material,
-          thickness: values.thickness,
-          portFitMm: values.portFitMm,
+        const formData = profileFormData(values, { label: trimmedLabel });
+        const response = await fetch("/api/ecojoiner/profiles", {
+          method: "POST",
+          body: formData,
         });
+        const body = await response.json().catch(() => ({}));
+        const ok = response.ok;
         if (!ok || !body.success) {
           setSaveProfileFeedback(
             body.message || s("gen_save_profile_error"),
@@ -866,22 +887,10 @@
       saveProfileChangesBtn.textContent = s("gen_save_profile_saving");
 
       try {
+        const formData = profileFormData(values);
         const response = await fetch(`/api/ecojoiner/profiles/${profileId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            brand: values.brand,
-            volume: values.volume,
-            diameter: values.diameter,
-            cap: values.cap,
-            collar: values.collar,
-            height: values.height,
-            topTapper: values.topTapper,
-            bottomTapper: values.bottomTapper,
-            material: values.material,
-            thickness: values.thickness,
-            portFitMm: values.portFitMm,
-          }),
+          body: formData,
         });
         const body = await response.json().catch(() => ({}));
         if (!response.ok || !body.success) {
@@ -907,6 +916,161 @@
     });
   }
 
+  // --- Saved ecojoiner designs ----------------------------------------------
+  // Loads a previously saved design (own or public) into the form: its bottle
+  // specs, ecojoiner type, fabrication formats, and — for owned designs —
+  // enough state for the save dialog to update it in place rather than
+  // creating a duplicate.
+  const designPicker = document.querySelector("[data-eco-design-picker]");
+  let designsById = {};
+  let loadedDesign = null;
+
+  const designOptionLabel = (design) => {
+    let snapshot = {};
+    try {
+      snapshot = JSON.parse(design.profile_snapshot || "{}");
+    } catch {
+      snapshot = {};
+    }
+    return design.label || snapshot.label || snapshot.brand || "Untitled design";
+  };
+
+  const loadDesignsList = async () => {
+    if (!designPicker) return;
+    try {
+      const [ownResponse, publicResponse] = await Promise.all([
+        fetch("/api/ecojoiner/designs"),
+        fetch("/api/ecojoiner/designs/public"),
+      ]);
+      const ownBody = await ownResponse.json().catch(() => ({}));
+      const publicBody = await publicResponse.json().catch(() => ({}));
+      const own = ownResponse.ok && ownBody.success ? ownBody.data || [] : [];
+      const pub =
+        publicResponse.ok && publicBody.success ? publicBody.data || [] : [];
+
+      designsById = {};
+      const selected = designPicker.value;
+      designPicker.querySelectorAll("optgroup").forEach((group) => group.remove());
+
+      const addGroup = (label, designs, isOwner) => {
+        if (!designs.length) return;
+        const group = document.createElement("optgroup");
+        group.label = label;
+        designs.forEach((design) => {
+          designsById[design.design_id] = { ...design, is_owner: isOwner };
+          const option = document.createElement("option");
+          option.value = String(design.design_id);
+          option.textContent = designOptionLabel(design);
+          group.appendChild(option);
+        });
+        designPicker.appendChild(group);
+      };
+      addGroup("My designs", own, true);
+      addGroup("Public designs", pub, false);
+
+      if (selected && designsById[selected]) designPicker.value = selected;
+    } catch {
+      // A saved-design list failing to load isn't fatal — the form still
+      // works for a fresh, unsaved design.
+    }
+  };
+
+  const applyDesignToForm = (design) => {
+    // Prefer the live profile row over the design's snapshot when the user
+    // still owns it, so the bottle-spec fields (and the "dirty" baseline for
+    // Save Bottle Changes) reflect its current values, not what it looked
+    // like when this design was saved.
+    const ownProfile = design.profile_id
+      ? profilesById[design.profile_id]
+      : null;
+    let snapshot = {};
+    try {
+      snapshot = JSON.parse(design.profile_snapshot || "{}");
+    } catch {
+      snapshot = {};
+    }
+    applyProfileToForm(ownProfile || snapshot);
+
+    const targetType = design.ecojoiner_type || "6fc";
+    typeCards.forEach((card) => {
+      const match = card.dataset.type === targetType;
+      card.classList.toggle("eco-type-card--selected", match);
+      if (card.getAttribute("role") === "radio")
+        card.setAttribute("aria-checked", String(match));
+    });
+    el("eco-type").value = targetType;
+    check("eco-type");
+
+    let formats = [];
+    try {
+      formats = JSON.parse(design.formats || "[]");
+    } catch {
+      formats = [];
+    }
+    el("eco-fab-carpentry").checked = formats.includes("pdf");
+    el("eco-fab-3d").checked = formats.includes("scad");
+    el("eco-fab-svg").checked = formats.includes("svg");
+    el("eco-fab-dxf").checked = formats.includes("dxf");
+    check("eco-fabrication");
+
+    if (profilePicker) {
+      if (ownProfile) {
+        profilePicker.value = String(design.profile_id);
+      } else {
+        profilePicker.value = "";
+        loadedProfileSpecs = null;
+      }
+      updateSaveProfileVisibility();
+      updateSaveChangesVisibility();
+    }
+
+    loadedDesign = {
+      design_id: design.design_id,
+      label: design.label || "",
+      visibility: design.visibility,
+      is_owner: design.is_owner !== false,
+      ecojoiner_photo_url: design.ecojoiner_photo_url || null,
+    };
+  };
+
+  const loadDesignById = async (designId) => {
+    try {
+      const response = await fetch(
+        `/api/ecojoiner/designs/${encodeURIComponent(designId)}`,
+      );
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) return false;
+      applyDesignToForm(body.data);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Deep link from the dashboard's design cog menu ("Open"):
+  // /ecojoiners/generate?design=123
+  const initialDesignId = new URLSearchParams(window.location.search).get(
+    "design",
+  );
+
+  if (designPicker) {
+    loadDesignsList().then(() => {
+      if (!initialDesignId) return;
+      loadDesignById(initialDesignId).then((ok) => {
+        if (ok) designPicker.value = initialDesignId;
+      });
+    });
+    designPicker.addEventListener("change", () => {
+      if (!designPicker.value) {
+        loadedDesign = null;
+        return;
+      }
+      loadDesignById(designPicker.value);
+    });
+  } else if (initialDesignId) {
+    loadDesignById(initialDesignId);
+  }
+
   // --- Save flow ------------------------------------------------------------
 
   const saveDialog = document.getElementById("ecoSaveDialog");
@@ -919,14 +1083,8 @@
   const saveShare = saveDialog
     ? saveDialog.querySelector("[data-eco-save-share]")
     : null;
-  const saveLabelField = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-new-profile-field]")
-    : null;
   const saveLabelInput = saveDialog
     ? saveDialog.querySelector("[data-eco-save-label]")
-    : null;
-  const saveBrandInput = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-brand]")
     : null;
   const saveVisibilityToggle = saveDialog
     ? saveDialog.querySelector("[data-eco-save-visibility]")
@@ -970,11 +1128,16 @@
       showSaveForm();
       setSaveFeedback("");
       if (saveShare) saveShare.hidden = true;
-      const hasSelectedProfile = profilePicker && profilePicker.value;
-      if (saveLabelField) saveLabelField.hidden = Boolean(hasSelectedProfile);
-      if (saveLabelInput && !hasSelectedProfile) saveLabelInput.value = "";
-      if (saveBrandInput)
-        saveBrandInput.value = el("eco-brand") ? el("eco-brand").value.trim() : "";
+      // Editing an already-owned loaded design re-saves it in place, so its
+      // name comes pre-filled; anything else (including someone else's
+      // public design, loaded read-only) starts from a blank name.
+      const editingOwnDesign = Boolean(loadedDesign && loadedDesign.is_owner);
+      if (saveLabelInput)
+        saveLabelInput.value = editingOwnDesign ? loadedDesign.label : "";
+      if (saveVisibilityToggle)
+        saveVisibilityToggle.checked = editingOwnDesign
+          ? loadedDesign.visibility === "public"
+          : false;
       if (typeof saveDialog.showModal === "function") saveDialog.showModal();
       else saveDialog.setAttribute("open", "");
     });
@@ -998,13 +1161,16 @@
       event.preventDefault();
       setSaveFeedback("");
 
+      const designLabel = saveLabelInput ? saveLabelInput.value.trim() : "";
+      if (!designLabel) {
+        setSaveFeedback("Please give this design a name.");
+        return;
+      }
+
       const formValues = collect();
       const formData = new FormData();
-      formData.set("label", saveLabelInput ? saveLabelInput.value.trim() : "");
-      formData.set(
-        "brand",
-        saveBrandInput ? saveBrandInput.value.trim() : formValues.brand,
-      );
+      formData.set("label", designLabel);
+      formData.set("brand", formValues.brand);
       formData.set("volume", formValues.volume);
       formData.set("diameter", formValues.diameter);
       formData.set("cap", formValues.cap);
@@ -1043,9 +1209,8 @@
         formData.set("files", JSON.stringify(lastGenerated.files || []));
       }
 
-      const bottlePhotoInput = saveForm.querySelector(
-        'input[name="bottle_photo"]',
-      );
+      // The bottle photo now lives with the bottle (Panel 1), not the design.
+      const bottlePhotoInput = el("eco-bottle-photo");
       const ecojoinerPhotoInput = saveForm.querySelector(
         'input[name="ecojoiner_photo"]',
       );
@@ -1063,9 +1228,14 @@
         submitBtn.textContent = "Saving…";
       }
 
+      const editingOwnDesign = Boolean(loadedDesign && loadedDesign.is_owner);
+      const url = editingOwnDesign
+        ? `/api/ecojoiner/designs/${encodeURIComponent(loadedDesign.design_id)}`
+        : "/api/ecojoiner/designs";
+
       try {
-        const response = await fetch("/api/ecojoiner/designs", {
-          method: "POST",
+        const response = await fetch(url, {
+          method: editingOwnDesign ? "PUT" : "POST",
           body: formData,
         });
         const body = await response.json().catch(() => ({}));
@@ -1074,7 +1244,12 @@
           return;
         }
         showSaveSuccess(body.data.share_url);
+        if (loadedDesign) {
+          loadedDesign.label = designLabel;
+          loadedDesign.visibility = body.data.visibility;
+        }
         loadProfiles();
+        loadDesignsList();
       } catch (error) {
         setSaveFeedback(
           error.message || "We could not reach the server. Please try again.",
