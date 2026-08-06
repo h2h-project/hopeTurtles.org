@@ -368,9 +368,12 @@
         <tbody data-my-ecojoiner-designs-body>
           <% myEcojoinerDesigns.forEach(function (design) { %>
             <% const snapshot = (function () {
-              try { return JSON.parse(design.profile_snapshot || '{}'); } catch { return {}; }
+              const raw = design.profile_snapshot;
+              if (!raw) return {};
+              if (typeof raw !== 'string') return raw;
+              try { return JSON.parse(raw); } catch { return {}; }
             })(); %>
-            <% const designLabel = design.label || snapshot.label || snapshot.brand || 'Untitled design'; %>
+            <% const designLabel = snapshot.label || snapshot.brand || 'Untitled design'; %>
             <tr
               data-eco-design-row
               data-design-id="<%= design.design_id %>"

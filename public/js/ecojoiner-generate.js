@@ -673,17 +673,39 @@
   const currentSpecValues = () =>
     SPEC_FIELD_IDS.map((id) => el(id).value);
 
+  // Bottle spec columns are DECIMAL(x,2) in the DB, so a loaded profile hands
+  // back "1500.00" etc. — round to a whole number for these fields (thickness
+  // stays decimal-friendly since sheet material comes in fractional mm).
+  const wholeNumber = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const num = Number(value);
+    return Number.isFinite(num) ? String(Math.round(num)) : "";
+  };
+
+  const bottlePhotoPreview = document.querySelector(
+    "[data-eco-bottle-photo-preview]",
+  );
+  const bottlePhotoPreviewImg = document.querySelector(
+    "[data-eco-bottle-photo-preview-img]",
+  );
+  const showBottlePhotoPreview = (url) => {
+    if (!bottlePhotoPreview || !bottlePhotoPreviewImg) return;
+    bottlePhotoPreview.hidden = !url;
+    bottlePhotoPreviewImg.src = url || "";
+  };
+
   const applyProfileToForm = (profile) => {
     el("eco-brand").value = profile.brand || "";
-    el("eco-volume").value = profile.volume_ml ?? "";
-    el("eco-diameter").value = profile.diameter_mm ?? "";
-    el("eco-cap").value = profile.cap_mm ?? "";
-    el("eco-collar").value = profile.collar_mm ?? "";
-    el("eco-height").value = profile.height_mm ?? "";
-    el("eco-top-tapper").value = profile.top_tapper_mm ?? "";
-    el("eco-bottom-tapper").value = profile.bottom_tapper_mm ?? "";
+    el("eco-volume").value = wholeNumber(profile.volume_ml);
+    el("eco-diameter").value = wholeNumber(profile.diameter_mm);
+    el("eco-cap").value = wholeNumber(profile.cap_mm);
+    el("eco-collar").value = wholeNumber(profile.collar_mm);
+    el("eco-height").value = wholeNumber(profile.height_mm);
+    el("eco-top-tapper").value = wholeNumber(profile.top_tapper_mm);
+    el("eco-bottom-tapper").value = wholeNumber(profile.bottom_tapper_mm);
     el("eco-material").value = profile.material || "";
     el("eco-thickness").value = profile.thickness_mm ?? "";
+    showBottlePhotoPreview(profile.bottle_photo_url);
     if (connectionSlider) {
       const mm = Number(profile.port_fit_mm ?? 0);
       const stepIndex = CONNECTION_STEPS.findIndex((step) => step.mm === mm);
@@ -925,14 +947,25 @@
   let designsById = {};
   let loadedDesign = null;
 
-  const designOptionLabel = (design) => {
-    let snapshot = {};
+  // ecojoiner_designs_tb.profile_snapshot / .formats are native MySQL JSON
+  // columns, which can come back from the API either pre-parsed (object/
+  // array) or as raw text depending on the code path — parse only if we
+  // actually got a string.
+  const parseIfString = (value, fallback) => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value !== "string") return value;
     try {
-      snapshot = JSON.parse(design.profile_snapshot || "{}");
+      return JSON.parse(value);
     } catch {
-      snapshot = {};
+      return fallback;
     }
-    return design.label || snapshot.label || snapshot.brand || "Untitled design";
+  };
+
+  const designSnapshot = (design) => parseIfString(design.profile_snapshot, {});
+
+  const designOptionLabel = (design) => {
+    const snapshot = designSnapshot(design);
+    return snapshot.label || snapshot.brand || "Untitled design";
   };
 
   const loadDesignsList = async () => {
@@ -983,12 +1016,7 @@
     const ownProfile = design.profile_id
       ? profilesById[design.profile_id]
       : null;
-    let snapshot = {};
-    try {
-      snapshot = JSON.parse(design.profile_snapshot || "{}");
-    } catch {
-      snapshot = {};
-    }
+    const snapshot = designSnapshot(design);
     applyProfileToForm(ownProfile || snapshot);
 
     const targetType = design.ecojoiner_type || "6fc";
@@ -1001,12 +1029,7 @@
     el("eco-type").value = targetType;
     check("eco-type");
 
-    let formats = [];
-    try {
-      formats = JSON.parse(design.formats || "[]");
-    } catch {
-      formats = [];
-    }
+    const formats = parseIfString(design.formats, []);
     el("eco-fab-carpentry").checked = formats.includes("pdf");
     el("eco-fab-3d").checked = formats.includes("scad");
     el("eco-fab-svg").checked = formats.includes("svg");
@@ -1026,7 +1049,9 @@
 
     loadedDesign = {
       design_id: design.design_id,
-      label: design.label || "",
+      // There's no separate "design name" — its display name is always the
+      // bottle profile's label, same as the picker options themselves.
+      label: (ownProfile && ownProfile.label) || snapshot.label || "",
       visibility: design.visibility,
       is_owner: design.is_owner !== false,
       ecojoiner_photo_url: design.ecojoiner_photo_url || null,
@@ -1095,6 +1120,18 @@
   const saveSuccessShare = saveDialog
     ? saveDialog.querySelector("[data-eco-save-success-share]")
     : null;
+  const savePhotoPreview = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-photo-preview]")
+    : null;
+  const savePhotoPreviewImg = saveDialog
+    ? saveDialog.querySelector("[data-eco-save-photo-preview-img]")
+    : null;
+
+  const showSavePhotoPreview = (url) => {
+    if (!savePhotoPreview || !savePhotoPreviewImg) return;
+    savePhotoPreview.hidden = !url;
+    savePhotoPreviewImg.src = url || "";
+  };
 
   const setSaveFeedback = (message) => {
     if (!saveFeedback) return;
@@ -1129,15 +1166,25 @@
       setSaveFeedback("");
       if (saveShare) saveShare.hidden = true;
       // Editing an already-owned loaded design re-saves it in place, so its
-      // name comes pre-filled; anything else (including someone else's
-      // public design, loaded read-only) starts from a blank name.
+      // name and photo come pre-filled; anything else (including someone
+      // else's public design, loaded read-only) starts from blank.
       const editingOwnDesign = Boolean(loadedDesign && loadedDesign.is_owner);
-      if (saveLabelInput)
-        saveLabelInput.value = editingOwnDesign ? loadedDesign.label : "";
+      const selectedProfile =
+        profilePicker && profilePicker.value
+          ? profilesById[profilePicker.value]
+          : null;
+      if (saveLabelInput) {
+        saveLabelInput.value = editingOwnDesign
+          ? loadedDesign.label
+          : (selectedProfile && selectedProfile.label) || "";
+      }
       if (saveVisibilityToggle)
         saveVisibilityToggle.checked = editingOwnDesign
           ? loadedDesign.visibility === "public"
           : false;
+      showSavePhotoPreview(
+        editingOwnDesign ? loadedDesign.ecojoiner_photo_url : null,
+      );
       if (typeof saveDialog.showModal === "function") saveDialog.showModal();
       else saveDialog.setAttribute("open", "");
     });
@@ -1161,15 +1208,15 @@
       event.preventDefault();
       setSaveFeedback("");
 
-      const designLabel = saveLabelInput ? saveLabelInput.value.trim() : "";
-      if (!designLabel) {
+      const profileLabel = saveLabelInput ? saveLabelInput.value.trim() : "";
+      if (!profileLabel) {
         setSaveFeedback("Please give this design a name.");
         return;
       }
 
       const formValues = collect();
       const formData = new FormData();
-      formData.set("label", designLabel);
+      formData.set("label", profileLabel);
       formData.set("brand", formValues.brand);
       formData.set("volume", formValues.volume);
       formData.set("diameter", formValues.diameter);
@@ -1245,7 +1292,7 @@
         }
         showSaveSuccess(body.data.share_url);
         if (loadedDesign) {
-          loadedDesign.label = designLabel;
+          loadedDesign.label = profileLabel;
           loadedDesign.visibility = body.data.visibility;
         }
         loadProfiles();

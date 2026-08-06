@@ -88,7 +88,12 @@
                 </label>
                 <label class="eco-field eco-field--full">
                   <span class="eco-field__label">Photo of your bottle</span>
-                  <input type="file" id="eco-bottle-photo" name="bottlePhoto" accept="image/*" />
+                  <div class="eco-photo-field">
+                    <div class="eco-photo-preview" data-eco-bottle-photo-preview hidden>
+                      <img data-eco-bottle-photo-preview-img alt="Current bottle photo" />
+                    </div>
+                    <input type="file" id="eco-bottle-photo" name="bottlePhoto" accept="image/*" />
+                  </div>
                 </label>
               </div>
             </div>
@@ -383,11 +388,16 @@
       <div class="mission-form-grid">
         <label class="full-width">
           Name this design
-          <input type="text" name="label" placeholder="e.g. Aqua 1.5L Ecojoiner" data-eco-save-label required />
+          <input type="text" name="label" placeholder="e.g. Aqua 1.5L" data-eco-save-label required />
         </label>
         <label class="full-width">
           Photo of your finished ecojoiner
-          <input type="file" name="ecojoiner_photo" accept="image/*" />
+          <div class="eco-photo-field">
+            <div class="eco-photo-preview" data-eco-save-photo-preview hidden>
+              <img data-eco-save-photo-preview-img alt="Current ecojoiner photo" />
+            </div>
+            <input type="file" name="ecojoiner_photo" accept="image/*" />
+          </div>
         </label>
         <div class="eco-fab-option full-width">
           <span class="eco-fab-option__info">

@@ -100,21 +100,20 @@ const parseProfileFields = (body = {}, { requireLabel = true } = {}) => {
   return { ...(label ? { label } : {}), brand, ...numbers, ...optional };
 };
 
-// Auto-names a bottle profile created on the fly during a design save, since
-// the save modal no longer asks the user for a profile name directly.
-const autoProfileLabel = (body = {}) => {
-  const brand = String(body.brand ?? "").trim();
-  const volume = toNumberOrNull(body.volume);
-  return volume && !Number.isNaN(volume) ? `${brand} ${volume}ml` : brand;
-};
-
-// `body.label` on a design-save request is the design's own name, not the
-// bottle profile's — strip it before handing the body to parseProfileFields()
-// so it can't leak into the profile row's label column.
-const withoutDesignLabel = (body = {}) => {
-  const rest = { ...body };
-  delete rest.label;
-  return rest;
+// ecojoiner_designs_tb.formats and .profile_snapshot are native MySQL JSON
+// columns. Depending on the mysql2 code path, a JSON column can come back
+// either pre-parsed (object/array) or as raw text — this codebase already
+// treats that as unreliable elsewhere (see turtlesController.js's raw_data
+// handling). Only call JSON.parse when we actually got a string; otherwise
+// the value is already the parsed shape.
+const parseIfString = (value, fallback) => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
 };
 
 const attachPhoto = async ({ relatedType, relatedId, uploadedBy, file }) => {
@@ -351,12 +350,6 @@ export const createDesign = async (req, res, next) => {
   try {
     const buwanaId = getCurrentUserId(req);
     const body = req.body || {};
-    const designLabel = String(body.label ?? "").trim();
-    if (!designLabel) {
-      throw new EcojoinerRequestError("Please give this design a name.", [
-        "Please give this design a name.",
-      ]);
-    }
     const files = req.files ?? {};
     const bottlePhotoFile = Array.isArray(files.bottle_photo)
       ? files.bottle_photo[0]
@@ -383,9 +376,7 @@ export const createDesign = async (req, res, next) => {
           .status(404)
           .json({ success: false, message: "Bottle profile not found." });
       }
-      const fields = parseProfileFields(withoutDesignLabel(body), {
-        requireLabel: false,
-      });
+      const fields = parseProfileFields(body, { requireLabel: false });
       await ecojoinerProfilesModel.update(requestedProfileId, fields);
 
       if (bottlePhotoFile) {
@@ -408,13 +399,10 @@ export const createDesign = async (req, res, next) => {
         profileId,
         buwanaId,
       );
-    } else if (body.brand) {
-      const fields = parseProfileFields(withoutDesignLabel(body), {
-        requireLabel: false,
-      });
+    } else if (body.label && body.brand) {
+      const fields = parseProfileFields(body);
       const created = await ecojoinerProfilesModel.create({
         buwana_id: buwanaId,
-        label: autoProfileLabel(body),
         ...fields,
       });
       const bottlePhotoId = await attachPhoto({
@@ -451,7 +439,6 @@ export const createDesign = async (req, res, next) => {
     const design = await ecojoinerDesignsModel.create({
       buwana_id: buwanaId,
       profile_id: profileId,
-      label: designLabel,
       profile_snapshot: JSON.stringify(profileSnapshot),
       ecojoiner_type: body.ecojoinerType ? String(body.ecojoinerType) : "6fc",
       formats: JSON.stringify(formats),
@@ -547,13 +534,6 @@ export const updateDesign = async (req, res, next) => {
     }
 
     const body = req.body || {};
-    const designLabel = String(body.label ?? "").trim();
-    if (!designLabel) {
-      throw new EcojoinerRequestError("Please give this design a name.", [
-        "Please give this design a name.",
-      ]);
-    }
-
     const files = req.files ?? {};
     const bottlePhotoFile = Array.isArray(files.bottle_photo)
       ? files.bottle_photo[0]
@@ -562,11 +542,9 @@ export const updateDesign = async (req, res, next) => {
       ? files.ecojoiner_photo[0]
       : null;
 
-    let profileSnapshot = existing.profile_snapshot;
+    let profileSnapshot = parseIfString(existing.profile_snapshot, {});
     if (existing.profile_id) {
-      const fields = parseProfileFields(withoutDesignLabel(body), {
-        requireLabel: false,
-      });
+      const fields = parseProfileFields(body, { requireLabel: false });
       await ecojoinerProfilesModel.update(existing.profile_id, fields);
 
       if (bottlePhotoFile) {
@@ -584,22 +562,22 @@ export const updateDesign = async (req, res, next) => {
             bottle_photo_id: bottlePhotoId,
           });
       }
-      profileSnapshot = JSON.stringify(
-        await ecojoinerProfilesModel.getByIdForUser(
-          existing.profile_id,
-          buwanaId,
-        ),
+      profileSnapshot = await ecojoinerProfilesModel.getByIdForUser(
+        existing.profile_id,
+        buwanaId,
       );
     }
 
-    const formats = parseJsonField(body.formats, JSON.parse(existing.formats || "[]"));
+    const formats = parseJsonField(
+      body.formats,
+      parseIfString(existing.formats, []),
+    );
     const jobSlug = body.job_id ? String(body.job_id) : null;
     const manifestFiles = parseJsonField(body.files, []);
     const visibility = body.visibility === "public" ? "public" : "private";
 
     const updates = {
-      label: designLabel,
-      profile_snapshot: profileSnapshot,
+      profile_snapshot: JSON.stringify(profileSnapshot),
       ecojoiner_type: body.ecojoinerType
         ? String(body.ecojoinerType)
         : existing.ecojoiner_type,
