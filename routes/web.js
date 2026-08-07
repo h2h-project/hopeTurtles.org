@@ -152,7 +152,12 @@ router.get("/team", teamController.renderTeamPage);
 router.get("/turtles/:id", turtlesController.renderTurtlePage);
 
 router.get("/login", (req, res) => {
-  res.redirect("/auth/login");
+  const returnTo = typeof req.query.returnTo === "string" ? req.query.returnTo : "";
+  res.redirect(
+    returnTo
+      ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
+      : "/auth/login",
+  );
 });
 
 router.get("/dashboard", ensureAuth, dashboardController.renderDashboard);

@@ -7,7 +7,7 @@ export const ensureAuth = (req, res, next) => {
   if (req.originalUrl?.startsWith('/api/')) {
     return res.status(401).json({ success: false, message: 'Authentication required' });
   }
-  return res.redirect('/login');
+  return res.redirect(`/login?returnTo=${encodeURIComponent(req.originalUrl)}`);
 };
 
 export const ensureAdmin = (req, res, next) => {
@@ -33,7 +33,7 @@ export const ensureAdminOrFounder = (req, res, next) => {
     return res.status(status).json({ success: false, message: 'Additional privileges required' });
   }
   if (!user) {
-    return res.redirect('/login');
+    return res.redirect(`/login?returnTo=${encodeURIComponent(req.originalUrl)}`);
   }
   return res.status(403).render('error', {
     pageTitle: 'Access denied',

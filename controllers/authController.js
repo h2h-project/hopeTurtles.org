@@ -37,6 +37,15 @@ const parseBuwanaId = (value) => {
   throw new Error(`Unable to derive numeric Buwana ID from subject claim: ${value}`);
 };
 
+// Only ever follow a same-site, root-relative path after login. Rejects
+// absolute/protocol-relative URLs (e.g. "//evil.com" or "https://evil.com")
+// so a crafted returnTo can't be used as an open redirect.
+const sanitizeReturnTo = (value) => {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 2048) return null;
+  if (!value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return null;
+  return value;
+};
+
 // --------------------------------------------------------------------
 // JWKS Client for verifying ID tokens
 // --------------------------------------------------------------------
@@ -260,6 +269,7 @@ export const login = async (req, res) => {
     ...pkce,
     state,
     nonce,
+    returnTo: sanitizeReturnTo(req.query.returnTo),
     createdAt: Date.now()
   };
 
@@ -334,10 +344,12 @@ export const callback = async (req, res, next) => {
       });
     }
 
+    const returnTo = pkce.returnTo || '/dashboard';
+
     await handleTokenExchange(req, code);
 
-    console.log('✅ Authentication successful, redirecting to /dashboard.');
-    res.redirect('/dashboard');
+    console.log(`✅ Authentication successful, redirecting to ${returnTo}.`);
+    res.redirect(returnTo);
   } catch (err) {
     console.error('💥 OAuth callback error:', err.message);
     return next(err);
