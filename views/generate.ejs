@@ -56,6 +56,15 @@
         <option value="">Start a new profile</option>
       </select>
     </label>
+    <label class="eco-field">
+      <span class="eco-field__label">PDF language</span>
+      <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
+      <select id="eco-pdf-lang" name="pdfLang">
+        <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>
+        <option value="tr" <%= pdfLangDefault === 'tr' ? 'selected' : '' %>>Türkçe</option>
+        <option value="id" <%= pdfLangDefault === 'id' ? 'selected' : '' %>>Bahasa Indonesia</option>
+      </select>
+    </label>
   </div>
 
   <form class="eco-generate" id="eco-generate" novalidate>

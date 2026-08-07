@@ -66,7 +66,6 @@
       gen_dim_presser: "Presser diameter",
       gen_dim_screw: "Screw pilot hole",
       gen_save_profile_btn: "Save bottle profile",
-      gen_save_profile_prompt: "Name this bottle profile",
       gen_save_profile_saving: "Saving…",
       gen_save_profile_success: "Bottle profile saved.",
       gen_save_profile_missing_fields:
@@ -421,6 +420,7 @@
     fab3d: el("eco-fab-3d").checked,
     fabDxf: el("eco-fab-dxf").checked,
     fabSvg: el("eco-fab-svg").checked,
+    pdfLang: el("eco-pdf-lang") ? el("eco-pdf-lang").value : "en",
   });
 
   const post = async (path, payload) => {
@@ -846,19 +846,9 @@
         return;
       }
 
-      const suggestedLabel = values.volume
+      const trimmedLabel = values.volume
         ? `${values.brand} ${values.volume}ml`
         : values.brand;
-      const label = window.prompt(
-        s("gen_save_profile_prompt"),
-        suggestedLabel,
-      );
-      if (label === null) return; // user cancelled
-      const trimmedLabel = label.trim();
-      if (!trimmedLabel) {
-        setSaveProfileFeedback(s("gen_save_profile_missing_fields"), true);
-        return;
-      }
 
       saveProfileBtn.disabled = true;
       const originalLabel = saveProfileBtn.innerHTML;

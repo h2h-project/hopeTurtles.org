@@ -19,7 +19,10 @@ const getCurrentUserId = (req) =>
 // they answer with 422 and a list the page can render field-by-field.
 const handle = async (req, res, next, { dryRun }) => {
   try {
-    const manifest = await runGenerator(req.body, { dryRun, lang: res.locals.lang });
+    const manifest = await runGenerator(req.body, {
+      dryRun,
+      lang: req.body?.pdfLang || res.locals.lang,
+    });
     return res.json({ success: true, data: manifest });
   } catch (error) {
     if (error instanceof EcojoinerRequestError) {

@@ -640,6 +640,7 @@ def _john_svg_group(
     slot_centres: Tuple[float, float],
     center_hole_diameter: float,
     include_labels: bool = True,
+    include_screw_holes: bool = True,
 ) -> str:
     """SVG group for one John slat.
 
@@ -654,8 +655,9 @@ def _john_svg_group(
         out += _rect(cx - d.slot_width / 2, 0, d.slot_width, slot_depth, "cut")
 
     out += _circle(d.john_length / 2, d.john_height / 2, center_hole_diameter, "cut")
-    out += _circle(d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
-    out += _circle(d.john_length - d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
+    if include_screw_holes:
+        out += _circle(d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
+        out += _circle(d.john_length - d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
 
     if include_labels:
         out += _label(0, -3, name)
@@ -698,7 +700,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
 
     if full_set:
         for i in range(PART_QUANTITIES["Long John"]):
-            out += _john_svg_group(f"Long John {i+1}", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter)
+            out += _john_svg_group(f"Long John {i+1}", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
             y += row_h
         for i in range(PART_QUANTITIES["Little John"]):
             out += _john_svg_group(f"Little John {i+1}", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
@@ -730,7 +732,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             out += "  </g>\n"
             x += d.presser_diameter + gap
     else:
-        out += _john_svg_group("Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter)
+        out += _john_svg_group("Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
         y += row_h
         out += _john_svg_group("Little John x5", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
         y += row_h
@@ -804,6 +806,7 @@ def _john_dxf_group(
     slot_centres: Tuple[float, float],
     center_hole_diameter: float,
     include_labels: bool = True,
+    include_screw_holes: bool = True,
 ) -> None:
     """DXF equivalent of _john_svg_group: outer rect, slot rects, center hole,
     two screw pilot holes, and an optional label - all offset by (x, y).
@@ -819,10 +822,11 @@ def _john_dxf_group(
         _dxf_rect(msp, x + cx - d.slot_width / 2, y, d.slot_width, slot_depth, DXF_CUT_LAYER)
 
     _dxf_circle(msp, x + d.john_length / 2, y + d.john_height / 2, center_hole_diameter, DXF_CUT_LAYER)
-    _dxf_circle(msp, x + d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER)
-    _dxf_circle(
-        msp, x + d.john_length - d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER
-    )
+    if include_screw_holes:
+        _dxf_circle(msp, x + d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER)
+        _dxf_circle(
+            msp, x + d.john_length - d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER
+        )
 
     if include_labels:
         _dxf_label(msp, x, y - 3, name)
@@ -863,7 +867,8 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
     if full_set:
         for i in range(PART_QUANTITIES["Long John"]):
             _john_dxf_group(
-                msp, f"Long John {i+1}", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter
+                msp, f"Long John {i+1}", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter,
+                include_screw_holes=False,
             )
             y += row_h
         for i in range(PART_QUANTITIES["Little John"]):
@@ -900,7 +905,8 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             x += d.presser_diameter + gap
     else:
         _john_dxf_group(
-            msp, "Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter
+            msp, "Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter,
+            include_screw_holes=False,
         )
         y += row_h
         _john_dxf_group(
@@ -1036,7 +1042,6 @@ module long_john_2d() {{
     top_slot(long_end_span + slat_thickness / 2, standard_slot_depth);
     top_slot(john_length - long_end_span - slat_thickness / 2, standard_slot_depth);
     center_hole(cap_diameter);
-    screw_holes_2d();
   }}
 }}
 
@@ -1402,7 +1407,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
 
     def sx(v): return v * s
 
-    def draw_john(label, row_top, slot_depth, slots, hole_diam):
+    def draw_john(label, row_top, slot_depth, slots, hole_diam, include_screw_holes=True):
         x = draw_x
         y_top = row_top - top_pad
         y = y_top - sx(d.john_height)
@@ -1444,16 +1449,17 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         # Screw pilot holes. The left hole's label grows rightward and the
         # right hole's label grows leftward, back toward the hole, so
         # neither one runs past the slat's outer edge.
-        screw_label = f"M6 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
-        for i, hx in enumerate((d.screw_side_offset, d.john_length - d.screw_side_offset)):
-            hcx, hcy = x + sx(hx), y + sx(d.screw_y_center)
-            c.circle(hcx, hcy, sx(inputs.screw_diameter / 2), stroke=1, fill=0)
-            c.setFillColor(colors.HexColor("#111111"))
-            c.setFont(symbol_font, 6.5)
-            if i == 0:
-                c.drawString(hcx + 7, hcy + 2, screw_label)
-            else:
-                c.drawRightString(hcx - 7, hcy + 2, screw_label)
+        if include_screw_holes:
+            screw_label = f"M6 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
+            for i, hx in enumerate((d.screw_side_offset, d.john_length - d.screw_side_offset)):
+                hcx, hcy = x + sx(hx), y + sx(d.screw_y_center)
+                c.circle(hcx, hcy, sx(inputs.screw_diameter / 2), stroke=1, fill=0)
+                c.setFillColor(colors.HexColor("#111111"))
+                c.setFont(symbol_font, 6.5)
+                if i == 0:
+                    c.drawString(hcx + 7, hcy + 2, screw_label)
+                else:
+                    c.drawRightString(hcx - 7, hcy + 2, screw_label)
 
         # Part title, rotated 90 degrees and set to the left of the slat
         # rather than above it, so the vertical space above each row is free
@@ -1506,10 +1512,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
             c, x - 14, y, x - 14, y_top, f"{_ceil_mm(d.john_height)}mm", body_font, 6.5, label_side="left",
             ext1=(x, y), ext2=(x, y_top),
         )
-        _draw_dimension_line(
-            c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label"), body_font, 6.5,
-            ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
-        )
+        if include_screw_holes:
+            _draw_dimension_line(
+                c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label"), body_font, 6.5,
+                ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
+            )
         _draw_dimension_line(
             c, x, y - 27, x + sx(d.john_length), y - 27, f"{_ceil_mm(d.john_length)}mm", body_font, 6.5,
             ext1=(x, y), ext2=(x + sx(d.john_length), y),
@@ -1518,7 +1525,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     long_slots = (d.long_end_span + inputs.slat_thickness / 2, d.john_length - d.long_end_span - inputs.slat_thickness / 2)
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
 
-    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter)
+    draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
     draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
     draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 

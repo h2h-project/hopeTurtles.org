@@ -415,7 +415,6 @@
   "gen_save": "Save Ecojoiner",
   "gen_submit": "Generate Ecojoiner Specs",
   "gen_save_profile_btn": "Save bottle profile",
-  "gen_save_profile_prompt": "Name this bottle profile",
   "gen_save_profile_saving": "Saving…",
   "gen_save_profile_success": "Bottle profile saved.",
   "gen_save_profile_missing_fields": "Fill in the bottle brand and specs above before saving.",
