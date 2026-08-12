@@ -380,6 +380,7 @@
               data-visibility="<%= design.visibility %>"
               data-share-token="<%= design.share_token || '' %>"
               data-ecojoiner-type="<%= design.ecojoiner_type %>"
+              data-profile-id="<%= design.profile_id || '' %>"
               data-bottle-photo="<%= design.bottle_photo_url || '' %>"
               data-ecojoiner-photo="<%= design.ecojoiner_photo_url || '' %>"
               data-snapshot="<%= JSON.stringify(snapshot) %>"
@@ -471,7 +472,7 @@
       <h3 class="panel-subtitle">Saved bottle profiles</h3>
       <ul class="eco-profile-list">
         <% myEcojoinerProfiles.forEach(function (profile) { %>
-          <li>
+          <li data-eco-profile-row data-profile-id="<%= profile.profile_id %>" data-profile="<%= JSON.stringify(profile) %>">
             <div class="design-cell">
               <div class="design-photo <%= profile.bottle_photo_url ? '' : 'design-photo--placeholder' %>">
                 <% if (profile.bottle_photo_url) { %>
@@ -482,9 +483,14 @@
               </div>
               <span><%= profile.label %> (<%= profile.brand %>, <%= profile.volume_ml %>ml)</span>
             </div>
-            <button type="button" class="button ghost" data-delete-eco-profile data-profile-id="<%= profile.profile_id %>">
-              Delete
-            </button>
+            <div class="eco-profile-list__actions">
+              <button type="button" class="button ghost" data-view-eco-profile data-profile-id="<%= profile.profile_id %>">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i> View
+              </button>
+              <button type="button" class="button ghost" data-delete-eco-profile data-profile-id="<%= profile.profile_id %>">
+                Delete
+              </button>
+            </div>
           </li>
         <% }) %>
       </ul>
@@ -495,7 +501,7 @@
     <article class="form-card">
       <header class="mission-dialog__header">
         <div>
-          <h2 id="ecoDesignViewTitle">Bottle design details</h2>
+          <h2 id="ecoDesignViewTitle">Ecojoiner design details</h2>
           <p class="panel-subtitle" data-eco-view-subtitle></p>
         </div>
         <button type="button" class="dialog-close" data-close-eco-view aria-label="Close">&times;</button>
@@ -510,6 +516,9 @@
       </div>
       <dl class="eco-view-specs" data-eco-view-specs></dl>
       <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-view-eco-attached-profile>
+          <i class="fa-solid fa-bottle-water" aria-hidden="true"></i> View attached bottle profile
+        </button>
         <button type="button" class="button ghost" data-copy-eco-specs>
           <i class="fa-solid fa-copy" aria-hidden="true"></i> Copy specs
         </button>
@@ -522,51 +531,95 @@
     <form class="form-card" data-eco-edit-form>
       <header class="mission-dialog__header">
         <div>
-          <h2 id="ecoDesignEditTitle">Edit bottle design</h2>
-          <p class="panel-subtitle">Update the saved measurements for this bottle profile.</p>
+          <h2 id="ecoDesignEditTitle">Edit ecojoiner design</h2>
+          <p class="panel-subtitle">Change which bottle profile this design is built for and how snug the joiner fits it.</p>
         </div>
         <button type="button" class="dialog-close" data-close-eco-edit aria-label="Close">&times;</button>
       </header>
       <div class="mission-form-grid">
+        <label class="full-width">
+          Attached bottle profile
+          <select name="profile_id" data-eco-edit-profile-select>
+            <% myEcojoinerProfiles.forEach(function (profile) { %>
+              <option value="<%= profile.profile_id %>" data-port-fit-mm="<%= profile.port_fit_mm %>">
+                <%= profile.label %> (<%= profile.brand %>, <%= profile.volume_ml %>ml)
+              </option>
+            <% }) %>
+          </select>
+        </label>
+      </div>
+      <div class="eco-connection-slider">
+        <div class="eco-connection-slider__value" data-eco-edit-connection-value>Exact fit</div>
+        <input type="range" min="0" max="4" step="1" value="1" data-eco-edit-connection aria-label="Tightness of the joiner" />
+        <input type="hidden" name="portFitMm" data-eco-edit-connection-mm />
+        <div class="eco-connection-slider__ticks">
+          <span>Loose</span>
+          <span>Exact</span>
+          <span>Snug</span>
+          <span>Tight</span>
+          <span>Super tight</span>
+        </div>
+      </div>
+      <p class="form-feedback" role="status" data-eco-edit-feedback hidden></p>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-close-eco-edit>Cancel</button>
+        <button type="submit" class="button">Save changes</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="ecoProfileDialog" class="mission-dialog" aria-labelledby="ecoProfileDialogTitle">
+    <form class="form-card" data-eco-profile-form>
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="ecoProfileDialogTitle">Bottle profile details</h2>
+          <p class="panel-subtitle" data-eco-profile-subtitle></p>
+        </div>
+        <button type="button" class="dialog-close" data-close-eco-profile aria-label="Close">&times;</button>
+      </header>
+      <div class="design-photo design-photo--large design-photo--placeholder" title="Bottle" data-eco-profile-photo>
+        <i class="fa-solid fa-bottle-water" aria-hidden="true"></i>
+      </div>
+      <div class="mission-form-grid">
         <label>
           Name
-          <input type="text" name="label" data-eco-edit-field="label" required />
+          <input type="text" name="label" data-eco-profile-field="label" disabled required />
         </label>
         <label>
           Brand
-          <input type="text" name="brand" data-eco-edit-field="brand" required />
+          <input type="text" name="brand" data-eco-profile-field="brand" disabled required />
         </label>
         <label>
           Volume (ml)
-          <input type="number" name="volume" data-eco-edit-field="volume_ml" min="0" step="10" required />
+          <input type="number" name="volume" data-eco-profile-field="volume_ml" min="0" step="10" disabled required />
         </label>
         <label>
           Diameter (mm)
-          <input type="number" name="diameter" data-eco-edit-field="diameter_mm" min="0" step="1" required />
+          <input type="number" name="diameter" data-eco-profile-field="diameter_mm" min="0" step="1" disabled required />
         </label>
         <label>
           Cap (mm)
-          <input type="number" name="cap" data-eco-edit-field="cap_mm" min="0" step="1" required />
+          <input type="number" name="cap" data-eco-profile-field="cap_mm" min="0" step="1" disabled required />
         </label>
         <label>
           Collar (mm)
-          <input type="number" name="collar" data-eco-edit-field="collar_mm" min="0" step="1" required />
+          <input type="number" name="collar" data-eco-profile-field="collar_mm" min="0" step="1" disabled required />
         </label>
         <label>
           Height (mm)
-          <input type="number" name="height" data-eco-edit-field="height_mm" min="0" step="1" />
+          <input type="number" name="height" data-eco-profile-field="height_mm" min="0" step="1" disabled />
         </label>
         <label>
           Top tapper (mm)
-          <input type="number" name="topTapper" data-eco-edit-field="top_tapper_mm" min="0" step="1" required />
+          <input type="number" name="topTapper" data-eco-profile-field="top_tapper_mm" min="0" step="1" disabled required />
         </label>
         <label>
           Bottom tapper (mm)
-          <input type="number" name="bottomTapper" data-eco-edit-field="bottom_tapper_mm" min="0" step="1" />
+          <input type="number" name="bottomTapper" data-eco-profile-field="bottom_tapper_mm" min="0" step="1" disabled />
         </label>
         <label>
           Material
-          <select name="material" data-eco-edit-field="material">
+          <select name="material" data-eco-profile-field="material" disabled>
             <option value="">Choose…</option>
             <option value="solid-wood">Solid wood</option>
             <option value="pallet-wood">Pallet wood</option>
@@ -578,14 +631,23 @@
         </label>
         <label>
           Thickness (mm)
-          <input type="number" name="thickness" data-eco-edit-field="thickness_mm" min="0" step="0.1" required />
+          <input type="number" name="thickness" data-eco-profile-field="thickness_mm" min="0" step="0.1" disabled required />
+        </label>
+        <label>
+          Port fit (mm)
+          <input type="number" name="portFitMm" data-eco-profile-field="port_fit_mm" step="0.1" disabled />
         </label>
       </div>
-      <input type="hidden" name="portFitMm" data-eco-edit-field="port_fit_mm" />
-      <p class="form-feedback" role="status" data-eco-edit-feedback hidden></p>
+      <p class="form-feedback" role="status" data-eco-profile-feedback hidden></p>
       <div class="mission-dialog__actions">
-        <button type="button" class="button ghost" data-close-eco-edit>Cancel</button>
-        <button type="submit" class="button">Save changes</button>
+        <button type="button" class="button ghost" data-copy-eco-profile>
+          <i class="fa-solid fa-copy" aria-hidden="true"></i> Copy
+        </button>
+        <button type="button" class="button ghost" data-edit-eco-profile-toggle>
+          <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit
+        </button>
+        <button type="button" class="button ghost" data-cancel-eco-profile-edit hidden>Cancel</button>
+        <button type="submit" class="button" data-save-eco-profile hidden>Save changes</button>
       </div>
     </form>
   </dialog>

@@ -1478,21 +1478,46 @@ toggleBottlesTableState();
     });
   });
 
-  // --- View / Edit saved bottle design ---------------------------------------
-  const ECO_SPEC_FIELDS = [
-    ["label", "Design name"],
-    ["brand", "Brand"],
-    ["volume_ml", "Volume (ml)"],
-    ["diameter_mm", "Diameter (mm)"],
-    ["cap_mm", "Cap (mm)"],
-    ["collar_mm", "Collar (mm)"],
-    ["height_mm", "Height (mm)"],
-    ["top_tapper_mm", "Top tapper (mm)"],
-    ["bottom_tapper_mm", "Bottom tapper (mm)"],
-    ["material", "Material"],
-    ["thickness_mm", "Thickness (mm)"],
-    ["port_fit_mm", "Port fit (mm)"],
+  // --- View / Edit saved ecojoiner design -------------------------------------
+  // Design-only fields. Bottle geometry (brand, volume, diameter, ...) lives
+  // on the attached bottle profile and is viewed/edited via its own dialog
+  // (see "View / Edit saved bottle profile" below), reached from here through
+  // the "View attached bottle profile" button.
+  const CONNECTION_STEPS = [
+    { mm: 1, label: "Loose" },
+    { mm: 0, label: "Exact fit" },
+    { mm: -1, label: "Snug" },
+    { mm: -2, label: "Tight" },
+    { mm: -3, label: "Super tight" },
   ];
+
+  const connectionLabelForMm = (mm) => {
+    const value = Number(mm) || 0;
+    let closest = CONNECTION_STEPS[1];
+    let closestDiff = Infinity;
+    CONNECTION_STEPS.forEach((step) => {
+      const diff = Math.abs(step.mm - value);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closest = step;
+      }
+    });
+    return closest.label;
+  };
+
+  const connectionStepIndexForMm = (mm) => {
+    const value = Number(mm) || 0;
+    let closestIndex = 1;
+    let closestDiff = Infinity;
+    CONNECTION_STEPS.forEach((step, index) => {
+      const diff = Math.abs(step.mm - value);
+      if (diff < closestDiff) {
+        closestDiff = diff;
+        closestIndex = index;
+      }
+    });
+    return closestIndex;
+  };
 
   const readRowSnapshot = (row) => {
     try {
@@ -1501,6 +1526,13 @@ toggleBottlesTableState();
       return {};
     }
   };
+
+  const findProfileRow = (profileId) =>
+    profileId
+      ? document.querySelector(
+          `[data-eco-profile-row][data-profile-id="${profileId}"]`,
+        )
+      : null;
 
   const viewDialog = document.getElementById("ecoDesignViewDialog");
   const viewSubtitle = viewDialog?.querySelector("[data-eco-view-subtitle]");
@@ -1512,7 +1544,11 @@ toggleBottlesTableState();
     "[data-eco-view-ecojoiner-photo]",
   );
   const viewCopyButton = viewDialog?.querySelector("[data-copy-eco-specs]");
+  const viewAttachedProfileButton = viewDialog?.querySelector(
+    "[data-view-eco-attached-profile]",
+  );
   let currentViewSnapshot = null;
+  let currentViewRow = null;
 
   const setDesignPhoto = (container, url, iconClass) => {
     if (!container) return;
@@ -1525,6 +1561,20 @@ toggleBottlesTableState();
     }
   };
 
+  const DESIGN_VIEW_FIELDS = (row, snapshot) => [
+    ["Ecojoiner type", row.dataset.ecojoinerType || "—"],
+    [
+      "Attached bottle profile",
+      snapshot.label || snapshot.brand
+        ? `${snapshot.label || "Untitled"} (${snapshot.brand || "—"}, ${snapshot.volume_ml || "—"}ml)`
+        : "—",
+    ],
+    ["Material", snapshot.material || "—"],
+    ["Thickness (mm)", snapshot.thickness_mm ?? "—"],
+    ["Tightness", connectionLabelForMm(snapshot.port_fit_mm)],
+    ["Visibility", row.dataset.visibility === "public" ? "Public" : "Private"],
+  ];
+
   document.querySelectorAll("[data-view-eco-design]").forEach((button) => {
     button.addEventListener("click", () => {
       const row = document.querySelector(
@@ -1533,6 +1583,7 @@ toggleBottlesTableState();
       if (!row || !viewDialog) return;
       const snapshot = readRowSnapshot(row);
       currentViewSnapshot = snapshot;
+      currentViewRow = row;
       if (viewSubtitle) {
         viewSubtitle.textContent =
           snapshot.label || snapshot.brand || "Untitled design";
@@ -1548,17 +1599,17 @@ toggleBottlesTableState();
         "fa-solid fa-turtle",
       );
       if (viewSpecs) {
-        viewSpecs.innerHTML = ECO_SPEC_FIELDS.filter(
-          ([key]) =>
-            snapshot[key] !== undefined &&
-            snapshot[key] !== null &&
-            snapshot[key] !== "",
-        )
+        viewSpecs.innerHTML = DESIGN_VIEW_FIELDS(row, snapshot)
           .map(
-            ([key, label]) =>
-              `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(snapshot[key]))}</dd>`,
+            ([label, value]) =>
+              `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>`,
           )
           .join("");
+      }
+      if (viewAttachedProfileButton) {
+        viewAttachedProfileButton.hidden = !findProfileRow(
+          row.dataset.profileId,
+        );
       }
       const feedback = viewDialog.querySelector("[data-eco-view-feedback]");
       if (feedback) feedback.hidden = true;
@@ -1568,14 +1619,9 @@ toggleBottlesTableState();
   });
 
   viewCopyButton?.addEventListener("click", async () => {
-    if (!currentViewSnapshot) return;
-    const text = ECO_SPEC_FIELDS.filter(
-      ([key]) =>
-        currentViewSnapshot[key] !== undefined &&
-        currentViewSnapshot[key] !== null &&
-        currentViewSnapshot[key] !== "",
-    )
-      .map(([key, label]) => `${label}: ${currentViewSnapshot[key]}`)
+    if (!currentViewSnapshot || !currentViewRow) return;
+    const text = DESIGN_VIEW_FIELDS(currentViewRow, currentViewSnapshot)
+      .map(([label, value]) => `${label}: ${value}`)
       .join("\n");
     const feedback = viewDialog.querySelector("[data-eco-view-feedback]");
     try {
@@ -1591,15 +1637,57 @@ toggleBottlesTableState();
     }
   });
 
+  viewAttachedProfileButton?.addEventListener("click", () => {
+    const profileRow = findProfileRow(currentViewRow?.dataset.profileId);
+    if (!profileRow) return;
+    viewDialog.close();
+    openProfileDialog(profileRow);
+  });
+
   viewDialog
     ?.querySelectorAll("[data-close-eco-view]")
     .forEach((btn) => btn.addEventListener("click", () => viewDialog.close()));
 
   const editDialog = document.getElementById("ecoDesignEditDialog");
   const editForm = editDialog?.querySelector("[data-eco-edit-form]");
+  const editProfileSelect = editForm?.querySelector(
+    "[data-eco-edit-profile-select]",
+  );
+  const editConnectionSlider = editForm?.querySelector(
+    "[data-eco-edit-connection]",
+  );
+  const editConnectionMmInput = editForm?.querySelector(
+    "[data-eco-edit-connection-mm]",
+  );
+  const editConnectionValueLabel = editForm?.querySelector(
+    "[data-eco-edit-connection-value]",
+  );
   let editDesignId = null;
   let editEcojoinerType = null;
   let editVisibility = null;
+
+  const applyEditConnectionStep = () => {
+    if (!editConnectionSlider) return;
+    const step =
+      CONNECTION_STEPS[Number(editConnectionSlider.value)] ||
+      CONNECTION_STEPS[1];
+    if (editConnectionMmInput) editConnectionMmInput.value = String(step.mm);
+    if (editConnectionValueLabel)
+      editConnectionValueLabel.textContent = step.label;
+  };
+
+  editConnectionSlider?.addEventListener("input", applyEditConnectionStep);
+
+  editProfileSelect?.addEventListener("change", () => {
+    const option = editProfileSelect.selectedOptions[0];
+    const portFitMm = option?.dataset.portFitMm;
+    if (editConnectionSlider && portFitMm !== undefined) {
+      editConnectionSlider.value = String(
+        connectionStepIndexForMm(portFitMm),
+      );
+      applyEditConnectionStep();
+    }
+  });
 
   document.querySelectorAll("[data-edit-eco-design]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1611,11 +1699,14 @@ toggleBottlesTableState();
       editDesignId = row.dataset.designId;
       editEcojoinerType = row.dataset.ecojoinerType || "6fc";
       editVisibility = row.dataset.visibility || "private";
-      editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
-        const key = field.dataset.ecoEditField;
-        const value = snapshot[key];
-        field.value = value === undefined || value === null ? "" : value;
-      });
+      if (editProfileSelect) editProfileSelect.value = row.dataset.profileId || "";
+      if (editConnectionSlider) {
+        const portFitMm = snapshot.port_fit_mm ?? 0;
+        editConnectionSlider.value = String(
+          connectionStepIndexForMm(portFitMm),
+        );
+        applyEditConnectionStep();
+      }
       const feedback = editForm.querySelector("[data-eco-edit-feedback]");
       if (feedback) feedback.hidden = true;
       editDialog.showModal();
@@ -1637,7 +1728,9 @@ toggleBottlesTableState();
     if (!editDesignId) return;
     const feedback = editForm.querySelector("[data-eco-edit-feedback]");
     const submitButton = editForm.querySelector('button[type="submit"]');
-    const formData = new FormData(editForm);
+    const formData = new FormData();
+    formData.set("profile_id", editProfileSelect?.value || "");
+    formData.set("portFitMm", editConnectionMmInput?.value || "0");
     formData.set("ecojoinerType", editEcojoinerType || "6fc");
     formData.set("visibility", editVisibility || "private");
     if (submitButton) submitButton.disabled = true;
@@ -1650,17 +1743,20 @@ toggleBottlesTableState();
       if (!response.ok || !json.success) {
         throw new Error(json.message || "Unable to save changes.");
       }
+      const refreshed = await fetch(
+        `/api/ecojoiner/designs/${encodeURIComponent(editDesignId)}`,
+      );
+      const refreshedJson = await parseJsonResponse(refreshed);
       const row = document.querySelector(
         `[data-eco-design-row][data-design-id="${editDesignId}"]`,
       );
-      if (row) {
-        const snapshot = readRowSnapshot(row);
-        editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
-          const key = field.dataset.ecoEditField;
-          if (field.value === "") return;
-          const numeric = field.type === "number";
-          snapshot[key] = numeric ? Number(field.value) : field.value;
-        });
+      if (row && refreshed.ok && refreshedJson.success) {
+        const data = refreshedJson.data;
+        const snapshot =
+          typeof data.profile_snapshot === "string"
+            ? JSON.parse(data.profile_snapshot || "{}")
+            : data.profile_snapshot || {};
+        row.dataset.profileId = data.profile_id || "";
         row.dataset.snapshot = JSON.stringify(snapshot);
         const labelEl = row.querySelector(".design-cell__label");
         if (labelEl)
@@ -1682,6 +1778,175 @@ toggleBottlesTableState();
     }
   });
 
+  // --- View / Edit saved bottle profile ---------------------------------------
+  const PROFILE_FIELD_LABELS = {
+    label: "Name",
+    brand: "Brand",
+    volume_ml: "Volume (ml)",
+    diameter_mm: "Diameter (mm)",
+    cap_mm: "Cap (mm)",
+    collar_mm: "Collar (mm)",
+    height_mm: "Height (mm)",
+    top_tapper_mm: "Top tapper (mm)",
+    bottom_tapper_mm: "Bottom tapper (mm)",
+    material: "Material",
+    thickness_mm: "Thickness (mm)",
+    port_fit_mm: "Port fit (mm)",
+  };
+
+  const profileDialog = document.getElementById("ecoProfileDialog");
+  const profileForm = profileDialog?.querySelector("[data-eco-profile-form]");
+  const profileSubtitle = profileDialog?.querySelector(
+    "[data-eco-profile-subtitle]",
+  );
+  const profilePhoto = profileDialog?.querySelector("[data-eco-profile-photo]");
+  const profileCopyButton = profileDialog?.querySelector(
+    "[data-copy-eco-profile]",
+  );
+  const profileEditToggle = profileDialog?.querySelector(
+    "[data-edit-eco-profile-toggle]",
+  );
+  const profileCancelEditButton = profileDialog?.querySelector(
+    "[data-cancel-eco-profile-edit]",
+  );
+  const profileSaveButton = profileDialog?.querySelector(
+    "[data-save-eco-profile]",
+  );
+  let currentProfileId = null;
+  let currentProfileData = null;
+
+  const readProfileRow = (row) => {
+    try {
+      return JSON.parse(row.dataset.profile || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const setProfileEditing = (isEditing) => {
+    profileForm
+      ?.querySelectorAll("[data-eco-profile-field]")
+      .forEach((field) => {
+        field.disabled = !isEditing;
+      });
+    if (profileEditToggle) profileEditToggle.hidden = isEditing;
+    if (profileCancelEditButton) profileCancelEditButton.hidden = !isEditing;
+    if (profileSaveButton) profileSaveButton.hidden = !isEditing;
+  };
+
+  function openProfileDialog(row) {
+    if (!row || !profileDialog || !profileForm) return;
+    const profile = readProfileRow(row);
+    currentProfileId = row.dataset.profileId;
+    currentProfileData = profile;
+    if (profileSubtitle) {
+      profileSubtitle.textContent = `${profile.brand || "—"} · ${profile.volume_ml || "—"}ml`;
+    }
+    setDesignPhoto(
+      profilePhoto,
+      profile.bottle_photo_url,
+      "fa-solid fa-bottle-water",
+    );
+    profileForm.querySelectorAll("[data-eco-profile-field]").forEach((field) => {
+      const key = field.dataset.ecoProfileField;
+      const value = profile[key];
+      field.value = value === undefined || value === null ? "" : value;
+    });
+    setProfileEditing(false);
+    const feedback = profileForm.querySelector("[data-eco-profile-feedback]");
+    if (feedback) feedback.hidden = true;
+    profileDialog.showModal();
+    closeAllRowMenus();
+  }
+
+  document.querySelectorAll("[data-view-eco-profile]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = button.closest("[data-eco-profile-row]");
+      openProfileDialog(row);
+    });
+  });
+
+  profileCopyButton?.addEventListener("click", async () => {
+    if (!currentProfileData) return;
+    const text = Object.entries(PROFILE_FIELD_LABELS)
+      .filter(
+        ([key]) =>
+          currentProfileData[key] !== undefined &&
+          currentProfileData[key] !== null &&
+          currentProfileData[key] !== "",
+      )
+      .map(([key, label]) => `${label}: ${currentProfileData[key]}`)
+      .join("\n");
+    const feedback = profileForm.querySelector("[data-eco-profile-feedback]");
+    try {
+      await navigator.clipboard.writeText(text);
+      if (feedback) {
+        feedback.textContent = "Bottle specs copied to clipboard.";
+        feedback.classList.remove("is-error");
+        feedback.classList.add("is-success");
+        feedback.hidden = false;
+      }
+    } catch {
+      window.prompt("Copy these specs:", text);
+    }
+  });
+
+  profileEditToggle?.addEventListener("click", () => setProfileEditing(true));
+  profileCancelEditButton?.addEventListener("click", () => {
+    const row = findProfileRow(currentProfileId);
+    if (row) openProfileDialog(row);
+    else setProfileEditing(false);
+  });
+
+  profileDialog
+    ?.querySelectorAll("[data-close-eco-profile]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () => profileDialog.close()),
+    );
+
+  profileForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!currentProfileId) return;
+    const feedback = profileForm.querySelector("[data-eco-profile-feedback]");
+    if (profileSaveButton) profileSaveButton.disabled = true;
+    try {
+      const response = await fetch(
+        `/api/ecojoiner/profiles/${encodeURIComponent(currentProfileId)}`,
+        { method: "PUT", body: new FormData(profileForm) },
+      );
+      const json = await parseJsonResponse(response);
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || "Unable to save changes.");
+      }
+      const row = findProfileRow(currentProfileId);
+      if (row) {
+        row.dataset.profile = JSON.stringify(json.data);
+        const labelSpan = row.querySelector(".design-cell span");
+        if (labelSpan)
+          labelSpan.textContent = `${json.data.label} (${json.data.brand}, ${json.data.volume_ml}ml)`;
+      }
+      currentProfileData = json.data;
+      setProfileEditing(false);
+      if (feedback) {
+        feedback.textContent = "Bottle profile saved.";
+        feedback.classList.remove("is-error");
+        feedback.classList.add("is-success");
+        feedback.hidden = false;
+      }
+    } catch (error) {
+      if (feedback) {
+        feedback.textContent = error?.message || "Unable to save changes.";
+        feedback.classList.remove("is-success");
+        feedback.classList.add("is-error");
+        feedback.hidden = false;
+      } else {
+        window.alert(error?.message || "Unable to save changes.");
+      }
+    } finally {
+      if (profileSaveButton) profileSaveButton.disabled = false;
+    }
+  });
+
   // --- Row action menus (cog button + popup) --------------------------------
   const closeAllRowMenus = () => {
     document.querySelectorAll("[data-row-menu-panel]").forEach((panel) => {
@@ -1690,6 +1955,18 @@ toggleBottlesTableState();
     document.querySelectorAll("[data-row-menu-trigger]").forEach((trigger) => {
       trigger.setAttribute("aria-expanded", "false");
     });
+  };
+
+  // The panel is `position: fixed` (see main.css) so it can escape the
+  // table's `overflow-x: auto` clipping and always paint above whatever
+  // follows the table in the document (e.g. the "Saved bottle profiles"
+  // list). Position it here, relative to the viewport, from the trigger's
+  // own rect rather than relying on normal-flow placement under it.
+  const positionRowMenuPanel = (trigger, panel) => {
+    const rect = trigger.getBoundingClientRect();
+    panel.style.top = `${rect.bottom + 6}px`;
+    const left = rect.right - panel.offsetWidth;
+    panel.style.left = `${Math.max(8, left)}px`;
   };
 
   document.querySelectorAll("[data-row-menu]").forEach((menu) => {
@@ -1702,6 +1979,7 @@ toggleBottlesTableState();
       closeAllRowMenus();
       if (!isOpen) {
         panel.hidden = false;
+        positionRowMenuPanel(trigger, panel);
         trigger.setAttribute("aria-expanded", "true");
       }
     });
@@ -1711,4 +1989,6 @@ toggleBottlesTableState();
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeAllRowMenus();
   });
+  window.addEventListener("scroll", () => closeAllRowMenus(), true);
+  window.addEventListener("resize", () => closeAllRowMenus());
 })();

@@ -546,29 +546,70 @@ export const updateDesign = async (req, res, next) => {
       : null;
 
     let profileSnapshot = parseIfString(existing.profile_snapshot, {});
-    if (existing.profile_id) {
-      const fields = parseProfileFields(body, { requireLabel: false });
-      await ecojoinerProfilesModel.update(existing.profile_id, fields);
+    let targetProfileId = existing.profile_id;
 
-      if (bottlePhotoFile) {
-        const bottlePhotoId = await attachPhoto({
-          relatedType: "ecojoiner_bottle_profile",
-          relatedId: existing.profile_id,
-          uploadedBy: buwanaId,
-          file: bottlePhotoFile,
-        }).catch((error) => {
-          console.error("Failed to attach bottle profile photo", error);
-          return null;
-        });
-        if (bottlePhotoId)
-          await ecojoinerProfilesModel.update(existing.profile_id, {
-            bottle_photo_id: bottlePhotoId,
+    if (body.brand) {
+      // Full re-save from the generate page (the whole wizard form, including
+      // bottle geometry) — update the attached profile's fields in place, as
+      // before.
+      if (existing.profile_id) {
+        const fields = parseProfileFields(body, { requireLabel: false });
+        await ecojoinerProfilesModel.update(existing.profile_id, fields);
+
+        if (bottlePhotoFile) {
+          const bottlePhotoId = await attachPhoto({
+            relatedType: "ecojoiner_bottle_profile",
+            relatedId: existing.profile_id,
+            uploadedBy: buwanaId,
+            file: bottlePhotoFile,
+          }).catch((error) => {
+            console.error("Failed to attach bottle profile photo", error);
+            return null;
           });
+          if (bottlePhotoId)
+            await ecojoinerProfilesModel.update(existing.profile_id, {
+              bottle_photo_id: bottlePhotoId,
+            });
+        }
+        profileSnapshot = await ecojoinerProfilesModel.getByIdForUser(
+          existing.profile_id,
+          buwanaId,
+        );
       }
-      profileSnapshot = await ecojoinerProfilesModel.getByIdForUser(
-        existing.profile_id,
-        buwanaId,
-      );
+    } else {
+      // Lightweight design-only edit (dashboard "Edit design" modal): may
+      // reattach a different saved bottle profile and/or nudge that
+      // profile's port-fit tightness, without touching any of its other
+      // geometry.
+      const requestedProfileId = toNumberOrNull(body.profile_id);
+      if (requestedProfileId && requestedProfileId !== existing.profile_id) {
+        const target = await ecojoinerProfilesModel.getByIdForUser(
+          requestedProfileId,
+          buwanaId,
+        );
+        if (!target) {
+          return res
+            .status(404)
+            .json({ success: false, message: "Bottle profile not found." });
+        }
+        targetProfileId = requestedProfileId;
+      }
+      const portFitMm = toNumberOrNull(body.portFitMm);
+      if (
+        targetProfileId &&
+        portFitMm !== null &&
+        !Number.isNaN(portFitMm)
+      ) {
+        await ecojoinerProfilesModel.update(targetProfileId, {
+          port_fit_mm: portFitMm,
+        });
+      }
+      if (targetProfileId) {
+        profileSnapshot = await ecojoinerProfilesModel.getByIdForUser(
+          targetProfileId,
+          buwanaId,
+        );
+      }
     }
 
     const formats = parseJsonField(
@@ -580,6 +621,7 @@ export const updateDesign = async (req, res, next) => {
     const visibility = body.visibility === "public" ? "public" : "private";
 
     const updates = {
+      profile_id: targetProfileId,
       profile_snapshot: JSON.stringify(profileSnapshot),
       ecojoiner_type: body.ecojoinerType
         ? String(body.ecojoinerType)
