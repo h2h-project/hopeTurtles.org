@@ -379,6 +379,10 @@
               data-design-id="<%= design.design_id %>"
               data-visibility="<%= design.visibility %>"
               data-share-token="<%= design.share_token || '' %>"
+              data-ecojoiner-type="<%= design.ecojoiner_type %>"
+              data-bottle-photo="<%= design.bottle_photo_url || '' %>"
+              data-ecojoiner-photo="<%= design.ecojoiner_photo_url || '' %>"
+              data-snapshot="<%= JSON.stringify(snapshot) %>"
             >
               <td data-label="Design">
                 <div class="design-cell">
@@ -430,6 +434,12 @@
                     <i class="fa-solid fa-gear" aria-hidden="true"></i>
                   </button>
                   <div class="row-menu__panel" data-row-menu-panel role="menu" hidden>
+                    <button type="button" class="row-menu__item" role="menuitem" data-view-eco-design data-design-id="<%= design.design_id %>">
+                      <i class="fa-solid fa-eye" aria-hidden="true"></i> View
+                    </button>
+                    <button type="button" class="row-menu__item" role="menuitem" data-edit-eco-design data-design-id="<%= design.design_id %>">
+                      <i class="fa-solid fa-pen" aria-hidden="true"></i> Edit
+                    </button>
                     <a
                       class="row-menu__item"
                       role="menuitem"
@@ -480,6 +490,105 @@
       </ul>
     <% } %>
   </section>
+
+  <dialog id="ecoDesignViewDialog" class="mission-dialog" aria-labelledby="ecoDesignViewTitle">
+    <article class="form-card">
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="ecoDesignViewTitle">Bottle design details</h2>
+          <p class="panel-subtitle" data-eco-view-subtitle></p>
+        </div>
+        <button type="button" class="dialog-close" data-close-eco-view aria-label="Close">&times;</button>
+      </header>
+      <div class="eco-view-photos">
+        <div class="design-photo design-photo--large design-photo--placeholder" title="Bottle" data-eco-view-bottle-photo>
+          <i class="fa-solid fa-bottle-water" aria-hidden="true"></i>
+        </div>
+        <div class="design-photo design-photo--large design-photo--placeholder" title="Ecojoiner" data-eco-view-ecojoiner-photo>
+          <i class="fa-solid fa-turtle" aria-hidden="true"></i>
+        </div>
+      </div>
+      <dl class="eco-view-specs" data-eco-view-specs></dl>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-copy-eco-specs>
+          <i class="fa-solid fa-copy" aria-hidden="true"></i> Copy specs
+        </button>
+      </div>
+      <p class="form-feedback" role="status" data-eco-view-feedback hidden></p>
+    </article>
+  </dialog>
+
+  <dialog id="ecoDesignEditDialog" class="mission-dialog" aria-labelledby="ecoDesignEditTitle">
+    <form class="form-card" data-eco-edit-form>
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="ecoDesignEditTitle">Edit bottle design</h2>
+          <p class="panel-subtitle">Update the saved measurements for this bottle profile.</p>
+        </div>
+        <button type="button" class="dialog-close" data-close-eco-edit aria-label="Close">&times;</button>
+      </header>
+      <div class="mission-form-grid">
+        <label>
+          Name
+          <input type="text" name="label" data-eco-edit-field="label" required />
+        </label>
+        <label>
+          Brand
+          <input type="text" name="brand" data-eco-edit-field="brand" required />
+        </label>
+        <label>
+          Volume (ml)
+          <input type="number" name="volume" data-eco-edit-field="volume_ml" min="0" step="10" required />
+        </label>
+        <label>
+          Diameter (mm)
+          <input type="number" name="diameter" data-eco-edit-field="diameter_mm" min="0" step="1" required />
+        </label>
+        <label>
+          Cap (mm)
+          <input type="number" name="cap" data-eco-edit-field="cap_mm" min="0" step="1" required />
+        </label>
+        <label>
+          Collar (mm)
+          <input type="number" name="collar" data-eco-edit-field="collar_mm" min="0" step="1" required />
+        </label>
+        <label>
+          Height (mm)
+          <input type="number" name="height" data-eco-edit-field="height_mm" min="0" step="1" />
+        </label>
+        <label>
+          Top tapper (mm)
+          <input type="number" name="topTapper" data-eco-edit-field="top_tapper_mm" min="0" step="1" required />
+        </label>
+        <label>
+          Bottom tapper (mm)
+          <input type="number" name="bottomTapper" data-eco-edit-field="bottom_tapper_mm" min="0" step="1" />
+        </label>
+        <label>
+          Material
+          <select name="material" data-eco-edit-field="material">
+            <option value="">Choose…</option>
+            <option value="solid-wood">Solid wood</option>
+            <option value="pallet-wood">Pallet wood</option>
+            <option value="plywood">Plywood</option>
+            <option value="particle-board">Particle board</option>
+            <option value="plastic">Plastic</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>
+          Thickness (mm)
+          <input type="number" name="thickness" data-eco-edit-field="thickness_mm" min="0" step="0.1" required />
+        </label>
+      </div>
+      <input type="hidden" name="portFitMm" data-eco-edit-field="port_fit_mm" />
+      <p class="form-feedback" role="status" data-eco-edit-feedback hidden></p>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-close-eco-edit>Cancel</button>
+        <button type="submit" class="button">Save changes</button>
+      </div>
+    </form>
+  </dialog>
 
   <%- include('partials/manage-turtle-dialog', { turtleStatusOptions, missions, hubs, boats }) %>
 

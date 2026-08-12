@@ -1,3 +1,14 @@
+<%
+  const draftItemsByBottleSlot = {};
+  const draftAddonComponentIds = new Set();
+  (draftItems || []).forEach(function (item) {
+    if (item.category === 'foodstuff' && item.bottle_slot) {
+      draftItemsByBottleSlot[item.bottle_slot] = String(item.component_id);
+    } else if (item.category === 'electronics_addon') {
+      draftAddonComponentIds.add(String(item.component_id));
+    }
+  });
+%>
 <%- include('partials/header', { pageTitle, theme, bodyClass }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout generate-page commission-page">
@@ -9,6 +20,16 @@
       up yet — nothing is charged. Real checkout and fulfillment tracking are coming next.
     </span>
   </div>
+
+  <% if (draftCommission) { %>
+    <div class="eco-dev-notice eco-dev-notice--top page-notice--draft" role="status">
+      <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+      <span>
+        <strong>Welcome back.</strong>
+        We've loaded your last saved draft below — keep editing, or commission it as-is.
+      </span>
+    </div>
+  <% } %>
 
   <div class="generate-intro">
     <h1>Commission a Turtle</h1>
@@ -43,7 +64,10 @@
                     <select id="commission-mission" name="mission_id" data-commission-field>
                       <option value="">Select a mission</option>
                       <% (missions || []).forEach(function (mission) { %>
-                        <option value="<%= mission.mission_id %>"><%= mission.full_name %></option>
+                        <option
+                          value="<%= mission.mission_id %>"
+                          <% if (draftCommission && String(mission.mission_id) === String(draftCommission.mission_id)) { %>selected<% } %>
+                        ><%= mission.full_name %></option>
                       <% }) %>
                     </select>
                     <span class="eco-feedback" data-for="commission-mission"></span>
@@ -70,13 +94,27 @@
                 <p>Will your turtle join one of our flotilla missions, or will you deploy it yourself?</p>
                 <div class="eco-choice-grid" role="radiogroup" aria-label="Deployment">
                   <label class="eco-choice-card">
-                    <input type="radio" name="deployment" value="flotilla" data-commission-field data-price="0" checked />
+                    <input
+                      type="radio"
+                      name="deployment"
+                      value="flotilla"
+                      data-commission-field
+                      data-price="0"
+                      <% if (draftCommission ? draftCommission.deployment_type === 'flotilla' : true) { %>checked<% } %>
+                    />
                     <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-sailboat"></i></span>
                     <span class="eco-choice-card__title">Flotilla Deployment</span>
                     <span class="eco-choice-card__desc">Commission a turtle for us to launch as part of a coordinated mission.</span>
                   </label>
                   <label class="eco-choice-card">
-                    <input type="radio" name="deployment" value="self" data-commission-field data-price="0" />
+                    <input
+                      type="radio"
+                      name="deployment"
+                      value="self"
+                      data-commission-field
+                      data-price="0"
+                      <% if (draftCommission && draftCommission.deployment_type === 'self') { %>checked<% } %>
+                    />
                     <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-water"></i></span>
                     <span class="eco-choice-card__title">Self Deployment</span>
                     <span class="eco-choice-card__desc">Order a turtle for yourself, shipped ready for you to launch.</span>
@@ -112,7 +150,11 @@
                         data-commission-field
                         data-component-id="<%= base.component_id %>"
                         data-price="<%= base.price_usd %>"
-                        <% if (index === 0) { %>checked<% } %>
+                        <%
+                          const isDraftTurtleBase = draftCommission && String(base.component_id) === String(draftCommission.turtle_base_component_id);
+                          const isDefaultTurtleBase = !draftCommission && index === 0;
+                        %>
+                        <% if (isDraftTurtleBase || isDefaultTurtleBase) { %>checked<% } %>
                       />
                       <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid <%= turtleBaseIcons[base.key_name] || 'fa-turtle' %>"></i></span>
                       <span class="eco-choice-card__title"><%= base.label %></span>
@@ -153,7 +195,12 @@
                       <select name="foodstuff-<%= bottleIndex %>" data-commission-field data-bottle-label="Bottle <%= bottleIndex %>" data-bottle-slot="<%= bottleIndex %>">
                         <option value="" data-price="0">No foodstuff selected</option>
                         <% (foodstuffs || []).forEach(function (foodstuff) { %>
-                          <option value="<%= foodstuff.key_name %>" data-component-id="<%= foodstuff.component_id %>" data-price="<%= foodstuff.price_usd %>">
+                          <option
+                            value="<%= foodstuff.key_name %>"
+                            data-component-id="<%= foodstuff.component_id %>"
+                            data-price="<%= foodstuff.price_usd %>"
+                            <% if (draftItemsByBottleSlot[bottleIndex] === String(foodstuff.component_id)) { %>selected<% } %>
+                          >
                             <%= foodstuff.label %><%= Number(foodstuff.price_usd) ? ' — $' + Number(foodstuff.price_usd) : '' %>
                           </option>
                         <% }) %>
@@ -190,7 +237,11 @@
                         data-commission-field
                         data-component-id="<%= engraving.component_id %>"
                         data-price="<%= engraving.price_usd %>"
-                        <% if (index === 0) { %>checked<% } %>
+                        <%
+                          const isDraftEngraving = draftCommission && String(engraving.component_id) === String(draftCommission.engraving_component_id);
+                          const isDefaultEngraving = !draftCommission && index === 0;
+                        %>
+                        <% if (isDraftEngraving || isDefaultEngraving) { %>checked<% } %>
                       />
                       <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-quote-left"></i></span>
                       <span class="eco-choice-card__title"><%= engraving.label %></span>
@@ -231,7 +282,12 @@
                           name="addon-<%= addon.key_name %>"
                           data-component-id="<%= addon.component_id %>"
                           data-price="<%= addon.price_usd %>"
-                          <% if (isMandatory) { %>checked disabled<% } else { %>data-commission-field<% } %>
+                          <% if (isMandatory) { %>
+                            checked disabled
+                          <% } else { %>
+                            data-commission-field
+                            <% if (draftAddonComponentIds.has(String(addon.component_id))) { %>checked<% } %>
+                          <% } %>
                         />
                         <span class="ht-toggle__slider" aria-hidden="true"></span>
                       </label>

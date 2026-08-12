@@ -17,6 +17,7 @@ import { getPlatformSummary, getAboutMetrics } from "../models/summaryModel.js";
 import missionsModel from "../models/missionsModel.js";
 import turtlesModel from "../models/turtlesModel.js";
 import componentsModel from "../models/componentsModel.js";
+import commissionsModel from "../models/commissionsModel.js";
 import { renderManagementPage } from "../controllers/usersController.js";
 
 const router = Router();
@@ -114,11 +115,17 @@ router.get("/ecojoiners/generate", (req, res) => {
 router.get("/commission", ensureAuth, async (req, res) => {
   let missions = [];
   let components = {};
+  let draftCommission = null;
+  let draftItems = [];
   try {
-    [missions, components] = await Promise.all([
+    [missions, components, draftCommission] = await Promise.all([
       missionsModel.getAllWithHub({ status: "active" }),
       componentsModel.getCatalog(),
+      commissionsModel.getLatestDraftForUser(req.session.user.buwanaId),
     ]);
+    if (draftCommission) {
+      draftItems = await commissionsModel.getItemsForCommission(draftCommission.commission_id);
+    }
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
       console.error("Failed to load data for commission page", error);
@@ -132,6 +139,8 @@ router.get("/commission", ensureAuth, async (req, res) => {
     foodstuffs: components.foodstuff || [],
     electronicsAddons: components.electronics_addon || [],
     engravings: components.engraving || [],
+    draftCommission,
+    draftItems,
   });
 });
 

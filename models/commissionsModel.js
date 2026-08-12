@@ -51,6 +51,17 @@ commissionsModel.getByIdForUser = async (commissionId, buwanaId) => {
   return rows[0] || null;
 };
 
+commissionsModel.getLatestDraftForUser = async (buwanaId) => {
+  const rows = await query(
+    `SELECT * FROM commissions_tb
+     WHERE buwana_id = ? AND status = 'draft'
+     ORDER BY updated_at DESC, commission_id DESC
+     LIMIT 1`,
+    [buwanaId]
+  );
+  return rows[0] || null;
+};
+
 commissionsModel.getItemsForCommission = async (commissionId) => {
   return query(
     `SELECT ci.*, c.label, c.category, c.key_name

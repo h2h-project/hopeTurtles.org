@@ -1478,6 +1478,210 @@ toggleBottlesTableState();
     });
   });
 
+  // --- View / Edit saved bottle design ---------------------------------------
+  const ECO_SPEC_FIELDS = [
+    ["label", "Design name"],
+    ["brand", "Brand"],
+    ["volume_ml", "Volume (ml)"],
+    ["diameter_mm", "Diameter (mm)"],
+    ["cap_mm", "Cap (mm)"],
+    ["collar_mm", "Collar (mm)"],
+    ["height_mm", "Height (mm)"],
+    ["top_tapper_mm", "Top tapper (mm)"],
+    ["bottom_tapper_mm", "Bottom tapper (mm)"],
+    ["material", "Material"],
+    ["thickness_mm", "Thickness (mm)"],
+    ["port_fit_mm", "Port fit (mm)"],
+  ];
+
+  const readRowSnapshot = (row) => {
+    try {
+      return JSON.parse(row.dataset.snapshot || "{}");
+    } catch {
+      return {};
+    }
+  };
+
+  const viewDialog = document.getElementById("ecoDesignViewDialog");
+  const viewSubtitle = viewDialog?.querySelector("[data-eco-view-subtitle]");
+  const viewSpecs = viewDialog?.querySelector("[data-eco-view-specs]");
+  const viewBottlePhoto = viewDialog?.querySelector(
+    "[data-eco-view-bottle-photo]",
+  );
+  const viewEcojoinerPhoto = viewDialog?.querySelector(
+    "[data-eco-view-ecojoiner-photo]",
+  );
+  const viewCopyButton = viewDialog?.querySelector("[data-copy-eco-specs]");
+  let currentViewSnapshot = null;
+
+  const setDesignPhoto = (container, url, iconClass) => {
+    if (!container) return;
+    if (url) {
+      container.classList.remove("design-photo--placeholder");
+      container.innerHTML = `<img src="${url}" alt="" loading="lazy" />`;
+    } else {
+      container.classList.add("design-photo--placeholder");
+      container.innerHTML = `<i class="${iconClass}" aria-hidden="true"></i>`;
+    }
+  };
+
+  document.querySelectorAll("[data-view-eco-design]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = document.querySelector(
+        `[data-eco-design-row][data-design-id="${button.dataset.designId}"]`,
+      );
+      if (!row || !viewDialog) return;
+      const snapshot = readRowSnapshot(row);
+      currentViewSnapshot = snapshot;
+      if (viewSubtitle) {
+        viewSubtitle.textContent =
+          snapshot.label || snapshot.brand || "Untitled design";
+      }
+      setDesignPhoto(
+        viewBottlePhoto,
+        row.dataset.bottlePhoto,
+        "fa-solid fa-bottle-water",
+      );
+      setDesignPhoto(
+        viewEcojoinerPhoto,
+        row.dataset.ecojoinerPhoto,
+        "fa-solid fa-turtle",
+      );
+      if (viewSpecs) {
+        viewSpecs.innerHTML = ECO_SPEC_FIELDS.filter(
+          ([key]) =>
+            snapshot[key] !== undefined &&
+            snapshot[key] !== null &&
+            snapshot[key] !== "",
+        )
+          .map(
+            ([key, label]) =>
+              `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(snapshot[key]))}</dd>`,
+          )
+          .join("");
+      }
+      const feedback = viewDialog.querySelector("[data-eco-view-feedback]");
+      if (feedback) feedback.hidden = true;
+      viewDialog.showModal();
+      closeAllRowMenus();
+    });
+  });
+
+  viewCopyButton?.addEventListener("click", async () => {
+    if (!currentViewSnapshot) return;
+    const text = ECO_SPEC_FIELDS.filter(
+      ([key]) =>
+        currentViewSnapshot[key] !== undefined &&
+        currentViewSnapshot[key] !== null &&
+        currentViewSnapshot[key] !== "",
+    )
+      .map(([key, label]) => `${label}: ${currentViewSnapshot[key]}`)
+      .join("\n");
+    const feedback = viewDialog.querySelector("[data-eco-view-feedback]");
+    try {
+      await navigator.clipboard.writeText(text);
+      if (feedback) {
+        feedback.textContent = "Specs copied to clipboard.";
+        feedback.classList.remove("is-error");
+        feedback.classList.add("is-success");
+        feedback.hidden = false;
+      }
+    } catch {
+      window.prompt("Copy these specs:", text);
+    }
+  });
+
+  viewDialog
+    ?.querySelectorAll("[data-close-eco-view]")
+    .forEach((btn) => btn.addEventListener("click", () => viewDialog.close()));
+
+  const editDialog = document.getElementById("ecoDesignEditDialog");
+  const editForm = editDialog?.querySelector("[data-eco-edit-form]");
+  let editDesignId = null;
+  let editEcojoinerType = null;
+  let editVisibility = null;
+
+  document.querySelectorAll("[data-edit-eco-design]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = document.querySelector(
+        `[data-eco-design-row][data-design-id="${button.dataset.designId}"]`,
+      );
+      if (!row || !editForm) return;
+      const snapshot = readRowSnapshot(row);
+      editDesignId = row.dataset.designId;
+      editEcojoinerType = row.dataset.ecojoinerType || "6fc";
+      editVisibility = row.dataset.visibility || "private";
+      editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
+        const key = field.dataset.ecoEditField;
+        const value = snapshot[key];
+        field.value = value === undefined || value === null ? "" : value;
+      });
+      const feedback = editForm.querySelector("[data-eco-edit-feedback]");
+      if (feedback) feedback.hidden = true;
+      editDialog.showModal();
+      closeAllRowMenus();
+    });
+  });
+
+  editDialog
+    ?.querySelectorAll("[data-close-eco-edit]")
+    .forEach((btn) =>
+      btn.addEventListener("click", (event) => {
+        event.preventDefault();
+        editDialog.close();
+      }),
+    );
+
+  editForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!editDesignId) return;
+    const feedback = editForm.querySelector("[data-eco-edit-feedback]");
+    const submitButton = editForm.querySelector('button[type="submit"]');
+    const formData = new FormData(editForm);
+    formData.set("ecojoinerType", editEcojoinerType || "6fc");
+    formData.set("visibility", editVisibility || "private");
+    if (submitButton) submitButton.disabled = true;
+    try {
+      const response = await fetch(
+        `/api/ecojoiner/designs/${encodeURIComponent(editDesignId)}`,
+        { method: "PUT", body: formData },
+      );
+      const json = await parseJsonResponse(response);
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || "Unable to save changes.");
+      }
+      const row = document.querySelector(
+        `[data-eco-design-row][data-design-id="${editDesignId}"]`,
+      );
+      if (row) {
+        const snapshot = readRowSnapshot(row);
+        editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
+          const key = field.dataset.ecoEditField;
+          if (field.value === "") return;
+          const numeric = field.type === "number";
+          snapshot[key] = numeric ? Number(field.value) : field.value;
+        });
+        row.dataset.snapshot = JSON.stringify(snapshot);
+        const labelEl = row.querySelector(".design-cell__label");
+        if (labelEl)
+          labelEl.textContent =
+            snapshot.label || snapshot.brand || "Untitled design";
+      }
+      editDialog.close();
+    } catch (error) {
+      if (feedback) {
+        feedback.textContent = error?.message || "Unable to save changes.";
+        feedback.classList.remove("is-success");
+        feedback.classList.add("is-error");
+        feedback.hidden = false;
+      } else {
+        window.alert(error?.message || "Unable to save changes.");
+      }
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  });
+
   // --- Row action menus (cog button + popup) --------------------------------
   const closeAllRowMenus = () => {
     document.querySelectorAll("[data-row-menu-panel]").forEach((panel) => {
