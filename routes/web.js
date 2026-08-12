@@ -162,11 +162,15 @@ router.get("/contribute", (req, res) => {
   });
 });
 
-router.get("/bottle-lookup", (req, res) => {
-  res.render("bottle_lookup", {
-    pageTitle: "Bottle Lookup",
+router.get("/lookup", (req, res) => {
+  res.render("lookup", {
+    pageTitle: "Lookup",
     bodyClass: "ocean-bg",
   });
+});
+
+router.get("/bottle-lookup", (req, res) => {
+  res.redirect(301, "/lookup");
 });
 
 router.get("/missions", missionsController.renderExplorer);

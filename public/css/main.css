@@ -255,6 +255,12 @@ a:hover {
   flex-wrap: wrap;
 }
 
+@media (max-width: 1320px) {
+  .primary-nav {
+    display: none;
+  }
+}
+
 .primary-nav a {
   padding: 0.25rem 0.5rem;
   border-radius: 0.5rem;
@@ -3634,13 +3640,13 @@ body.mobile-menu-open {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Public Bottle Lookup (/bottle-lookup)
+   Public Lookup (/lookup)
    ────────────────────────────────────────────────────────────────────────── */
-.bottle-lookup-page {
+.lookup-page {
   min-height: 60vh;
 }
 
-.bottle-lookup-hero {
+.lookup-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3650,23 +3656,64 @@ body.mobile-menu-open {
   transition: padding-top 0.25s ease;
 }
 
-.bottle-lookup-page.has-results .bottle-lookup-hero {
+.lookup-page.has-results .lookup-hero {
   padding-top: 0;
 }
 
-.bottle-lookup-hero .generate-intro {
+.lookup-hero .generate-intro {
   align-items: center;
   text-align: center;
 }
 
-.bottle-lookup-form {
+.lookup-tabs {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.35rem;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid rgba(1, 121, 25, 0.15);
+}
+
+.lookup-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.lookup-tab:hover {
+  color: var(--color-primary);
+}
+
+.lookup-tab.is-active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.lookup-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.lookup-form {
   display: flex;
   gap: 0.75rem;
   width: 100%;
   max-width: 480px;
 }
 
-.bottle-lookup-form input[type="search"] {
+.lookup-form input[type="search"] {
   flex: 1;
   padding: 0.75rem 1rem;
   border-radius: 0.75rem;
@@ -3676,22 +3723,22 @@ body.mobile-menu-open {
   font-size: 1rem;
 }
 
-.bottle-lookup-results {
+.lookup-results {
   margin-top: 2rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-.bottle-lookup-result {
+.lookup-result {
   width: 100%;
   text-align: left;
   cursor: pointer;
   font: inherit;
 }
 
-.bottle-lookup-result:hover,
-.bottle-lookup-result:focus-visible {
+.lookup-result:hover,
+.lookup-result:focus-visible {
   border-color: rgba(1, 121, 25, 0.4);
   background: rgba(1, 121, 25, 0.08);
 }
@@ -3723,11 +3770,11 @@ body.mobile-menu-open {
 }
 
 @media (max-width: 640px) {
-  .bottle-lookup-hero {
+  .lookup-hero {
     padding-top: 4vh;
   }
 
-  .bottle-lookup-form {
+  .lookup-form {
     flex-direction: column;
   }
 }
@@ -4458,10 +4505,6 @@ label.ht-toggle {
 
   .nav-controls__menu-toggle {
     display: inline-flex;
-  }
-
-  .primary-nav {
-    display: none;
   }
 
   .nav-signup {

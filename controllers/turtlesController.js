@@ -322,6 +322,31 @@ export const renderTurtlePage = async (req, res, next) => {
   }
 };
 
+export const searchTurtlesPublic = async (req, res, next) => {
+  try {
+    const rawQuery = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+    if (rawQuery.length < 2) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const results = await turtlesModel.searchPublic(rawQuery);
+
+    const data = results.map((turtle) => ({
+      turtle_id: turtle.turtle_id,
+      name: turtle.name,
+      status: turtle.status,
+      mission_name: turtle.mission_name,
+      hub_name: turtle.hub_name,
+      profile_photo_url: turtle.profile_photo_url
+    }));
+
+    return res.json({ success: true, data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   getTurtles,
   getTurtleById,
@@ -331,5 +356,6 @@ export default {
   regenerateTurtleSecret,
   getTurtleLive,
   deleteTurtle,
-  renderTurtlePage
+  renderTurtlePage,
+  searchTurtlesPublic
 };

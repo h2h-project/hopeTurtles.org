@@ -3,6 +3,37 @@ import { createModel } from './baseModel.js';
 
 const turtlesModel = createModel('turtles_tb', 'turtle_id');
 
+turtlesModel.searchPublic = async (searchQuery, limit = 20) => {
+  if (!searchQuery) {
+    return [];
+  }
+
+  // mysql2's `execute()` (prepared statements) can't bind LIMIT as a `?`
+  // placeholder — it throws "Incorrect arguments to mysqld_stmt_execute".
+  // Validate to a plain integer and inline it instead.
+  const safeLimit = Math.min(Math.max(Number.parseInt(limit, 10) || 20, 1), 50);
+  const turtleIdMatch = /^\d+$/.test(searchQuery) ? Number(searchQuery) : null;
+
+  const sql = `
+    SELECT
+      t.turtle_id,
+      t.name,
+      t.status,
+      m.full_name AS mission_name,
+      h.name AS hub_name,
+      photo.url AS profile_photo_url
+    FROM turtles_tb t
+    LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
+    LEFT JOIN hubs_tb h ON t.hub_id = h.hub_id
+    LEFT JOIN photos_tb photo ON photo.photo_id = t.profile_photo_id
+    WHERE t.name LIKE ? OR t.turtle_id = ?
+    ORDER BY t.created_at DESC
+    LIMIT ${safeLimit}
+  `;
+
+  return query(sql, [`%${searchQuery}%`, turtleIdMatch]);
+};
+
 turtlesModel.getAllDetailed = async () => {
   const sql = `
     SELECT t.*, m.full_name AS mission_name, h.name AS hub_name
