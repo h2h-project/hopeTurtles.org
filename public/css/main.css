@@ -1710,36 +1710,6 @@ body.mobile-menu-open {
   font-weight: 600;
 }
 
-.eco-profile-list {
-  list-style: none;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.eco-profile-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.75rem;
-  background: rgba(1, 121, 25, 0.04);
-}
-
-[data-theme="dark"] .eco-profile-list li {
-  background: rgba(34, 197, 94, 0.08);
-}
-
-.eco-profile-list__actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 0 0 auto;
-}
-
 [data-theme="dark"] .design-photo {
   background: rgba(34, 197, 94, 0.14);
   color: #d1fae5;

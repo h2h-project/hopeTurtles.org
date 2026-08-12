@@ -8,7 +8,6 @@ import hubsModel from "../models/hubsModel.js";
 import boatsModel from "../models/boatsModel.js";
 import usersModel from "../models/usersModel.js";
 import bottlesModel from "../models/bottlesModel.js";
-import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
 import ecojoinerDesignsModel from "../models/ecojoinerDesignsModel.js";
 
 export const renderDashboard = async (req, res, next) => {
@@ -63,9 +62,6 @@ export const renderDashboard = async (req, res, next) => {
     const userBottlesPromise = buwanaId
       ? bottlesModel.getForPackerWithDetails(buwanaId)
       : Promise.resolve([]);
-    const ecojoinerProfilesPromise = buwanaId
-      ? ecojoinerProfilesModel.getForUser(buwanaId)
-      : Promise.resolve([]);
     const ecojoinerDesignsPromise = buwanaId
       ? ecojoinerDesignsModel.getForUser(buwanaId)
       : Promise.resolve([]);
@@ -82,7 +78,6 @@ export const renderDashboard = async (req, res, next) => {
       turtleDetails,
       managedTurtles,
       userBottles,
-      ecojoinerProfiles,
       ecojoinerDesigns,
     ] = await Promise.all([
       missionsModel.getAllWithStats(),
@@ -96,7 +91,6 @@ export const renderDashboard = async (req, res, next) => {
       turtleDetailsPromise,
       managedTurtlesPromise,
       userBottlesPromise,
-      ecojoinerProfilesPromise,
       ecojoinerDesignsPromise,
     ]);
     return res.render("dashboard", {
@@ -114,9 +108,6 @@ export const renderDashboard = async (req, res, next) => {
       turtleDetails: Array.isArray(turtleDetails) ? turtleDetails : [],
       managedTurtles: Array.isArray(managedTurtles) ? managedTurtles : [],
       userBottles: Array.isArray(userBottles) ? userBottles : [],
-      ecojoinerProfiles: Array.isArray(ecojoinerProfiles)
-        ? ecojoinerProfiles
-        : [],
       ecojoinerDesigns: Array.isArray(ecojoinerDesigns) ? ecojoinerDesigns : [],
     });
   } catch (error) {
