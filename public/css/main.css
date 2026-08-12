@@ -4604,7 +4604,8 @@ label.ht-toggle {
   margin-bottom: 1.25rem;
 }
 
-.about-lead {
+.about-lead,
+.turtleos-lead {
   font-size: 1.15em;
   line-height: 1.75;
 }
