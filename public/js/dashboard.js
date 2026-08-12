@@ -1510,7 +1510,7 @@ toggleBottlesTableState();
   };
 
   const viewDialog = document.getElementById("ecoDesignViewDialog");
-  const viewSubtitle = viewDialog?.querySelector("[data-eco-view-subtitle]");
+  const viewTitle = viewDialog?.querySelector("[data-eco-view-title]");
   const viewSpecs = viewDialog?.querySelector("[data-eco-view-specs]");
   const viewBottlePhoto = viewDialog?.querySelector(
     "[data-eco-view-bottle-photo]",
@@ -1534,8 +1534,11 @@ toggleBottlesTableState();
 
   const buildViewFields = (row, snapshot) => [
     ["Ecojoiner type", row.dataset.ecojoinerType || "—"],
+    // "label" is shown as the dialog's heading instead (see viewTitle below),
+    // so it's left out of the spec list to avoid showing it twice.
     ...ECO_SPEC_FIELDS.filter(
       ([key]) =>
+        key !== "label" &&
         snapshot[key] !== undefined &&
         snapshot[key] !== null &&
         snapshot[key] !== "",
@@ -1553,8 +1556,8 @@ toggleBottlesTableState();
       const snapshot = readRowSnapshot(row);
       const fields = buildViewFields(row, snapshot);
       currentViewFields = fields;
-      if (viewSubtitle) {
-        viewSubtitle.textContent =
+      if (viewTitle) {
+        viewTitle.textContent =
           snapshot.label || snapshot.brand || "Untitled design";
       }
       setDesignPhoto(
@@ -1616,9 +1619,32 @@ toggleBottlesTableState();
   const editConnectionValueLabel = editForm?.querySelector(
     "[data-eco-edit-connection-value]",
   );
+  const editBottlePhotoPreview = editForm?.querySelector(
+    "[data-eco-edit-bottle-photo-preview]",
+  );
+  const editBottlePhotoPreviewImg = editForm?.querySelector(
+    "[data-eco-edit-bottle-photo-preview-img]",
+  );
+  const editEcojoinerPhotoPreview = editForm?.querySelector(
+    "[data-eco-edit-ecojoiner-photo-preview]",
+  );
+  const editEcojoinerPhotoPreviewImg = editForm?.querySelector(
+    "[data-eco-edit-ecojoiner-photo-preview-img]",
+  );
   let editDesignId = null;
   let editEcojoinerType = null;
   let editVisibility = null;
+
+  const setPhotoPreview = (container, img, url) => {
+    if (!container || !img) return;
+    if (url) {
+      img.src = url;
+      container.hidden = false;
+    } else {
+      img.src = "";
+      container.hidden = true;
+    }
+  };
 
   const applyEditConnectionStep = () => {
     if (!editConnectionSlider) return;
@@ -1653,6 +1679,19 @@ toggleBottlesTableState();
         );
         applyEditConnectionStep();
       }
+      setPhotoPreview(
+        editBottlePhotoPreview,
+        editBottlePhotoPreviewImg,
+        row.dataset.bottlePhoto,
+      );
+      setPhotoPreview(
+        editEcojoinerPhotoPreview,
+        editEcojoinerPhotoPreviewImg,
+        row.dataset.ecojoinerPhoto,
+      );
+      editForm.querySelectorAll('input[type="file"]').forEach((input) => {
+        input.value = "";
+      });
       const feedback = editForm.querySelector("[data-eco-edit-feedback]");
       if (feedback) feedback.hidden = true;
       editDialog.showModal();
@@ -1705,6 +1744,53 @@ toggleBottlesTableState();
         if (labelEl)
           labelEl.textContent =
             snapshot.label || snapshot.brand || "Untitled design";
+
+        // The save response doesn't carry photo URLs (they're only
+        // resolved via a join against photos_tb), so when a new photo was
+        // actually chosen, pull the freshly joined URL from the designs
+        // list rather than trying to guess it client-side.
+        const bottlePhotoInput = editForm.querySelector(
+          'input[type="file"][name="bottle_photo"]',
+        );
+        const ecojoinerPhotoInput = editForm.querySelector(
+          'input[type="file"][name="ecojoiner_photo"]',
+        );
+        if (bottlePhotoInput?.files?.length || ecojoinerPhotoInput?.files?.length) {
+          try {
+            const listResponse = await fetch("/api/ecojoiner/designs");
+            const listJson = await parseJsonResponse(listResponse);
+            const updated = Array.isArray(listJson.data)
+              ? listJson.data.find(
+                  (design) => String(design.design_id) === editDesignId,
+                )
+              : null;
+            if (updated) {
+              row.dataset.bottlePhoto = updated.bottle_photo_url || "";
+              row.dataset.ecojoinerPhoto = updated.ecojoiner_photo_url || "";
+              const bottleCell = row.querySelector(
+                '.design-photo[title="Bottle"]',
+              );
+              const ecojoinerCell = row.querySelector(
+                '.design-photo[title="Ecojoiner"]',
+              );
+              setDesignPhoto(
+                bottleCell,
+                updated.bottle_photo_url,
+                "fa-solid fa-bottle-water",
+              );
+              setDesignPhoto(
+                ecojoinerCell,
+                updated.ecojoiner_photo_url,
+                "fa-solid fa-turtle",
+              );
+            }
+          } catch (refreshError) {
+            console.error(
+              "Unable to refresh design photos after save",
+              refreshError,
+            );
+          }
+        }
       }
       editDialog.close();
     } catch (error) {
