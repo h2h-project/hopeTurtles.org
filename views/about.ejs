@@ -11,7 +11,7 @@
     <div class="page-banner__inner">
       <div class="page-banner__heading">
         <h1 class="page-banner__title"><%= t.about_heading || 'About the Hope Turtle Project' %></h1>
-        <p class="page-banner__lead"><%= t.about_subheading || '- A human to human intention' %></p>
+        <p class="page-banner__lead"><%= t.about_subheading || 'Human to Human Hope Delivery' %></p>
       </div>
       <div class="page-banner__actions">
         <a class="button" href="/Hope_Turtle_Whitepaper--June_2026.pdf" target="_blank" rel="noopener noreferrer">
@@ -24,7 +24,7 @@
   <div class="layout">
     <section class="page-split">
       <div class="page-split__main">
-        <p><%= t.about_body_p1 %></p>
+        <p class="about-lead"><%= t.about_body_p1 %></p>
 
         <p><%= t.about_body_p2 %></p>
 
@@ -55,9 +55,14 @@
       </div>
 
       <aside class="page-split__aside">
+        <figure class="about-figure">
+          <img src="/images/turtle-floating.webp" alt="A Hope Turtle floating on the open sea" loading="lazy" />
+          <figcaption><%= t.about_caption_prototype || 'A prototype turtle at sea' %></figcaption>
+        </figure>
         <div class="about-materials-card">
           <h2><%= t.about_materials_title %></h2>
           <canvas id="about-materials-chart" role="img" aria-label="<%= t.about_materials_title %>"></canvas>
+          <p class="about-materials-card__caption"><%= t.about_materials_caption %></p>
         </div>
         <% const materialsBreakdown = [
           { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },
@@ -69,22 +74,18 @@
         ]; %>
         <%# `<` is escaped so a string containing markup cannot close this tag early. %>
         <script id="about-materials-data" type="application/json"><%- JSON.stringify(materialsBreakdown).replace(/</g, '\\u003c') %></script>
-        <figure class="about-figure">
-          <img src="/images/turtle-floating.webp" alt="A Hope Turtle floating on the open sea" loading="lazy" />
-          <figcaption><%= t.about_caption_prototype || 'A prototype turtle at sea' %></figcaption>
-        </figure>
-        <figure class="about-figure">
-          <img src="/images/uk_testing.webp" alt="<%= t.about_alt_uk_testing %>" loading="lazy" />
-        </figure>
-        <a
-          class="button ghost"
-          href="https://github.com/h2h-project/turtleOS"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <i class="fa-brands fa-github" aria-hidden="true"></i>
-          <%= t.about_cta_github || 'View the project on GitHub' %>
-        </a>
+        <div class="about-earthen-card">
+          <img
+            class="about-earthen-card__icon"
+            src="/images/icons/earthen-ethics-icon-ecobricks-org.svg"
+            alt="Earthen ethics icon"
+            loading="lazy"
+          />
+          <p><%= t.about_earthen_body %></p>
+          <a class="button ghost" href="https://book.earthen.io" target="_blank" rel="noopener noreferrer">
+            <%= t.about_earthen_cta || 'Learn More' %>
+          </a>
+        </div>
       </aside>
     </section>
 

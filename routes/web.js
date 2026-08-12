@@ -119,7 +119,11 @@ router.get("/commission", ensureAuth, async (req, res) => {
   let draftItems = [];
   try {
     [missions, components, draftCommission] = await Promise.all([
-      missionsModel.getAllWithHub({ status: "active" }),
+      // Unfiltered, matching the other user-facing mission pickers (e.g. the
+      // dashboard's launch-turtle / register-bottle dialogs) — new missions
+      // default to 'planned' rather than 'active', so a status filter here
+      // left the dropdown empty until missions were explicitly activated.
+      missionsModel.getAllWithHub(),
       componentsModel.getCatalog(),
       commissionsModel.getLatestDraftForUser(req.session.user.buwanaId),
     ]);

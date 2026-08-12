@@ -1571,10 +1571,14 @@ toggleBottlesTableState();
         "fa-solid fa-turtle",
       );
       if (viewSpecs) {
+        // Each pair is wrapped in its own grid item (see .eco-view-spec in
+        // main.css) so a dt always stays paired with its dd — the grid's
+        // auto-placement would otherwise interleave labels and values from
+        // different fields across columns.
         viewSpecs.innerHTML = fields
           .map(
             ([label, value]) =>
-              `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd>`,
+              `<div class="eco-view-spec"><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd></div>`,
           )
           .join("");
       }

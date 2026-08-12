@@ -549,6 +549,13 @@ body.mobile-menu-open {
   background: #991b1b;
 }
 
+/* The commission page's master "Commission" action (both the form-footer
+   and sticky-sidebar copies share this attribute) gets its own fuchsia
+   rollover so this one call-to-action stands out from every other button. */
+[data-commission-submit]:hover {
+  background: #ff00ff;
+}
+
 .button.ghost {
   background: transparent;
   color: var(--color-primary);
@@ -1737,6 +1744,16 @@ body.mobile-menu-open {
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 0.6rem 1rem;
   margin: 0 0 1rem;
+}
+
+/* Each label/value pair is its own grid item (a <div> wrapping one <dt> +
+   one <dd>) so the grid's auto-placement can't separate a dt from its dd
+   across columns — without this wrapper, dt/dd are placed as individual
+   grid items in row-major order and end up misaligned with each other. */
+.eco-view-spec {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .eco-view-specs dt {
@@ -4587,6 +4604,11 @@ label.ht-toggle {
   margin-bottom: 1.25rem;
 }
 
+.about-lead {
+  font-size: 1.15em;
+  line-height: 1.75;
+}
+
 .page-split__main h2 {
   margin: 2rem 0 1rem;
 }
@@ -4726,6 +4748,38 @@ label.ht-toggle {
 
 .about-materials-card canvas {
   max-width: 100%;
+}
+
+.about-materials-card__caption {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-align: center;
+}
+
+.about-earthen-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1.2rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+  text-align: center;
+}
+
+.about-earthen-card__icon {
+  width: 64px;
+  height: 64px;
+}
+
+.about-earthen-card p {
+  margin: 0;
+  line-height: 1.6;
 }
 
 .about-figure {
@@ -5174,6 +5228,18 @@ body.ocean-bg {
   /* .layout's own top padding is only ~6px, so this margin alone must clear
      30px between the nav bar and the notice above the page heading. */
   margin: 30px 0 0.75rem;
+}
+
+/* "Welcome back, draft loaded" notice — same shape as .eco-dev-notice, but
+   pink rather than the amber used for "under construction" warnings, so the
+   two read as different kinds of message at a glance. */
+.page-notice--draft {
+  background: rgba(219, 39, 119, 0.12);
+  border-color: rgba(219, 39, 119, 0.4);
+}
+
+.page-notice--draft i {
+  color: #db2777;
 }
 
 .eco-profile-picker-row {
@@ -5653,7 +5719,9 @@ body.ocean-bg {
 @media (min-width: 1024px) {
   .commission-summary {
     position: sticky;
-    top: 1rem;
+    /* Pinned flush against 1rem sat right under the nav bar and clipped the
+       panel's own title; 100px clears the nav so the heading stays visible. */
+    top: 100px;
   }
 }
 
