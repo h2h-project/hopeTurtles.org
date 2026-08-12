@@ -66,6 +66,7 @@
 
   function collectSummary() {
     const lines = [];
+    const items = [];
     let total = 0;
 
     if (missionSelect && missionSelect.value) {
@@ -103,6 +104,13 @@
               : option.text,
             price,
           });
+          if (option.dataset.componentId) {
+            items.push({
+              component_id: Number(option.dataset.componentId),
+              bottle_slot: Number(select.dataset.bottleSlot) || null,
+              quantity: 1,
+            });
+          }
         });
     }
 
@@ -122,10 +130,50 @@
             .closest(".eco-fab-option")
             ?.querySelector(".eco-fab-option__title")?.textContent;
           lines.push({ label: "Control bottle", detail: title, price });
+          if (checkbox.dataset.componentId) {
+            items.push({
+              component_id: Number(checkbox.dataset.componentId),
+              bottle_slot: null,
+              quantity: 1,
+            });
+          }
         });
     }
 
-    return { lines, total };
+    return { lines, total, items };
+  }
+
+  function buildPayload(status) {
+    const turtleType = getChecked("turtleType");
+    const deployment = getChecked("deployment");
+    const engraving = getChecked("engraving");
+    const { items } = collectSummary();
+
+    return {
+      mission_id: missionSelect?.value ? Number(missionSelect.value) : null,
+      deployment_type: deployment?.value || "flotilla",
+      turtle_base_component_id: turtleType?.dataset.componentId
+        ? Number(turtleType.dataset.componentId)
+        : null,
+      engraving_component_id: engraving?.dataset.componentId
+        ? Number(engraving.dataset.componentId)
+        : null,
+      status,
+      items,
+    };
+  }
+
+  async function submitCommission(status) {
+    const response = await fetch("/api/commissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildPayload(status)),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.success) {
+      throw new Error(body.message || "Something went wrong saving your turtle.");
+    }
+    return body.data;
   }
 
   const renderLine = (line) => {
@@ -184,12 +232,47 @@
     });
 
   document.querySelectorAll("[data-commission-save]").forEach((button) => {
-    button.addEventListener("click", () => {
+    button.addEventListener("click", async () => {
+      button.disabled = true;
       if (feedback) {
         feedback.hidden = false;
-        feedback.textContent =
-          "Saving designs isn't wired up yet — for now your build only lives in this browser tab.";
+        feedback.textContent = "Saving your turtle…";
+      }
+      try {
+        await submitCommission("draft");
+        if (feedback) feedback.textContent = "Saved. You can keep editing or commission it later.";
+      } catch (error) {
+        if (feedback) feedback.textContent = error.message;
+      } finally {
+        button.disabled = false;
       }
     });
   });
+
+  const modalFeedback = document.querySelector("[data-commission-modal-feedback]");
+  const confirmButton = document.querySelector("[data-commission-confirm]");
+  if (confirmButton) {
+    confirmButton.addEventListener("click", async () => {
+      confirmButton.disabled = true;
+      if (modalFeedback) {
+        modalFeedback.hidden = false;
+        modalFeedback.textContent = "Submitting your commission…";
+      }
+      try {
+        await submitCommission("submitted");
+        if (modalFeedback) {
+          modalFeedback.textContent =
+            "Your turtle has been commissioned. Our team will follow up about next steps.";
+        }
+        if (feedback) {
+          feedback.hidden = false;
+          feedback.textContent = "Commission submitted — thank you!";
+        }
+      } catch (error) {
+        if (modalFeedback) modalFeedback.textContent = error.message;
+      } finally {
+        confirmButton.disabled = false;
+      }
+    });
+  }
 })();

@@ -5,8 +5,8 @@
     <i class="fa-solid fa-flask" aria-hidden="true"></i>
     <span>
       <strong>Under construction.</strong>
-      Turtle commissioning isn't live yet — nothing below is saved or charged. Explore the build
-      flow and estimated pricing; real checkout, inventory, and accounting are coming next.
+      Saving and commissioning your build now persists it to your account, but payment isn't wired
+      up yet — nothing is charged. Real checkout and fulfillment tracking are coming next.
     </span>
   </div>
 
@@ -101,21 +101,25 @@
             <div class="eco-panel__content eco-panel__content--single">
               <div class="eco-panel__text">
                 <p>Choose the base model your turtle will be built on.</p>
+                <% const turtleBaseIcons = { simple: 'fa-turtle', smart: 'fa-microchip' }; %>
                 <div class="eco-choice-grid" role="radiogroup" aria-label="Turtle type">
-                  <label class="eco-choice-card">
-                    <input type="radio" name="turtleType" value="simple" data-commission-field data-price="250" checked />
-                    <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-turtle"></i></span>
-                    <span class="eco-choice-card__title">Simple Turtle</span>
-                    <span class="eco-choice-card__desc">Six food bottles, no command bottle or electronics.</span>
-                    <span class="eco-choice-card__price">$250</span>
-                  </label>
-                  <label class="eco-choice-card">
-                    <input type="radio" name="turtleType" value="smart" data-commission-field data-price="400" />
-                    <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-microchip"></i></span>
-                    <span class="eco-choice-card__title">Smart Turtle</span>
-                    <span class="eco-choice-card__desc">Five food bottles plus a command bottle carrying the onboard electronics.</span>
-                    <span class="eco-choice-card__price">$400</span>
-                  </label>
+                  <% (turtleBases || []).forEach(function (base, index) { %>
+                    <label class="eco-choice-card">
+                      <input
+                        type="radio"
+                        name="turtleType"
+                        value="<%= base.key_name %>"
+                        data-commission-field
+                        data-component-id="<%= base.component_id %>"
+                        data-price="<%= base.price_usd %>"
+                        <% if (index === 0) { %>checked<% } %>
+                      />
+                      <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid <%= turtleBaseIcons[base.key_name] || 'fa-turtle' %>"></i></span>
+                      <span class="eco-choice-card__title"><%= base.label %></span>
+                      <span class="eco-choice-card__desc"><%= base.description %></span>
+                      <span class="eco-choice-card__price">$<%= Number(base.price_usd) %></span>
+                    </label>
+                  <% }) %>
                 </div>
               </div>
             </div>
@@ -139,16 +143,6 @@
                   Flotilla turtles carry aid straight to the people who need it — choose a foodstuff
                   for each food bottle. Prices shown are estimated, per bottle.
                 </p>
-                <% const foodstuffOptions = [
-                  { value: '', label: 'No foodstuff selected', price: 0 },
-                  { value: 'coffee', label: 'Coffee', price: 8 },
-                  { value: 'tea', label: 'Tea', price: 6 },
-                  { value: 'chickpeas', label: 'Chickpeas', price: 5 },
-                  { value: 'lentils', label: 'Lentils', price: 5 },
-                  { value: 'rice', label: 'Rice', price: 4 },
-                  { value: 'milk_powder', label: 'Milk powder', price: 9 },
-                  { value: 'baby_food_powder', label: 'Baby food powder', price: 12 },
-                ]; %>
                 <div class="eco-fields eco-fields--grid" data-foodstuff-fields>
                   <% for (let bottleIndex = 1; bottleIndex <= 6; bottleIndex += 1) { %>
                     <label
@@ -156,10 +150,11 @@
                       <% if (bottleIndex === 6) { %>data-bottle-slot="6"<% } %>
                     >
                       <span class="eco-field__label">Bottle <%= bottleIndex %></span>
-                      <select name="foodstuff-<%= bottleIndex %>" data-commission-field data-bottle-label="Bottle <%= bottleIndex %>">
-                        <% foodstuffOptions.forEach(function (option) { %>
-                          <option value="<%= option.value %>" data-price="<%= option.price %>">
-                            <%= option.label %><%= option.price ? ' — $' + option.price : '' %>
+                      <select name="foodstuff-<%= bottleIndex %>" data-commission-field data-bottle-label="Bottle <%= bottleIndex %>" data-bottle-slot="<%= bottleIndex %>">
+                        <option value="" data-price="0">No foodstuff selected</option>
+                        <% (foodstuffs || []).forEach(function (foodstuff) { %>
+                          <option value="<%= foodstuff.key_name %>" data-component-id="<%= foodstuff.component_id %>" data-price="<%= foodstuff.price_usd %>">
+                            <%= foodstuff.label %><%= Number(foodstuff.price_usd) ? ' — $' + Number(foodstuff.price_usd) : '' %>
                           </option>
                         <% }) %>
                       </select>
@@ -185,26 +180,20 @@
             <div class="eco-panel__content eco-panel__content--single">
               <div class="eco-panel__text">
                 <p>Every Hope Turtle carries a message. Choose the one yours will carry.</p>
-                <% const engravingOptions = [
-                  'Sent with Hope',
-                  'From Sea to Sea',
-                  'Carried by Currents, Delivered by Care',
-                  'Hope Floats',
-                  'Human to Human',
-                ]; %>
                 <div class="eco-choice-grid eco-choice-grid--text" role="radiogroup" aria-label="Engraving message">
-                  <% engravingOptions.forEach(function (message, index) { %>
+                  <% (engravings || []).forEach(function (engraving, index) { %>
                     <label class="eco-choice-card eco-choice-card--text">
                       <input
                         type="radio"
                         name="engraving"
-                        value="<%= message %>"
+                        value="<%= engraving.key_name %>"
                         data-commission-field
-                        data-price="0"
+                        data-component-id="<%= engraving.component_id %>"
+                        data-price="<%= engraving.price_usd %>"
                         <% if (index === 0) { %>checked<% } %>
                       />
                       <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid fa-quote-left"></i></span>
-                      <span class="eco-choice-card__title"><%= message %></span>
+                      <span class="eco-choice-card__title"><%= engraving.label %></span>
                     </label>
                   <% }) %>
                 </div>
@@ -228,52 +217,26 @@
               <div class="eco-panel__text">
                 <p>Every Smart Turtle needs its core flight electronics. Add connectivity and storage below.</p>
                 <ul class="eco-fab-list" data-control-fields>
-                  <li class="eco-fab-option eco-fab-option--mandatory">
-                    <span class="eco-fab-option__info">
-                      <span class="eco-fab-option__title">Turtle Microcontroller Package (required)</span>
-                      <span class="eco-fab-option__desc">
-                        Core electronics: XIAO ESP32-S3, GPS unit, and the rest of the turtleOS hardware stack.
+                  <% (electronicsAddons || []).forEach(function (addon) { %>
+                    <% const isMandatory = addon.key_name === 'core_package'; %>
+                    <li class="eco-fab-option <%= isMandatory ? 'eco-fab-option--mandatory' : '' %>">
+                      <span class="eco-fab-option__info">
+                        <span class="eco-fab-option__title"><%= addon.label %><%= isMandatory ? ' (required)' : '' %></span>
+                        <span class="eco-fab-option__desc"><%= addon.description %></span>
                       </span>
-                    </span>
-                    <span class="eco-fab-option__price">~$85</span>
-                    <label class="ht-toggle">
-                      <input type="checkbox" name="addon-core" data-price="85" checked disabled />
-                      <span class="ht-toggle__slider" aria-hidden="true"></span>
-                    </label>
-                  </li>
-                  <li class="eco-fab-option">
-                    <span class="eco-fab-option__info">
-                      <span class="eco-fab-option__title">Onboard Cell Internet</span>
-                      <span class="eco-fab-option__desc">A cellular modem for telemetry when out of wifi or LoRa range.</span>
-                    </span>
-                    <span class="eco-fab-option__price">~$35</span>
-                    <label class="ht-toggle">
-                      <input type="checkbox" name="addon-cell" data-commission-field data-price="35" />
-                      <span class="ht-toggle__slider" aria-hidden="true"></span>
-                    </label>
-                  </li>
-                  <li class="eco-fab-option">
-                    <span class="eco-fab-option__info">
-                      <span class="eco-fab-option__title">Mesh LoRa Connectivity</span>
-                      <span class="eco-fab-option__desc">Long-range mesh radio for turtle-to-turtle and hub relay.</span>
-                    </span>
-                    <span class="eco-fab-option__price">~$45</span>
-                    <label class="ht-toggle">
-                      <input type="checkbox" name="addon-lora" data-commission-field data-price="45" />
-                      <span class="ht-toggle__slider" aria-hidden="true"></span>
-                    </label>
-                  </li>
-                  <li class="eco-fab-option">
-                    <span class="eco-fab-option__info">
-                      <span class="eco-fab-option__title">Mother Turtle Storage</span>
-                      <span class="eco-fab-option__desc">Expanded onboard storage so this turtle can log and relay data from others nearby.</span>
-                    </span>
-                    <span class="eco-fab-option__price">~$60</span>
-                    <label class="ht-toggle">
-                      <input type="checkbox" name="addon-storage" data-commission-field data-price="60" />
-                      <span class="ht-toggle__slider" aria-hidden="true"></span>
-                    </label>
-                  </li>
+                      <span class="eco-fab-option__price">~$<%= Number(addon.price_usd) %></span>
+                      <label class="ht-toggle">
+                        <input
+                          type="checkbox"
+                          name="addon-<%= addon.key_name %>"
+                          data-component-id="<%= addon.component_id %>"
+                          data-price="<%= addon.price_usd %>"
+                          <% if (isMandatory) { %>checked disabled<% } else { %>data-commission-field<% } %>
+                        />
+                        <span class="ht-toggle__slider" aria-hidden="true"></span>
+                      </label>
+                    </li>
+                  <% }) %>
                 </ul>
               </div>
             </div>
@@ -327,7 +290,7 @@
       <header class="mission-dialog__header">
         <div>
           <h2 id="commissionSummaryTitle">Review your turtle</h2>
-          <p class="panel-subtitle">This is a mockup summary — nothing is charged yet.</p>
+          <p class="panel-subtitle">Confirm your build to submit it as a commission.</p>
         </div>
         <button type="button" class="dialog-close" data-close-commission-summary aria-label="Close">&times;</button>
       </header>
@@ -341,11 +304,15 @@
         <strong data-commission-modal-total>$0</strong>
       </div>
       <p class="muted">
-        Checkout, payment, and inventory aren't wired up yet — commissioning becomes real once the
-        accounting and components systems are built.
+        Payment isn't wired up yet — confirming submits your build for the team to follow up on,
+        but nothing is charged.
       </p>
+      <p class="form-feedback" role="status" data-commission-modal-feedback hidden></p>
       <div class="mission-dialog__actions">
         <button type="button" class="button ghost" data-close-commission-summary>Keep editing</button>
+        <button type="button" class="button" data-commission-confirm>
+          <i class="fa-solid fa-check" aria-hidden="true"></i> Confirm commission
+        </button>
       </div>
     </article>
   </dialog>

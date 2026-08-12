@@ -339,6 +339,8 @@
   "gen_login_required_body": "Generating and saving ecojoiner files requires a free Ecobricks/Buwana account, since your bottle profiles and designs are saved to your dashboard. Log in or sign up to get started.",
   "gen_login_required_cta": "Log in",
   "contribute_heading": "Contribute",
+  "contribute_banner_lead": "Every contribution helps launch and maintain a fleet of Hope Turtles.",
+  "contribute_banner_cta": "Commission",
   "contribute_body_p1": "Hope Turtles are a non-capital technology. This means they are designed from the ground up not to rely on capital-intensive platforms, technologies or components. Yes, money is still important, but it is not central. In fact, the biggest contribution you can make is not to send us money, but to use it to build your own turtle using the plans and code which we make available here — along with local wood, bottles, food-stuffs and readily available basic electronics.",
   "contribute_body_p2": "Of course, developing and maintaining the technological and conceptual infrastructure of the project has its costs — and we welcome you commissioning us to manifest a turtle for you, or to order some of the components we've developed, to put to use in your own locale.",
   "contribute_body_p3": "In this way, Hope Turtles can unfold without the impediments of financial barriers, as a fully collaborative project powered by many small contributions rather than a few big ones. That said, it's worth pointing out that we are not sponsored by any governments or institutions. When it comes to capital, we believe in full transparency, and we publish all our accounting in our OpenBooks accounting system.",

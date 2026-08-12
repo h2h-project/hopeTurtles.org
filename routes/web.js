@@ -16,6 +16,7 @@ import {
 import { getPlatformSummary, getAboutMetrics } from "../models/summaryModel.js";
 import missionsModel from "../models/missionsModel.js";
 import turtlesModel from "../models/turtlesModel.js";
+import componentsModel from "../models/componentsModel.js";
 import { renderManagementPage } from "../controllers/usersController.js";
 
 const router = Router();
@@ -112,17 +113,25 @@ router.get("/ecojoiners/generate", (req, res) => {
 
 router.get("/commission", ensureAuth, async (req, res) => {
   let missions = [];
+  let components = {};
   try {
-    missions = await missionsModel.getAllWithHub({ status: "active" });
+    [missions, components] = await Promise.all([
+      missionsModel.getAllWithHub({ status: "active" }),
+      componentsModel.getCatalog(),
+    ]);
   } catch (error) {
     if (process.env.NODE_ENV !== "production") {
-      console.error("Failed to load missions for commission page", error);
+      console.error("Failed to load data for commission page", error);
     }
   }
   res.render("commission", {
     pageTitle: "Commission a Turtle",
     bodyClass: "ocean-bg",
     missions,
+    turtleBases: components.turtle_base || [],
+    foodstuffs: components.foodstuff || [],
+    electronicsAddons: components.electronics_addon || [],
+    engravings: components.engraving || [],
   });
 });
 

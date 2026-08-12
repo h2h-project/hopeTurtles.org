@@ -5049,6 +5049,7 @@ label.ht-toggle {
 
 .dashboard-action-panel__button {
   width: 100%;
+  box-sizing: border-box;
   justify-content: center;
   margin-top: 0.5rem;
 }

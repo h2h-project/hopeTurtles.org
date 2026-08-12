@@ -2,11 +2,24 @@
 <%- include('partials/header', { pageTitle, theme, lang, direction, bodyClass }) %>
 <%- include('partials/nav') %>
 <main id="main" class="contribute-page">
+  <section class="page-banner">
+    <img class="page-banner__bg" src="/images/landing-arrival.webp" alt="" aria-hidden="true" />
+    <div class="page-banner__inner">
+      <div class="page-banner__heading">
+        <h1 class="page-banner__title"><%= t.contribute_heading %></h1>
+        <p class="page-banner__lead"><%= t.contribute_banner_lead %></p>
+      </div>
+      <div class="page-banner__actions">
+        <a class="button" href="/commission">
+          <i class="fa-solid fa-compass-drafting" aria-hidden="true"></i> <%= t.contribute_banner_cta %>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <div class="layout">
     <section class="page-split">
       <div class="page-split__main">
-        <h1><%= t.contribute_heading %></h1>
-
         <p><%= t.contribute_body_p1 %></p>
 
         <p><%= t.contribute_body_p2 %></p>
