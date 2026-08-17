@@ -6,22 +6,44 @@
 
   const mapboxToken = panel.dataset.mapToken || '';
   const POLL_MS = 10000;
-  const PULSE_ACTIVE_MS = 4 * 60 * 1000;
 
-  const applyPulseState = () => {
-    panel.querySelectorAll('[data-toggle-turtle-live]').forEach((button) => {
-      const stateEl = button.querySelector('.turtle-live-toggle__state');
-      if (!stateEl) {
+  const MINUTE = 60 * 1000;
+  const HOUR = 60 * MINUTE;
+  const DOT_THRESHOLDS = [
+    { max: 4 * MINUTE, className: 'turtle-live-dot--bright-green', pulse: true },
+    { max: 15 * MINUTE, className: 'turtle-live-dot--light-green', pulse: false },
+    { max: HOUR, className: 'turtle-live-dot--yellow', pulse: false },
+    { max: 24 * HOUR, className: 'turtle-live-dot--orange', pulse: false },
+    { max: 48 * HOUR, className: 'turtle-live-dot--red', pulse: false }
+  ];
+  const DOT_CLASS_NAMES = DOT_THRESHOLDS.map((entry) => entry.className).concat('turtle-live-dot--grey');
+
+  const applyDotState = () => {
+    panel.querySelectorAll('[data-live-dot]').forEach((dot) => {
+      const lastUpdate = dot.dataset.lastUpdate ? new Date(dot.dataset.lastUpdate).getTime() : NaN;
+      dot.classList.remove(...DOT_CLASS_NAMES, 'turtle-live-dot--pulse');
+
+      if (!Number.isFinite(lastUpdate)) {
+        dot.classList.add('turtle-live-dot--grey');
         return;
       }
-      const lastUpdate = button.dataset.lastUpdate ? new Date(button.dataset.lastUpdate).getTime() : NaN;
-      const isRecentlyActive = Number.isFinite(lastUpdate) && Date.now() - lastUpdate <= PULSE_ACTIVE_MS;
-      stateEl.classList.toggle('turtle-live-toggle__state--pulse', isRecentlyActive);
+
+      const elapsed = Date.now() - lastUpdate;
+      const match = DOT_THRESHOLDS.find((entry) => elapsed <= entry.max);
+      if (!match) {
+        dot.classList.add('turtle-live-dot--grey');
+        return;
+      }
+
+      dot.classList.add(match.className);
+      if (match.pulse) {
+        dot.classList.add('turtle-live-dot--pulse');
+      }
     });
   };
 
-  applyPulseState();
-  window.setInterval(applyPulseState, 30000);
+  applyDotState();
+  window.setInterval(applyDotState, 30000);
 
   // Per-turtle state: { map, marker, pollTimer, loaded }
   const liveState = new Map();

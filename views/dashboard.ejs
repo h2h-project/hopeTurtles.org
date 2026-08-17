@@ -176,6 +176,7 @@
                   </div>
                 </td>
                 <td data-label="Status" class="turtle-live-column">
+                  <span class="turtle-live-dot" data-live-dot data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>" aria-hidden="true"></span>
                   <button
                     type="button"
                     class="status-pill turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"

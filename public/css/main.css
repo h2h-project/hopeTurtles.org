@@ -1534,6 +1534,10 @@ body.mobile-menu-open {
   min-width: 200px;
 }
 
+.my-turtles-table td {
+  vertical-align: middle;
+}
+
 .my-turtles-table .turtle-bottles-column {
   max-width: 100px;
   width: 100px;
@@ -4380,7 +4384,41 @@ label.ht-toggle {
   white-space: nowrap;
 }
 
-.turtle-live-toggle__state--pulse {
+.turtle-live-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+  background: #9aa0a6;
+}
+
+.turtle-live-dot--bright-green {
+  background: #2ecc40;
+}
+
+.turtle-live-dot--light-green {
+  background: #9be89d;
+}
+
+.turtle-live-dot--yellow {
+  background: #f1c40f;
+}
+
+.turtle-live-dot--orange {
+  background: #ff851b;
+}
+
+.turtle-live-dot--red {
+  background: #e0403f;
+}
+
+.turtle-live-dot--grey {
+  background: #9aa0a6;
+}
+
+.turtle-live-dot--pulse {
   animation: turtle-live-pulse 1.6s ease-in-out infinite;
 }
 
