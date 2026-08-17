@@ -6,6 +6,22 @@
 
   const mapboxToken = panel.dataset.mapToken || '';
   const POLL_MS = 10000;
+  const PULSE_ACTIVE_MS = 4 * 60 * 1000;
+
+  const applyPulseState = () => {
+    panel.querySelectorAll('[data-toggle-turtle-live]').forEach((button) => {
+      const stateEl = button.querySelector('.turtle-live-toggle__state');
+      if (!stateEl) {
+        return;
+      }
+      const lastUpdate = button.dataset.lastUpdate ? new Date(button.dataset.lastUpdate).getTime() : NaN;
+      const isRecentlyActive = Number.isFinite(lastUpdate) && Date.now() - lastUpdate <= PULSE_ACTIVE_MS;
+      stateEl.classList.toggle('turtle-live-toggle__state--pulse', isRecentlyActive);
+    });
+  };
+
+  applyPulseState();
+  window.setInterval(applyPulseState, 30000);
 
   // Per-turtle state: { map, marker, pollTimer, loaded }
   const liveState = new Map();
@@ -96,21 +112,38 @@
     return entries.length > 0;
   };
 
+  const teardownMap = (state) => {
+    if (state.map) {
+      state.map.remove();
+      state.map = null;
+      state.marker = null;
+    }
+  };
+
   const updateMap = (state, mapEl, data) => {
     const reading = data.reading;
     const lat = toFinite(reading?.latitude) ?? toFinite(data.turtle?.last_lat);
     const lng = toFinite(reading?.longitude) ?? toFinite(data.turtle?.last_lng);
 
+    if (lat === null || lng === null) {
+      teardownMap(state);
+      mapEl.classList.add('turtle-live__map--no-fix');
+      mapEl.textContent = 'No GPS fix yet';
+      return;
+    }
+
+    if (mapEl.classList.contains('turtle-live__map--no-fix')) {
+      mapEl.classList.remove('turtle-live__map--no-fix');
+      mapEl.textContent = '';
+    }
+
     if (!state.map) {
       state.map = L.map(mapEl, { zoomControl: true });
       createTileLayer().addTo(state.map);
-      state.map.setView([lat ?? 0, lng ?? 0], lat !== null ? 8 : 2);
+      state.map.setView([lat, lng], 8);
     }
     state.map.invalidateSize();
 
-    if (lat === null || lng === null) {
-      return;
-    }
     if (!state.marker) {
       state.marker = L.marker([lat, lng]).addTo(state.map);
     } else {

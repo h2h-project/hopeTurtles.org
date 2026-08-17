@@ -129,7 +129,7 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
       GROUP BY turtle_id
     ) AS bottle_counts ON bottle_counts.turtle_id = t.turtle_id
     WHERE t.turtle_manager = ?
-    ORDER BY t.turtle_id DESC
+    ORDER BY t.last_update IS NULL, t.last_update DESC, t.turtle_id DESC
   `;
 
   return query(sql, [managerId]);

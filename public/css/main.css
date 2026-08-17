@@ -4380,6 +4380,19 @@ label.ht-toggle {
   white-space: nowrap;
 }
 
+.turtle-live-toggle__state--pulse {
+  animation: turtle-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes turtle-live-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 .turtle-live-toggle .chevron {
   display: inline-block;
   transition: transform 0.2s ease;
@@ -4410,6 +4423,16 @@ label.ht-toggle {
   width: 100%;
   border-radius: 10px;
   overflow: hidden;
+}
+
+.turtle-live__map--no-fix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a1a1a;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .turtle-live__readout {

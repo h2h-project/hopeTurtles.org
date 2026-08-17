@@ -129,12 +129,11 @@
           <thead>
             <tr>
               <th scope="col">Profile</th>
+              <th scope="col" class="turtle-live-column">Status</th>
               <th scope="col">Mission</th>
               <th scope="col">Hub</th>
-              <th scope="col">Boat</th>
               <th scope="col" class="turtle-bottles-column">Bottles</th>
               <th scope="col" class="turtle-status-column">Manage</th>
-              <th scope="col" class="turtle-live-column">Live</th>
             </tr>
           </thead>
           <tbody>
@@ -176,9 +175,26 @@
                     </div>
                   </div>
                 </td>
+                <td data-label="Status" class="turtle-live-column">
+                  <button
+                    type="button"
+                    class="status-pill turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"
+                    <% if (turtle.last_machine_state) { %>data-state="<%= turtle.last_machine_state %>"<% } %>
+                    data-toggle-turtle-live
+                    data-turtle-id="<%= turtle.turtle_id %>"
+                    data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>"
+                    aria-expanded="false"
+                    aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
+                    <% if (turtle.last_machine_state) { %>title="Device machine state reported with the latest telemetry"<% } %>
+                  >
+                    <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
+                    <% if (turtle.last_machine_state) { %>
+                      <span class="turtle-live-toggle__state"><%= String(turtle.last_machine_state).replace(/_/g, '-') %></span>
+                    <% } %>
+                  </button>
+                </td>
                 <td data-label="Mission"><%= turtle.mission_name || '—' %></td>
                 <td data-label="Hub"><%= turtle.hub_name || '—' %></td>
-                <td data-label="Boat"><%= turtle.boat_name || '—' %></td>
                 <td data-label="Bottles" class="turtle-bottles-column">
                   <button
                     type="button"
@@ -201,26 +217,9 @@
                     <span><%= formatTurtleStatus(turtle.status) %></span>
                   </button>
                 </td>
-                <td data-label="Live" class="turtle-live-column">
-                  <button
-                    type="button"
-                    class="status-pill turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"
-                    <% if (turtle.last_machine_state) { %>data-state="<%= turtle.last_machine_state %>"<% } %>
-                    data-toggle-turtle-live
-                    data-turtle-id="<%= turtle.turtle_id %>"
-                    aria-expanded="false"
-                    aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
-                    <% if (turtle.last_machine_state) { %>title="Device machine state reported with the latest telemetry"<% } %>
-                  >
-                    <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
-                    <% if (turtle.last_machine_state) { %>
-                      <span class="turtle-live-toggle__state"><%= String(turtle.last_machine_state).replace(/_/g, '-') %></span>
-                    <% } %>
-                  </button>
-                </td>
               </tr>
               <tr class="turtle-live-row" hidden data-turtle-live-row data-turtle-id="<%= turtle.turtle_id %>">
-                <td colspan="7">
+                <td colspan="6">
                   <div class="turtle-live">
                     <div class="turtle-live__map" data-live-map></div>
                     <div class="turtle-live__details">

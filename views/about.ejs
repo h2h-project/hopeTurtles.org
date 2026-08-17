@@ -13,11 +13,6 @@
         <h1 class="page-banner__title"><%= t.about_heading || 'About the Hope Turtle Project' %></h1>
         <p class="page-banner__lead"><%= t.about_subheading || 'Human to Human Hope Delivery' %></p>
       </div>
-      <div class="page-banner__actions">
-        <a class="button" href="/Hope_Turtle_Whitepaper--June_2026.pdf" target="_blank" rel="noopener noreferrer">
-          <i class="fa-solid fa-file-pdf" aria-hidden="true"></i> <%= t.about_read_whitepaper %>
-        </a>
-      </div>
     </div>
   </section>
 
@@ -88,13 +83,6 @@
         </div>
       </aside>
     </section>
-
-    <div class="about-whitepaper-cta">
-      <a class="button" href="/Hope_Turtle_Whitepaper--June_2026.pdf" target="_blank" rel="noopener noreferrer">
-        <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
-        <%= t.about_read_whitepaper || 'Read the White Paper' %>
-      </a>
-    </div>
 
     <% if (false) { /* metrics hidden for now */ %>
     <section class="about-metrics-section">
