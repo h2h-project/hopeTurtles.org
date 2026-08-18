@@ -353,6 +353,17 @@
       setHeight(px) {
         el.style.height = `${px}px`;
         chart.resize();
+        // .chart-el animates height via CSS transition, so the box isn't at
+        // its final size yet when resize() runs above (Firefox in particular
+        // won't have started the transition on this tick) — keep resizing
+        // until the transition reports done.
+        const onDone = (e) => {
+          if (e.target !== el || e.propertyName !== 'height') return;
+          chart.resize();
+          el.removeEventListener('transitionend', onDone);
+        };
+        el.addEventListener('transitionend', onDone);
+        requestAnimationFrame(() => chart.resize());
       }
     };
   }
