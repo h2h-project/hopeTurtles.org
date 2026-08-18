@@ -92,6 +92,17 @@
   const scaleBusV = (v) =>
     v == null ? null : +Math.max(0, Math.min(100, ((v - 3.30) / (4.20 - 3.30)) * 100)).toFixed(1);
 
+  // Absolute humidity in g/m³ from temp (°C) + relative humidity (%), via the
+  // Magnus approximation for saturation vapor pressure.
+  const absoluteHumidity = (tempC, rhPct) => {
+    if (tempC == null || rhPct == null) return null;
+    const t = Number(tempC);
+    const rh = Number(rhPct);
+    if (!Number.isFinite(t) || !Number.isFinite(rh)) return null;
+    const svp = 6.112 * Math.exp((17.67 * t) / (t + 243.5));
+    return (svp * rh * 2.1674) / (273.15 + t);
+  };
+
   // ── Theme ────────────────────────────────────────────────────────────────
 
   const currentTheme = () => document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
@@ -917,18 +928,21 @@
     if (!trends || !Array.isArray(trends.timestamps)) return [];
     const packets = [];
     for (let i = 0; i < trends.timestamps.length; i++) {
+      const ahtTemp = trends.ahtTemps && trends.ahtTemps[i];
+      const bmeTemp = trends.bmeTemps && trends.bmeTemps[i];
+      const relHumidity = trends.ahtHumidities && trends.ahtHumidities[i] != null
+        ? trends.ahtHumidities[i]
+        : trends.bmeHumidities && trends.bmeHumidities[i];
+      const humidityTemp = trends.ahtHumidities && trends.ahtHumidities[i] != null ? ahtTemp : bmeTemp;
       packets.push({
         id: trends.ids ? trends.ids[i] : null,
         ts: trends.timestamps[i],
-        ensEco2: trends.ensEco2s && trends.ensEco2s[i],
-        ahtTemp: trends.ahtTemps && trends.ahtTemps[i],
+        ahtTemp,
         rtcTemp: trends.rtcTemps && trends.rtcTemps[i],
-        bmeTemp: trends.bmeTemps && trends.bmeTemps[i],
-        humidity: trends.ahtHumidities && trends.ahtHumidities[i] != null
-          ? trends.ahtHumidities[i]
-          : trends.bmeHumidities && trends.bmeHumidities[i],
-        tvoc: trends.ensTvocs && trends.ensTvocs[i],
+        absHumidity: absoluteHumidity(humidityTemp, relHumidity),
         battPct: trends.inaBattPcts && trends.inaBattPcts[i],
+        currentMa: trends.inaCurrentMas && trends.inaCurrentMas[i],
+        busV: trends.inaBusVs && trends.inaBusVs[i],
         lat: trends.lats && trends.lats[i],
         lon: trends.lons && trends.lons[i],
         rawData: trends.rawDatas ? trends.rawDatas[i] : null
@@ -987,13 +1001,12 @@
       tr.appendChild(timeTd);
 
       const cells = [
-        { text: formatPacketValue(pkt.ensEco2, 0) },
-        { text: formatPacketValue(pkt.ahtTemp, 1) },
         { text: formatPacketValue(pkt.rtcTemp, 1) },
-        { text: formatPacketValue(pkt.bmeTemp, 1) },
-        { text: formatPacketValue(pkt.humidity, 1) },
-        { text: formatPacketValue(pkt.tvoc, 0) },
+        { text: formatPacketValue(pkt.ahtTemp, 1) },
+        { text: formatPacketValue(pkt.absHumidity, 1) },
         { text: formatPacketValue(pkt.battPct, 0) },
+        { text: formatPacketValue(pkt.currentMa, 1) },
+        { text: formatPacketValue(pkt.busV, 2) },
         { text: pkt.lat != null ? Number(pkt.lat).toFixed(4) : '—', cls: 'packet-coord' },
         { text: pkt.lon != null ? Number(pkt.lon).toFixed(4) : '—', cls: 'packet-coord' }
       ];
