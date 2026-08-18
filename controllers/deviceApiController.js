@@ -1,5 +1,7 @@
 import telemetryModel from '../models/telemetryModel.js';
 import turtlesModel from '../models/turtlesModel.js';
+import { computeSoc } from '../utils/batterySoc.js';
+import { tzOffsetMinAt } from '../utils/time.js';
 
 // Device-facing endpoints speak the turtleOS wire protocol (ported from
 // the turtleAPI reference implementation): responses use { ok: ... },
@@ -113,7 +115,11 @@ const isBadZeroTelemetry = (values) => {
   return null;
 };
 
-const buildIngestArgs = (turtleId, body) => {
+// Sign convention for ina_current_ma (high-side shunt on the battery's
+// positive lead, net battery current): positive = charging into the
+// battery, negative = discharging out of it. Passed through unmodified
+// below — this is the only place that convention needs stating.
+const buildIngestArgs = (turtleId, body, batterySocPct = null) => {
   const values = body.values;
   const tempC = firstFinite(values.aht_temp, values.scd_temp, values.bme_temp);
 
@@ -123,6 +129,7 @@ const buildIngestArgs = (turtleId, body) => {
     lat: finiteOrNull(body.lat),
     lon: finiteOrNull(body.lon),
     batteryVoltage: finiteOrNull(values.ina_bus_v),
+    batterySocPct,
     tempC: tempC === null ? null : Math.round(tempC * 10) / 10,
     machineState: normalizeMachineState(body.machine_state),
     rawData: JSON.stringify({
@@ -133,6 +140,23 @@ const buildIngestArgs = (turtleId, body) => {
     })
   };
 };
+
+// Integrates one packet's current/voltage into the turtle's running
+// coulomb-counted SoC. `prevState` is the turtle's persisted state
+// (survives restarts); `fallbackPct` seeds SoC on a turtle's very first
+// packet, when there's nothing yet to integrate from.
+const integrateBatterySoc = (prevState, body) =>
+  computeSoc({
+    prevSocPct: finiteOrNull(prevState.battery_soc_pct),
+    prevUpdatedAtUnix: prevState.battery_soc_updated_at
+      ? Math.floor(new Date(prevState.battery_soc_updated_at).getTime() / 1000)
+      : null,
+    currentMa: finiteOrNull(body.values.ina_current_ma),
+    busV: finiteOrNull(body.values.ina_bus_v),
+    recordedAtUnix: body.recorded_at,
+    capacityAh: finiteOrNull(prevState.control_battery_capacity_ah),
+    fallbackPct: finiteOrNull(body.values.ina_batt_pct)
+  });
 
 // ------------------------------------------------------------
 // POST /api/v1/telemetry
@@ -145,6 +169,12 @@ export const postTelemetry = async (req, res) => {
 
   const turtleId = req.turtle.turtle_id;
 
+  // TEMP diagnostic for the discharge-current-reads-0 investigation — remove
+  // once confirmed whether the sign is already lost by the time it reaches us.
+  if (req.body.values.ina_current_ma !== undefined) {
+    console.log('telemetry raw ina_current_ma:', turtleId, req.body.values.ina_current_ma);
+  }
+
   const zeroError = isBadZeroTelemetry(req.body.values);
   if (zeroError) {
     console.log('telemetry ignored:', turtleId, zeroError);
@@ -152,13 +182,16 @@ export const postTelemetry = async (req, res) => {
   }
 
   try {
-    const args = buildIngestArgs(turtleId, req.body);
+    const { socPct, updatedAtUnix } = integrateBatterySoc(req.turtle, req.body);
+    const args = buildIngestArgs(turtleId, req.body, socPct);
     await telemetryModel.ingestReading(args);
     await turtlesModel.touchLiveness(turtleId, {
       lat: args.lat,
       lng: args.lon,
       solarCharge: finiteOrNull(req.body.values.ina_batt_pct),
-      machineState: args.machineState
+      machineState: args.machineState,
+      batterySocPct: socPct,
+      batterySocUpdatedAtUnix: updatedAtUnix
     });
 
     return res.status(200).json({ ok: true, server_now: serverNow() });
@@ -224,8 +257,31 @@ export const postTelemetryBatch = async (req, res) => {
     let liveness = null;
     let newestState = null;
 
+    // Coulomb counting must integrate in chronological order even though a
+    // queued batch can arrive out of order — compute each reading's SoC in
+    // a sorted pass first, independent of the insertion loop below.
+    let batterySoc = {
+      battery_soc_pct: req.turtle.battery_soc_pct,
+      battery_soc_updated_at: req.turtle.battery_soc_updated_at,
+      control_battery_capacity_ah: req.turtle.control_battery_capacity_ah
+    };
+    const socOrdered = [...toInsert].sort((a, b) => a.recorded_at - b.recorded_at);
+    for (const reading of socOrdered) {
+      const { socPct, updatedAtUnix } = integrateBatterySoc(batterySoc, reading);
+      reading._batterySocPct = socPct;
+      batterySoc = {
+        battery_soc_pct: socPct,
+        battery_soc_updated_at: new Date(updatedAtUnix * 1000),
+        control_battery_capacity_ah: req.turtle.control_battery_capacity_ah
+      };
+    }
+    const finalBatterySocPct = batterySoc.battery_soc_pct;
+    const finalBatterySocUpdatedAtUnix = Math.floor(
+      new Date(batterySoc.battery_soc_updated_at).getTime() / 1000
+    );
+
     for (const reading of toInsert) {
-      const args = buildIngestArgs(turtleId, reading);
+      const args = buildIngestArgs(turtleId, reading, reading._batterySocPct);
       // eslint-disable-next-line no-await-in-loop
       const inserted = await telemetryModel.ingestReading(args);
       if (inserted) {
@@ -256,7 +312,9 @@ export const postTelemetryBatch = async (req, res) => {
 
     await turtlesModel.touchLiveness(turtleId, {
       ...(liveness ?? {}),
-      machineState: newestState?.machineState ?? null
+      machineState: newestState?.machineState ?? null,
+      batterySocPct: finalBatterySocPct,
+      batterySocUpdatedAtUnix: finalBatterySocUpdatedAtUnix
     });
 
     console.log(
@@ -267,50 +325,6 @@ export const postTelemetryBatch = async (req, res) => {
   } catch (error) {
     console.error('telemetry batch error:', error?.stack || error?.message || error);
     return res.status(500).json({ ok: false, error: 'server_error' });
-  }
-};
-
-// ------------------------------------------------------------
-// Timezone helper: current offset minutes for an IANA zone
-// (ported from turtleAPI src/routes/v1/device.js)
-// ------------------------------------------------------------
-const tzOffsetMinNow = (ianaZone) => {
-  try {
-    const now = new Date();
-
-    const fmtParts = (tz) =>
-      new Intl.DateTimeFormat('en-US', {
-        timeZone: tz,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }).formatToParts(now);
-
-    const toMap = (parts) => {
-      const map = {};
-      for (const part of parts) {
-        if (part.type !== 'literal') map[part.type] = part.value;
-      }
-      return map;
-    };
-
-    const wallAsUtc = (parts) =>
-      Date.UTC(
-        Number(parts.year),
-        Number(parts.month) - 1,
-        Number(parts.day),
-        Number(parts.hour),
-        Number(parts.minute),
-        Number(parts.second)
-      );
-
-    return Math.round((wallAsUtc(toMap(fmtParts(ianaZone))) - wallAsUtc(toMap(fmtParts('Etc/UTC')))) / 60000);
-  } catch {
-    return 0;
   }
 };
 
@@ -339,7 +353,7 @@ export const getDevice = async (req, res) => {
 
     const timeZone =
       typeof info.time_zone === 'string' && info.time_zone.length ? info.time_zone : 'Etc/UTC';
-    const tzOffsetMin = tzOffsetMinNow(timeZone);
+    const tzOffsetMin = tzOffsetMinAt(new Date(), timeZone);
 
     await turtlesModel.touchLiveness(turtleId, {});
 

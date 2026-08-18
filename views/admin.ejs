@@ -381,6 +381,14 @@
             <% }) %>
           </select>
         </label>
+        <label>
+          Control battery capacity (Ah)
+          <input type="number" name="control_battery_capacity_ah" min="0.1" step="0.1" placeholder="4.2" />
+        </label>
+        <label>
+          Servo battery capacity (Ah)
+          <input type="number" name="servo_battery_capacity_ah" min="0.1" step="0.1" placeholder="4.0" />
+        </label>
         <label class="full-width">
           Profile photo
           <input type="file" name="profile_photo" accept="image/*" />

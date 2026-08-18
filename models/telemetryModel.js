@@ -1,5 +1,6 @@
 import { query } from '../config/db.js';
 import { createModel } from './baseModel.js';
+import { unixSecondsToUtcDatetime, localDayBoundsUnix } from '../utils/time.js';
 
 const telemetryModel = createModel('telemetry_tb', 'telemetry_id');
 
@@ -23,17 +24,13 @@ telemetryModel.getByTurtleId = async (turtleId, limit = 50) => {
   return query(sql, [turtleId]);
 };
 
-// Device clock time arrives as Unix seconds; convert in JS rather than
-// FROM_UNIXTIME() because the MySQL session timezone is not pinned to UTC.
-const unixSecondsToUtcDatetime = (unixSeconds) =>
-  new Date(unixSeconds * 1000).toISOString().slice(0, 19).replace('T', ' ');
-
 telemetryModel.ingestReading = async ({
   turtleId,
   recordedAtUnix,
   lat = null,
   lon = null,
   batteryVoltage = null,
+  batterySocPct = null,
   tempC = null,
   machineState = null,
   rawData
@@ -41,8 +38,8 @@ telemetryModel.ingestReading = async ({
   // INSERT IGNORE + uq_telemetry_turtle_ts keeps queued-retry duplicates idempotent.
   const sql = `
     INSERT IGNORE INTO telemetry_tb
-      (turtle_id, \`timestamp\`, latitude, longitude, battery_voltage, temp_c, connection, machine_state, raw_data, recorded_at)
-    VALUES (?, ?, ?, ?, ?, ?, 'wifi', ?, ?, UTC_TIMESTAMP())
+      (turtle_id, \`timestamp\`, latitude, longitude, battery_voltage, battery_soc_pct, temp_c, connection, machine_state, raw_data, recorded_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, 'wifi', ?, ?, UTC_TIMESTAMP())
   `;
   const result = await query(sql, [
     turtleId,
@@ -50,6 +47,7 @@ telemetryModel.ingestReading = async ({
     lat,
     lon,
     batteryVoltage,
+    batterySocPct,
     tempC,
     machineState,
     rawData
@@ -92,6 +90,7 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
       latitude,
       longitude,
       raw_data,
+      battery_soc_pct,
       ${valueColumns}
     FROM telemetry_tb
     WHERE turtle_id = ?
@@ -100,6 +99,59 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
     LIMIT 5000
   `;
   return query(sql, [turtleId, minutes]);
+};
+
+// Daily energy rollup: Wh harvested (current > 0) and Wh consumed
+// (current < 0), reset at local midnight in `timeZone`. Each sample's
+// voltage*current is integrated over the elapsed time since the *previous*
+// sample (the same discrete-integration approach the coulomb counter uses),
+// so a lone first-of-day sample contributes nothing until a second arrives.
+telemetryModel.getDailyEnergyForTurtle = async (turtleId, timeZone = 'Etc/UTC') => {
+  const { startUnix, endUnix } = localDayBoundsUnix(timeZone);
+
+  const sql = `
+    SELECT
+      TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
+      CAST(JSON_EXTRACT(raw_data, '$.values.ina_bus_v') AS DOUBLE) AS ina_bus_v,
+      CAST(JSON_EXTRACT(raw_data, '$.values.ina_current_ma') AS DOUBLE) AS ina_current_ma
+    FROM telemetry_tb
+    WHERE turtle_id = ?
+      AND \`timestamp\` >= ?
+      AND \`timestamp\` < ?
+    ORDER BY \`timestamp\` ASC
+    LIMIT 20000
+  `;
+  const rows = await query(sql, [
+    turtleId,
+    unixSecondsToUtcDatetime(startUnix),
+    unixSecondsToUtcDatetime(endUnix)
+  ]);
+
+  let harvestedWh = 0;
+  let consumedWh = 0;
+  let prevTs = null;
+  for (const row of rows) {
+    const v = Number(row.ina_bus_v);
+    const i = Number(row.ina_current_ma);
+    const hasSample = Number.isFinite(v) && Number.isFinite(i);
+    if (hasSample && prevTs !== null) {
+      const dtHours = (row.ts - prevTs) / 3600;
+      if (dtHours > 0 && dtHours < 6) {
+        const wh = ((v * i) / 1000) * dtHours;
+        if (i > 0) harvestedWh += wh;
+        else if (i < 0) consumedWh += -wh;
+      }
+    }
+    if (hasSample) prevTs = row.ts;
+  }
+
+  return {
+    harvestedWh: Math.round(harvestedWh * 100) / 100,
+    consumedWh: Math.round(consumedWh * 100) / 100,
+    dayStart: startUnix,
+    dayEnd: endUnix,
+    timeZone
+  };
 };
 
 telemetryModel.deleteByIdsForTurtle = async (telemetryIds, turtleId) => {

@@ -87,9 +87,26 @@ export const getTurtleTrends = async (req, res, next) => {
         bmeHumidities: pick('bme_humidity'),
         inaBattPcts: pick('ina_batt_pct'),
         inaBusVs: pick('ina_bus_v'),
-        inaCurrentMas: pick('ina_current_ma')
+        inaCurrentMas: pick('ina_current_ma'),
+        batterySocPcts: pick('battery_soc_pct')
       }
     });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getDailyEnergy = async (req, res, next) => {
+  try {
+    const turtleId = req.params.turtle_id;
+    const turtle = await resolveManagedTurtle(req, res, turtleId);
+    if (!turtle) {
+      return undefined;
+    }
+
+    const timeZone = await turtlesModel.getManagerTimeZone(turtleId);
+    const data = await telemetryModel.getDailyEnergyForTurtle(turtleId, timeZone);
+    return res.json({ success: true, data });
   } catch (error) {
     return next(error);
   }
@@ -121,5 +138,6 @@ export default {
   getTelemetryForTurtle,
   getLatestTelemetry,
   getTurtleTrends,
+  getDailyEnergy,
   deleteTurtleTelemetry
 };

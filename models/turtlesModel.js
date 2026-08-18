@@ -1,5 +1,6 @@
 import { query } from '../config/db.js';
 import { createModel } from './baseModel.js';
+import { unixSecondsToUtcDatetime } from '../utils/time.js';
 
 const turtlesModel = createModel('turtles_tb', 'turtle_id');
 
@@ -192,7 +193,14 @@ turtlesModel.getWithRelationsById = async (turtleId) => {
 
 turtlesModel.touchLiveness = async (
   turtleId,
-  { lat = null, lng = null, solarCharge = null, machineState = null } = {}
+  {
+    lat = null,
+    lng = null,
+    solarCharge = null,
+    machineState = null,
+    batterySocPct = null,
+    batterySocUpdatedAtUnix = null
+  } = {}
 ) => {
   const assignments = ['last_update = UTC_TIMESTAMP()', "status = IF(status = 'awaiting_serial', 'idle', status)"];
   const params = [];
@@ -211,9 +219,31 @@ turtlesModel.touchLiveness = async (
     assignments.push('last_machine_state = ?');
     params.push(machineState);
   }
+  // Running coulomb-counted SoC, persisted with the reading it was
+  // integrated up to so the next packet's dt survives a server restart.
+  if (Number.isFinite(Number(batterySocPct)) && Number.isFinite(Number(batterySocUpdatedAtUnix))) {
+    assignments.push('battery_soc_pct = ?', 'battery_soc_updated_at = ?');
+    params.push(Number(batterySocPct), unixSecondsToUtcDatetime(batterySocUpdatedAtUnix));
+  }
 
   params.push(turtleId);
   await query(`UPDATE turtles_tb SET ${assignments.join(', ')} WHERE turtle_id = ?`, params);
+};
+
+// Manager's IANA time zone, used to reset daily energy rollups at local
+// midnight. Falls back to UTC when the turtle has no manager or the
+// manager hasn't set one.
+turtlesModel.getManagerTimeZone = async (turtleId) => {
+  const rows = await query(
+    `SELECT u.time_zone
+     FROM turtles_tb t
+     LEFT JOIN users_tb u ON t.turtle_manager = u.buwana_id
+     WHERE t.turtle_id = ?
+     LIMIT 1`,
+    [turtleId]
+  );
+  const timeZone = rows[0]?.time_zone;
+  return typeof timeZone === 'string' && timeZone.length ? timeZone : 'Etc/UTC';
 };
 
 turtlesModel.getDeviceInfo = async (turtleId) => {

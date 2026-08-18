@@ -86,7 +86,8 @@
     tvoc: '#ef6c00',
     battPct: '#f59e0b',
     battBusV: '#fbbf24',
-    battCurrent: '#3b82f6'
+    battCurrent: '#3b82f6',
+    socPct: '#23B053'
   };
 
   const scaleBusV = (v) =>
@@ -248,6 +249,8 @@
     function render() {
       const c = themeColors();
       const unit = cfg.unit ? ` ${cfg.unit}` : '';
+      const secondary = cfg.secondaryAxis || null;
+      const secondaryUnit = secondary?.unit ? ` ${secondary.unit}` : '';
       const showLegend = cfg.showLegend ?? lastSeries.length > 1;
 
       const markAreaData = (cfg.thresholdBands || []).map((band) => [
@@ -262,6 +265,7 @@
       const prepared = lastSeries.map((s) => ({
         name: s.name,
         color: s.color,
+        axisIndex: s.axisIndex ?? 0,
         data: prepareData(s.values, lastTimestamps)
       }));
 
@@ -269,9 +273,10 @@
         name: s.name,
         type: 'line',
         data: s.data,
+        yAxisIndex: s.axisIndex,
         smooth: false,
         showSymbol: false,
-        lineStyle: { color: s.color, width: 2 },
+        lineStyle: { color: s.color, width: 2, type: s.axisIndex === 1 ? 'dashed' : 'solid' },
         itemStyle: { color: s.color },
         connectNulls: false,
         ...(idx === 0 && markAreaData.length > 0
@@ -294,7 +299,7 @@
               }
             }
           : { legend: { show: false } }),
-        grid: { top: showLegend ? 28 : 12, right: 12, bottom: 28, left: 52, containLabel: false },
+        grid: { top: showLegend ? 28 : 12, right: secondary ? 52 : 12, bottom: 28, left: 52, containLabel: false },
         xAxis: {
           type: 'time',
           axisLine: { lineStyle: { color: c.axisLine } },
@@ -315,18 +320,35 @@
           },
           splitLine: { show: false }
         },
-        yAxis: {
-          type: 'value',
-          ...yAxisBounds(prepared),
-          axisLine: { show: false },
-          axisTick: { show: false },
-          axisLabel: {
-            color: c.axisLabel,
-            fontSize: 11,
-            formatter: (v) => `${v.toFixed(cfg.decimals ?? 0)}${unit}`
+        yAxis: [
+          {
+            type: 'value',
+            ...yAxisBounds(prepared.filter((s) => s.axisIndex === 0)),
+            axisLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: {
+              color: c.axisLabel,
+              fontSize: 11,
+              formatter: (v) => `${v.toFixed(cfg.decimals ?? 0)}${unit}`
+            },
+            splitLine: { lineStyle: { color: c.splitLine } }
           },
-          splitLine: { lineStyle: { color: c.splitLine } }
-        },
+          ...(secondary
+            ? [
+                {
+                  type: 'value',
+                  axisLine: { show: false },
+                  axisTick: { show: false },
+                  axisLabel: {
+                    color: c.axisLabel,
+                    fontSize: 11,
+                    formatter: (v) => `${v.toFixed(secondary.decimals ?? 0)}${secondaryUnit}`
+                  },
+                  splitLine: { show: false }
+                }
+              ]
+            : [])
+        ],
         tooltip: {
           trigger: 'axis',
           backgroundColor: c.tooltipBg,
@@ -339,8 +361,11 @@
             const rows = params
               .map((p) => {
                 const val = p.value && p.value[1];
+                const isSecondary = echartsSeries[p.seriesIndex]?.yAxisIndex === 1;
+                const decimals = isSecondary ? (secondary?.decimals ?? 0) : (cfg.decimals ?? 0);
+                const seriesUnit = isSecondary ? secondaryUnit : unit;
                 const display = val != null && Number.isFinite(val)
-                  ? `${Number(val).toFixed(cfg.decimals ?? 0)}${unit}`
+                  ? `${Number(val).toFixed(decimals)}${seriesUnit}`
                   : '—';
                 return `<span style="color:${p.color}">●</span> ${p.seriesName}: <strong>${display}</strong>`;
               })
@@ -381,14 +406,19 @@
 
   // ── Chart definitions & series mapping ───────────────────────────────────
 
-  const COLLAPSED_HEIGHT = { eco2: 200, temp: 220, humidity: 200, tvoc: 200, battery: 200, current: 200 };
-  const EXPANDED_HEIGHT = { eco2: 400, temp: 440, humidity: 400, tvoc: 400, battery: 400, current: 400 };
+  const COLLAPSED_HEIGHT = { eco2: 200, temp: 220, humidity: 200, tvoc: 200, soc: 220, battery: 200, current: 200 };
+  const EXPANDED_HEIGHT = { eco2: 400, temp: 440, humidity: 400, tvoc: 400, soc: 440, battery: 400, current: 400 };
 
   const CHART_CONFIGS = {
     eco2: { unit: 'ppm', decimals: 0, yMin: 350, thresholdBands: ECO2_BANDS },
     temp: { unit: '°C', decimals: 1, yPad: 5, thresholdBands: TEMP_BANDS },
     humidity: { unit: '%', decimals: 1, thresholdBands: HUMIDITY_BANDS },
     tvoc: { unit: 'ppb', decimals: 0, yMin: 0, thresholdBands: TVOC_BANDS },
+    soc: {
+      unit: '%', decimals: 0, yMin: 0, yMax: 100,
+      secondaryAxis: { unit: 'V', decimals: 2 },
+      showLegend: true
+    },
     battery: { unit: '%', decimals: 0, yMin: 0, yMax: 100, thresholdBands: BATT_BANDS, showLegend: true },
     current: { unit: 'mA', decimals: 0, yPad: 50 }
   };
@@ -396,8 +426,8 @@
   function seriesFor(key, trends) {
     const series = [];
     if (!trends) return series;
-    const push = (name, colorKey, values) => {
-      if (hasData(values)) series.push({ name, color: SERIES_COLORS[colorKey], values });
+    const push = (name, colorKey, values, axisIndex = 0) => {
+      if (hasData(values)) series.push({ name, color: SERIES_COLORS[colorKey], values, axisIndex });
     };
     switch (key) {
       case 'eco2':
@@ -415,10 +445,14 @@
       case 'tvoc':
         push('TVOC', 'tvoc', trends.ensTvocs);
         break;
+      case 'soc':
+        push('State of Charge', 'socPct', trends.batterySocPcts, 0);
+        push('Voltage (raw)', 'battBusV', trends.inaBusVs, 1);
+        break;
       case 'battery':
         push('Battery %', 'battPct', trends.inaBattPcts);
         if (hasData(trends.inaBusVs)) {
-          series.push({ name: 'Bus V (scaled)', color: SERIES_COLORS.battBusV, values: trends.inaBusVs.map(scaleBusV) });
+          series.push({ name: 'Bus V (scaled)', color: SERIES_COLORS.battBusV, values: trends.inaBusVs.map(scaleBusV), axisIndex: 0 });
         }
         break;
       case 'current':
@@ -804,6 +838,27 @@
 
   setInterval(refreshLive, 60000);
 
+  // ── Daily energy rollup (Wh harvested / consumed, resets at local midnight) ─
+
+  async function refreshDailyEnergy() {
+    try {
+      const res = await fetch(`/api/telemetry/${turtleId}/daily-energy`, {
+        credentials: 'same-origin',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      const data = body && body.data;
+      if (!data) return;
+      setMetric('wh-harvested', data.harvestedWh, 2);
+      setMetric('wh-consumed', data.consumedWh, 2);
+    } catch (err) {
+      // keep last-known values on transient failures
+    }
+  }
+
+  setInterval(refreshDailyEnergy, 300000);
+
   // ── Latest Packets panel ─────────────────────────────────────────────────
 
   const packetsSection = main.querySelector('#packets');
@@ -1145,4 +1200,5 @@
   renderMap();
   refreshLive();
   refreshPackets();
+  refreshDailyEnergy();
 })();

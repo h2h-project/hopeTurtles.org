@@ -43,7 +43,9 @@ export const deviceAuth = async (req, res, next) => {
 
   try {
     const rows = await query(
-      'SELECT turtle_id, name, status, secret_hash FROM turtles_tb WHERE turtle_id = ? LIMIT 1',
+      `SELECT turtle_id, name, status, secret_hash,
+              control_battery_capacity_ah, battery_soc_pct, battery_soc_updated_at
+       FROM turtles_tb WHERE turtle_id = ? LIMIT 1`,
       [turtleId]
     );
 
@@ -59,7 +61,10 @@ export const deviceAuth = async (req, res, next) => {
     req.turtle = {
       turtle_id: turtle.turtle_id,
       name: turtle.name,
-      status: turtle.status
+      status: turtle.status,
+      control_battery_capacity_ah: turtle.control_battery_capacity_ah,
+      battery_soc_pct: turtle.battery_soc_pct,
+      battery_soc_updated_at: turtle.battery_soc_updated_at
     };
     return next();
   } catch (error) {

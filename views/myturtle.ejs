@@ -158,7 +158,27 @@
       <div class="range-bar" role="group" aria-label="Time range" data-universal-range-bar></div>
     </div>
 
+    <div class="metric-grid battery-daily-grid">
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="wh-harvested">--</span></div>
+        <div class="metric-card__label"><%= t.myturtle_wh_harvested || 'Wh Harvested Today' %> <span class="metric-card__unit">Wh</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-card__value"><span data-metric="wh-consumed">--</span></div>
+        <div class="metric-card__label"><%= t.myturtle_wh_consumed || 'Wh Consumed Today' %> <span class="metric-card__unit">Wh</span></div>
+      </div>
+    </div>
+
     <div class="chart-sub-cards">
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_soc || 'Battery State of Charge (coulomb counted)' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="soc" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="soc" hidden></div>
+        <div class="chart-el" data-chart="soc"></div>
+      </div>
+
       <div class="chart-sub-card">
         <div class="chart-card-head">
           <span class="chart-card-title"><%= t.myturtle_charge_level || 'Charge Level' %></span>

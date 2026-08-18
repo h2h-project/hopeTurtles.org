@@ -679,6 +679,16 @@
             <% }) %>
           </select>
         </label>
+        <label>
+          Control battery capacity (Ah)
+          <input type="number" name="control_battery_capacity_ah" min="0.1" step="0.1" placeholder="4.2" />
+          <span class="muted">Optional. Defaults to 4.2 Ah (4200 mAh).</span>
+        </label>
+        <label>
+          Servo battery capacity (Ah)
+          <input type="number" name="servo_battery_capacity_ah" min="0.1" step="0.1" placeholder="4.0" />
+          <span class="muted">Optional. Defaults to 4.0 Ah (4000 mAh).</span>
+        </label>
         <label class="full-width">
           Turtle's profile pic
           <input type="file" name="profile_photo" accept="image/*" />

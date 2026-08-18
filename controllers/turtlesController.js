@@ -33,6 +33,17 @@ const toNullableInteger = (value) => {
   return Math.trunc(numericValue);
 };
 
+// Blank/invalid → undefined (field omitted from the INSERT/UPDATE) so the
+// column's own DEFAULT applies, rather than writing NULL into a NOT NULL
+// battery-capacity column.
+const toOptionalPositiveFloat = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) && numericValue > 0 ? numericValue : undefined;
+};
+
 const toUploadUrl = (filename) => (filename ? path.posix.join('/uploads', filename) : null);
 
 const getUploadedPhotoFiles = (req) => {
@@ -103,7 +114,12 @@ export const getTurtleById = async (req, res, next) => {
 export const createTurtle = async (req, res, next) => {
   try {
     const { secret, secretHash } = createTurtleSecret();
-    const turtle = await turtlesModel.create({ ...req.body, secret_hash: secretHash });
+    const turtle = await turtlesModel.create({
+      ...req.body,
+      control_battery_capacity_ah: toOptionalPositiveFloat(req.body?.control_battery_capacity_ah),
+      servo_battery_capacity_ah: toOptionalPositiveFloat(req.body?.servo_battery_capacity_ah),
+      secret_hash: secretHash
+    });
     const turtleWithPhoto = await attachProfilePhoto(req, turtle);
 
     return res.status(201).json({ success: true, data: turtleWithPhoto, secret });
@@ -143,6 +159,8 @@ export const launchManagedTurtle = async (req, res, next) => {
       hub_id: hubId,
       boat_id: boatId,
       turtle_manager: turtleManager,
+      control_battery_capacity_ah: toOptionalPositiveFloat(req.body?.control_battery_capacity_ah),
+      servo_battery_capacity_ah: toOptionalPositiveFloat(req.body?.servo_battery_capacity_ah),
       secret_hash: secretHash
     };
 

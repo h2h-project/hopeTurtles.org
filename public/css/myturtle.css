@@ -146,6 +146,10 @@
   gap: 14px;
 }
 
+.battery-daily-grid {
+  margin-bottom: 20px;
+}
+
 .metric-card {
   background: var(--color-mist, #f2f9f3);
   border: 1px solid rgba(1, 121, 25, 0.12);
