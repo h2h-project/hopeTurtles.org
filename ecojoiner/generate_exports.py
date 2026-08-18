@@ -539,9 +539,9 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
     standard_slot_depth = math.ceil(john_height / 2)
     # The Master John's groove is normally half the port height, but that can
     # run deeper than the slat itself is tall — capped so the cut never
-    # removes more than a third of the John's own height, keeping enough
+    # removes more than 60% of the John's own height, keeping enough
     # material below the groove intact.
-    master_slot_depth = min(math.floor(port_height / 2), math.floor(john_height / 3))
+    master_slot_depth = min(math.floor(port_height / 2), math.floor(john_height * 0.6))
 
     # Internal spans for Long John vs Little/Master John.
     long_end_span = port_length
@@ -972,9 +972,9 @@ john_height = port_height - 2 * slat_thickness;
 john_length = 2 * port_length + port_height + 4 * slat_thickness;
 slot_width = slat_thickness + fit_clearance;
 standard_slot_depth = ceil(john_height / 2);
-// Capped so the Master John's groove never removes more than a third of
-// its own height.
-master_slot_depth = min(floor(port_height / 2), floor(john_height / 3));
+// Capped so the Master John's groove never removes more than 60% of its
+// own height.
+master_slot_depth = min(floor(port_height / 2), floor(john_height * 0.6));
 long_end_span = port_length;
 long_center_span = port_height + 2 * slat_thickness;
 little_end_span = port_length + slat_thickness;
@@ -1519,7 +1519,6 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # column (they used to sit right under the Derived-dimensions notes,
     # leaving a large empty gap between them and the footer) so they split
     # the column's leftover vertical space more evenly.
-    right_x = page_w - margin - 205
     right_y = 170
 
     # Right-aligned to the page's own right margin rather than left-anchored
@@ -1529,8 +1528,12 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     fk_w = d.final_key_length * fk_scale
     fk_h = d.final_key_width * fk_scale
     fk_x = page_w - margin - fk_w
+    # Title sits a fixed clearance above the box's own top edge (rather than
+    # a fixed page position) so a taller box — a thicker board means a taller
+    # final_key_width — never runs up into the title text.
+    fk_title_gap = 14
     c.setFont(title_font, 9)
-    c.drawString(fk_x, right_y + 118, "Final Key x 4")
+    c.drawString(fk_x, right_y + 90 + fk_h + fk_title_gap, "Final Key x 4")
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.rect(fk_x, right_y + 90, fk_w, fk_h, fill=0, stroke=1)
@@ -1543,12 +1546,19 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         ext1=(fk_x, right_y + 90), ext2=(fk_x, right_y + 90 + fk_h),
     )
 
-    # Presser top view and side/section view directly below it.
-    p_top_cx = right_x + 58
+    # Presser top view and side/section view directly below it. Right-aligned
+    # to the page margin like the Final Key above: the through-hole label
+    # sits to the right of the circle, so the circle's centre is pulled left
+    # by the label's own rendered width, keeping the label's right edge (not
+    # the circle's) flush with the margin.
     p_top_cy = right_y + 10
     p_r = 22
+    through_hole_text = T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter))
+    through_hole_text_w = c.stringWidth(through_hole_text, body_font, 6)
+    label_gap = 12
+    p_top_cx = page_w - margin - through_hole_text_w - label_gap - p_r
     c.setFont(title_font, 9)
-    c.drawString(right_x, p_top_cy + 46, "Presser x 12")
+    c.drawString(p_top_cx - p_r, p_top_cy + 46, "Presser x 12")
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
@@ -1558,7 +1568,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
     )
     c.setFont(body_font, 6)
-    c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter)))
+    c.drawString(p_top_cx + p_r + label_gap, p_top_cy + 8, through_hole_text)
 
     # Side/section view under top view. Uses the same points-per-mm scale as
     # the top view (derived from p_r / presser radius) so the two views
