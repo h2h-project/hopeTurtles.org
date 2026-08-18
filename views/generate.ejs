@@ -45,19 +45,14 @@
 
   <div class="eco-fields eco-profile-picker-row">
     <label class="eco-field">
-      <span class="eco-field__label">Load a saved ecojoiner design</span>
+      <span class="eco-field__label">Load a saved design</span>
       <select id="eco-design-picker" data-eco-design-picker>
         <option value="">Start a new design</option>
       </select>
     </label>
+    <input type="hidden" id="eco-profile-picker" data-eco-profile-picker value="" />
     <label class="eco-field">
-      <span class="eco-field__label">Load a saved bottle profile</span>
-      <select id="eco-profile-picker" data-eco-profile-picker>
-        <option value="">Start a new profile</option>
-      </select>
-    </label>
-    <label class="eco-field">
-      <span class="eco-field__label">PDF language</span>
+      <span class="eco-field__label">Export language</span>
       <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
       <select id="eco-pdf-lang" name="pdfLang">
         <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>

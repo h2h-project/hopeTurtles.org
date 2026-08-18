@@ -23,9 +23,8 @@ Important design notes:
     accepts cap_diameter and collar_diameter because the form collects both.
   - John screw holes are M6 pilot holes: cut as diameter 4.5mm so the screw
     thread can bite into wood.
-  - Pressers use a through M6 pilot hole, plus a top nut recess:
-      * through hole: diameter 4.5mm through
-      * nut recess: diameter 10mm x 5mm deep
+  - Pressers use a through M6 pilot hole only (diameter 4.5mm through) —
+    the nut recess was removed in v3.2.
 
 Expected backend usage:
   1. Receive POST fields from /ecojoiners/generate.
@@ -271,11 +270,6 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "id": "Lubang tembus M6: ⌀{value}mm",
         "tr": "M6 geçme deliği: ⌀{value}mm",
     },
-    "nut_recess_label": {
-        "en": "nut recess: ⌀{diam}mm x {depth}mm deep",
-        "id": "dudukan mur: ⌀{diam}mm x {depth}mm dalam",
-        "tr": "somun yuvası: ⌀{diam}mm x {depth}mm derinlik",
-    },
     "version_credit": {
         "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.",
         "id": "Versi {version} dari Ecojoiner. Ditemukan oleh Russell Maier. Direkayasa oleh Richard Graham. Lihat ecobricks.org/ecojoiner.",
@@ -388,8 +382,6 @@ class EcojoinerDerived:
     presser_diameter: float
     presser_thickness: float
     presser_through_hole_diameter: float
-    presser_nut_recess_diameter: float
-    presser_nut_recess_depth: float
 
 
 @dataclass(frozen=True)
@@ -545,7 +537,11 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
 
     # In the Johns, slots are cut downward from the top edge.
     standard_slot_depth = math.ceil(john_height / 2)
-    master_slot_depth = math.floor(port_height / 2)
+    # The Master John's groove is normally half the port height, but that can
+    # run deeper than the slat itself is tall — capped so the cut never
+    # removes more than a third of the John's own height, keeping enough
+    # material below the groove intact.
+    master_slot_depth = min(math.floor(port_height / 2), math.floor(john_height / 3))
 
     # Internal spans for Long John vs Little/Master John.
     long_end_span = port_length
@@ -583,8 +579,6 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
         presser_diameter=presser_diameter,
         presser_thickness=slat,
         presser_through_hole_diameter=inputs.screw_diameter,
-        presser_nut_recess_diameter=10.0,
-        presser_nut_recess_depth=5.0,
     )
 
 
@@ -718,7 +712,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             x += d.final_key_length + gap
         y += row_h
 
-        # Pressers on one or more rows. Main circle, through hole, and nut recess mark.
+        # Pressers on one or more rows. Main circle and through hole.
         x = margin
         for i in range(PART_QUANTITIES["Presser"]):
             if x + d.presser_diameter > width - margin:
@@ -727,7 +721,6 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             out += f'  <g id="presser_{i+1}" transform="translate({x:.3f} {y:.3f})">\n'
             out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_diameter, "cut")
             out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_through_hole_diameter, "cut")
-            out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_nut_recess_diameter, "mark")
             out += _label(0, -3, f"Presser {i+1}")
             out += "  </g>\n"
             x += d.presser_diameter + gap
@@ -746,7 +739,6 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         out += f'  <g id="presser" transform="translate({x2:.3f} {margin + d.final_key_width + gap:.3f})">\n'
         out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_diameter, "cut")
         out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_through_hole_diameter, "cut")
-        out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_nut_recess_diameter, "mark")
         out += _label(0, -3, "Presser x12")
         out += "  </g>\n"
 
@@ -900,7 +892,6 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             cx, cy = x + d.presser_diameter / 2, y + d.presser_diameter / 2
             _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
             _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
-            _dxf_circle(msp, cx, cy, d.presser_nut_recess_diameter, DXF_MARK_LAYER)
             _dxf_label(msp, x, y - 3, f"Presser {i+1}")
             x += d.presser_diameter + gap
     else:
@@ -926,7 +917,6 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         cx, cy = x2 + d.presser_diameter / 2, presser_y + d.presser_diameter / 2
         _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
         _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
-        _dxf_circle(msp, cx, cy, d.presser_nut_recess_diameter, DXF_MARK_LAYER)
         _dxf_label(msp, x2, presser_y - 3, "Presser x12")
 
     doc.saveas(str(path))
@@ -982,7 +972,9 @@ john_height = port_height - 2 * slat_thickness;
 john_length = 2 * port_length + port_height + 4 * slat_thickness;
 slot_width = slat_thickness + fit_clearance;
 standard_slot_depth = ceil(john_height / 2);
-master_slot_depth = floor(port_height / 2);
+// Capped so the Master John's groove never removes more than a third of
+// its own height.
+master_slot_depth = min(floor(port_height / 2), floor(john_height / 3));
 long_end_span = port_length;
 long_center_span = port_height + 2 * slat_thickness;
 little_end_span = port_length + slat_thickness;
@@ -993,8 +985,6 @@ final_key_length = port_height + 4 * slat_thickness;
 final_key_width = 2 * slat_thickness;
 presser_diameter = max(1, cap_diameter - 1);
 presser_through_hole_diameter = screw_diameter;
-presser_nut_recess_diameter = 10;
-presser_nut_recess_depth = 5;
 
 // ---------- Safety checks ----------
 assert(slat_thickness >= 3 && slat_thickness <= 30, "slat_thickness out of range");
@@ -1075,8 +1065,6 @@ module presser_2d() {{
     circle(d=presser_diameter);
     circle(d=presser_through_hole_diameter);
   }}
-  // Nut recess is not a through-cut. It is shown as a faint reference circle.
-  %circle(d=presser_nut_recess_diameter);
 }}
 
 // ---------- 3D parts ----------
@@ -1089,12 +1077,10 @@ module presser() {{
   if (output_mode == "cut_2d") {{
     presser_2d();
   }} else {{
-    // 3D view with through hole and top nut recess.
+    // 3D view with through hole.
     difference() {{
       cylinder(d=presser_diameter, h=slat_thickness);
       translate([0,0,-0.1]) cylinder(d=presser_through_hole_diameter, h=slat_thickness + 0.2);
-      translate([0,0,slat_thickness - presser_nut_recess_depth])
-        cylinder(d=presser_nut_recess_diameter, h=presser_nut_recess_depth + 0.1);
     }}
     part_label("Presser x 12", presser_diameter, presser_diameter);
   }}
@@ -1536,19 +1522,25 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     right_x = page_w - margin - 205
     right_y = 170
 
-    c.setFont(title_font, 9)
-    c.drawString(right_x, right_y + 118, "Final Key x 4")
+    # Right-aligned to the page's own right margin rather than left-anchored
+    # at the column boundary, which used to leave it hugging the boundary
+    # with the Johns instead of sitting out at the page edge.
     fk_scale = min(1.0, 190 / d.final_key_length)
+    fk_w = d.final_key_length * fk_scale
+    fk_h = d.final_key_width * fk_scale
+    fk_x = page_w - margin - fk_w
+    c.setFont(title_font, 9)
+    c.drawString(fk_x, right_y + 118, "Final Key x 4")
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
-    c.rect(right_x, right_y + 90, d.final_key_length * fk_scale, d.final_key_width * fk_scale, fill=0, stroke=1)
+    c.rect(fk_x, right_y + 90, fk_w, fk_h, fill=0, stroke=1)
     _draw_dimension_line(
-        c, right_x, right_y + 74, right_x + d.final_key_length * fk_scale, right_y + 74, f"{_ceil_mm(d.final_key_length)}mm", body_font, 5,
-        ext1=(right_x, right_y + 90), ext2=(right_x + d.final_key_length * fk_scale, right_y + 90),
+        c, fk_x, right_y + 74, fk_x + fk_w, right_y + 74, f"{_ceil_mm(d.final_key_length)}mm", body_font, 5,
+        ext1=(fk_x, right_y + 90), ext2=(fk_x + fk_w, right_y + 90),
     )
     _draw_dimension_line(
-        c, right_x - 7, right_y + 90, right_x - 7, right_y + 90 + d.final_key_width * fk_scale, f"{_ceil_mm(d.final_key_width)}mm", body_font, 5, label_side="left",
-        ext1=(right_x, right_y + 90), ext2=(right_x, right_y + 90 + d.final_key_width * fk_scale),
+        c, fk_x - 7, right_y + 90, fk_x - 7, right_y + 90 + fk_h, f"{_ceil_mm(d.final_key_width)}mm", body_font, 5, label_side="left",
+        ext1=(fk_x, right_y + 90), ext2=(fk_x, right_y + 90 + fk_h),
     )
 
     # Presser top view and side/section view directly below it.
@@ -1561,23 +1553,19 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setLineWidth(1)
     c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
     c.circle(p_top_cx, p_top_cy, p_r * d.presser_through_hole_diameter / d.presser_diameter, stroke=1, fill=0)
-    c.setDash(2, 2)
-    c.circle(p_top_cx, p_top_cy, p_r * d.presser_nut_recess_diameter / d.presser_diameter, stroke=1, fill=0)
-    c.setDash()
     _draw_dimension_line(
         c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{_ceil_mm(d.presser_diameter)}mm", body_font, 5,
         ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
     )
     c.setFont(body_font, 6)
     c.drawString(p_top_cx + p_r + 12, p_top_cy + 8, T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter)))
-    c.drawString(p_top_cx + p_r + 12, p_top_cy - 2, T(lang, "nut_recess_label", diam=_ceil_mm(d.presser_nut_recess_diameter), depth=_ceil_mm(d.presser_nut_recess_depth)))
 
     # Side/section view under top view. Uses the same points-per-mm scale as
     # the top view (derived from p_r / presser radius) so the two views
     # depict the same physical part at matching sizes - the section's width
-    # equals the top view's diameter, and its through-hole/recess widths
-    # match the top view's hole/recess circles, rather than being drawn at
-    # unrelated fixed sizes.
+    # equals the top view's diameter, and its through-hole width matches the
+    # top view's hole circle, rather than being drawn at an unrelated fixed
+    # size.
     presser_scale = p_r / (d.presser_diameter / 2)
     side_w = d.presser_diameter * presser_scale
     side_h = d.presser_thickness * presser_scale
@@ -1589,17 +1577,9 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # Through hole in section.
     hole_w = d.presser_through_hole_diameter * presser_scale
     c.rect(p_top_cx - hole_w / 2, side_y, hole_w, side_h, fill=0, stroke=1)
-    # Recess from top.
-    recess_w = d.presser_nut_recess_diameter * presser_scale
-    recess_h = d.presser_nut_recess_depth * presser_scale
-    c.rect(p_top_cx - recess_w / 2, side_y + side_h - recess_h, recess_w, recess_h, fill=0, stroke=1)
     _draw_dimension_line(
         c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{_ceil_mm(d.presser_thickness)}mm", body_font, 5,
         ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
-    )
-    _draw_dimension_line(
-        c, p_top_cx + recess_w / 2 + 6, side_y + side_h - recess_h, p_top_cx + recess_w / 2 + 6, side_y + side_h, f"{_ceil_mm(d.presser_nut_recess_depth)}mm", body_font, 5,
-        ext1=(p_top_cx + recess_w / 2, side_y + side_h - recess_h), ext2=(p_top_cx + recess_w / 2, side_y + side_h),
     )
 
     # Credit box, sized to hug its two lines of text rather than leaving a

@@ -574,6 +574,10 @@
       }
       lastGenerated = body.data;
       renderDownloads(body.data);
+      // Autosave the working bottle profile + a draft design behind the
+      // files just generated, so it's there even if the user never opens
+      // the Save dialog to name it.
+      await saveWorkingDraft();
     } catch (error) {
       renderErrors(s("gen_res_err_network"), [error.message]);
     } finally {
@@ -730,25 +734,18 @@
     updateSaveChangesVisibility();
   };
 
+  // The Step 1 profile picker was removed from the UI (redundant with the
+  // design picker, which already loads a design's bottle profile) — this
+  // hidden input just tracks which profile_id, if any, is currently loaded.
   const loadProfiles = async () => {
-    if (!profilePicker) return;
     try {
       const response = await fetch("/api/ecojoiner/profiles");
       const body = await response.json().catch(() => ({}));
       if (!response.ok || !body.success) return;
       profilesById = {};
-      const selected = profilePicker.value;
-      profilePicker
-        .querySelectorAll('option[value]:not([value=""])')
-        .forEach((opt) => opt.remove());
       (body.data || []).forEach((profile) => {
         profilesById[profile.profile_id] = profile;
-        const option = document.createElement("option");
-        option.value = String(profile.profile_id);
-        option.textContent = profile.label;
-        profilePicker.appendChild(option);
       });
-      if (selected && profilesById[selected]) profilePicker.value = selected;
     } catch {
       // A saved-profile list failing to load isn't fatal — the form still
       // works for a fresh, unsaved bottle.
@@ -807,19 +804,8 @@
     saveProfileChangesFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
   };
 
-  if (profilePicker) {
-    loadProfiles();
-    updateSaveProfileVisibility();
-    profilePicker.addEventListener("change", () => {
-      const profile = profilesById[profilePicker.value];
-      if (profile) applyProfileToForm(profile);
-      else loadedProfileSpecs = null;
-      updateSaveProfileVisibility();
-      updateSaveChangesVisibility();
-      setSaveProfileFeedback("");
-      setSaveProfileChangesFeedback("");
-    });
-  }
+  loadProfiles();
+  updateSaveProfileVisibility();
 
   form.addEventListener("input", (event) => {
     if (SPEC_FIELD_IDS.includes(event.target.id)) updateSaveChangesVisibility();
@@ -875,6 +861,17 @@
           profilePicker.value = String(body.data.profile_id);
         }
         updateSaveProfileVisibility();
+
+        // Saving the bottle profile also saves a draft ecojoiner design
+        // behind it, so the working design isn't lost before it's named
+        // and officially saved via the Save dialog.
+        if (body.data && body.data.profile_id) {
+          try {
+            await syncDraftDesign(String(body.data.profile_id), trimmedLabel);
+          } catch (designError) {
+            console.error("Failed to save draft ecojoiner design", designError);
+          }
+        }
       } catch (error) {
         setSaveProfileFeedback(
           error.message || s("gen_save_profile_error"),
@@ -958,38 +955,30 @@
     return snapshot.label || snapshot.brand || "Untitled design";
   };
 
+  // Only the user's own designs are listed here — showing everyone's public
+  // designs alongside them was confusing users about what "start a new
+  // design" meant. Someone else's public design can still be opened via a
+  // shared link (?design=123), which bypasses this picker entirely.
   const loadDesignsList = async () => {
     if (!designPicker) return;
     try {
-      const [ownResponse, publicResponse] = await Promise.all([
-        fetch("/api/ecojoiner/designs"),
-        fetch("/api/ecojoiner/designs/public"),
-      ]);
-      const ownBody = await ownResponse.json().catch(() => ({}));
-      const publicBody = await publicResponse.json().catch(() => ({}));
-      const own = ownResponse.ok && ownBody.success ? ownBody.data || [] : [];
-      const pub =
-        publicResponse.ok && publicBody.success ? publicBody.data || [] : [];
+      const response = await fetch("/api/ecojoiner/designs");
+      const body = await response.json().catch(() => ({}));
+      const own = response.ok && body.success ? body.data || [] : [];
 
       designsById = {};
       const selected = designPicker.value;
-      designPicker.querySelectorAll("optgroup").forEach((group) => group.remove());
+      designPicker
+        .querySelectorAll('option[value]:not([value=""])')
+        .forEach((opt) => opt.remove());
 
-      const addGroup = (label, designs, isOwner) => {
-        if (!designs.length) return;
-        const group = document.createElement("optgroup");
-        group.label = label;
-        designs.forEach((design) => {
-          designsById[design.design_id] = { ...design, is_owner: isOwner };
-          const option = document.createElement("option");
-          option.value = String(design.design_id);
-          option.textContent = designOptionLabel(design);
-          group.appendChild(option);
-        });
-        designPicker.appendChild(group);
-      };
-      addGroup("My designs", own, true);
-      addGroup("Public designs", pub, false);
+      own.forEach((design) => {
+        designsById[design.design_id] = { ...design, is_owner: true };
+        const option = document.createElement("option");
+        option.value = String(design.design_id);
+        option.textContent = designOptionLabel(design);
+        designPicker.appendChild(option);
+      });
 
       if (selected && designsById[selected]) designPicker.value = selected;
     } catch {
@@ -1085,6 +1074,113 @@
   } else if (initialDesignId) {
     loadDesignById(initialDesignId);
   }
+
+  // --- Working-draft autosave ------------------------------------------------
+  // "Save bottle profile" (Step 2) and a successful "Generate my files" both
+  // silently persist the current bottle profile plus a draft ecojoiner
+  // design behind it, so nothing typed is lost even before the user opens
+  // the named Save dialog. No job_id/files are attached here, so the design
+  // row stays status="draft" server-side — only the Save dialog (which does
+  // attach them) flips it to "generated".
+
+  // Creates a new bottle profile, or updates the one already loaded, from
+  // whatever is currently on screen. Returns the profile_id, or null if the
+  // save failed.
+  const syncBottleProfile = async (label) => {
+    const values = collect();
+    const existingProfileId = profilePicker && profilePicker.value;
+    if (existingProfileId) {
+      const formData = profileFormData(values);
+      const response = await fetch(
+        `/api/ecojoiner/profiles/${existingProfileId}`,
+        { method: "PUT", body: formData },
+      );
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.success) return null;
+      return existingProfileId;
+    }
+    const formData = profileFormData(values, { label });
+    const response = await fetch("/api/ecojoiner/profiles", {
+      method: "POST",
+      body: formData,
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.success) return null;
+    const profileId = body.data && body.data.profile_id;
+    if (profilePicker && profileId) profilePicker.value = String(profileId);
+    return profileId;
+  };
+
+  // Creates or (for an already-owned design) updates the draft design tied
+  // to `profileId`, capturing the current ecojoiner type / fabrication
+  // formats / connection fit.
+  const syncDraftDesign = async (profileId, label) => {
+    if (!profileId) return;
+    const values = collect();
+    const formData = new FormData();
+    formData.set("profile_id", profileId);
+    formData.set("ecojoinerType", values.ecojoinerType || "6fc");
+    formData.set("portFitMm", values.portFitMm);
+    formData.set(
+      "formats",
+      JSON.stringify(
+        Object.entries({ fabCarpentry: "pdf", fab3d: "scad", fabSvg: "svg" })
+          .filter(([key]) => values[key])
+          .map(([, format]) => format),
+      ),
+    );
+    formData.set(
+      "visibility",
+      loadedDesign && loadedDesign.visibility === "public" ? "public" : "private",
+    );
+
+    const editingOwnDesign = Boolean(
+      loadedDesign && loadedDesign.is_owner && loadedDesign.design_id,
+    );
+    const url = editingOwnDesign
+      ? `/api/ecojoiner/designs/${encodeURIComponent(loadedDesign.design_id)}`
+      : "/api/ecojoiner/designs";
+    const response = await fetch(url, {
+      method: editingOwnDesign ? "PUT" : "POST",
+      body: formData,
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.success) return;
+
+    loadedDesign = {
+      design_id: body.data.design_id,
+      label,
+      visibility: body.data.visibility,
+      is_owner: true,
+      ecojoiner_photo_url: (loadedDesign && loadedDesign.ecojoiner_photo_url) || null,
+    };
+    loadDesignsList();
+  };
+
+  // Best-effort: saves the profile, then the draft design behind it. Silent
+  // on failure — this is a convenience autosave, not something that should
+  // block Save Bottle Profile or Generate from otherwise succeeding.
+  const saveWorkingDraft = async () => {
+    const values = collect();
+    const required = ["brand", "volume", "diameter", "cap", "collar", "topTapper", "thickness"];
+    const missing = required.some(
+      (key) => values[key] === "" || values[key] === null || values[key] === undefined,
+    );
+    if (missing) return;
+    const label = values.volume ? `${values.brand} ${values.volume}ml` : values.brand;
+    try {
+      const profileId = await syncBottleProfile(label);
+      if (!profileId) return;
+      await loadProfiles();
+      loadedProfileSpecs = currentSpecValues();
+      updateSaveProfileVisibility();
+      updateSaveChangesVisibility();
+      await syncDraftDesign(profileId, label);
+    } catch {
+      // Autosave failures shouldn't surface — Save Bottle Profile / Generate
+      // already show their own success/error feedback for the parts that matter.
+    }
+  };
 
   // --- Save flow ------------------------------------------------------------
 
