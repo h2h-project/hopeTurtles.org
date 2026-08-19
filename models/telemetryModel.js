@@ -189,6 +189,11 @@ telemetryModel.deleteByIdsForTurtle = async (telemetryIds, turtleId) => {
   return result.affectedRows ?? 0;
 };
 
+telemetryModel.deleteAllForTurtle = async (turtleId) => {
+  const result = await query('DELETE FROM telemetry_tb WHERE turtle_id = ?', [turtleId]);
+  return result.affectedRows ?? 0;
+};
+
 telemetryModel.getLatestForTurtle = async (turtleId) => {
   const rows = await query(
     'SELECT * FROM telemetry_tb WHERE turtle_id = ? ORDER BY `timestamp` DESC LIMIT 1',

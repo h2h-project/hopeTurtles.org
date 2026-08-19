@@ -319,6 +319,21 @@
       </div>
     </div>
   </section>
+
+  <!-- 6. Danger Zone -->
+  <section class="myturtle-panel danger-zone" id="danger-zone">
+    <h2><%= t.myturtle_danger_zone || 'Danger Zone' %></h2>
+    <div class="danger-zone__row">
+      <div>
+        <p class="danger-zone__title"><%= t.myturtle_clear_telemetry_title || 'Clear all telemetry data' %></p>
+        <p class="muted tiny"><%= t.myturtle_clear_telemetry_desc || 'Permanently deletes every telemetry reading ever recorded for this turtle — packets, trends, and location history. This cannot be undone.' %></p>
+      </div>
+      <button class="button danger" type="button" data-clear-all-telemetry>
+        <%= t.myturtle_clear_telemetry_button || 'Clear All Telemetry Data' %>
+      </button>
+    </div>
+    <span class="tiny error-text" data-clear-all-error hidden></span>
+  </section>
 </main>
 <dialog id="packetDetailDialog" class="packet-detail-dialog" aria-labelledby="packetDetailTitle" aria-modal="true">
   <div class="packet-detail-card">

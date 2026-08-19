@@ -1247,6 +1247,42 @@
     renderPackets();
   }
 
+  // ── Danger zone: clear all telemetry ────────────────────────────────────
+
+  const clearAllBtn = main.querySelector('[data-clear-all-telemetry]');
+  const clearAllErrorEl = main.querySelector('[data-clear-all-error]');
+
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', async () => {
+      const confirmed = window.confirm(
+        `Delete ALL telemetry data for ${turtleName}? This permanently removes every reading — packets, trends, and location history — and cannot be undone.`
+      );
+      if (!confirmed) return;
+
+      clearAllErrorEl.hidden = true;
+      clearAllBtn.disabled = true;
+      try {
+        const res = await fetch(`/api/telemetry/${turtleId}/readings/all`, {
+          method: 'DELETE',
+          credentials: 'same-origin'
+        });
+        const body = await res.json().catch(() => null);
+        if (!res.ok || !body || body.success !== true) {
+          throw new Error((body && body.message) || `HTTP ${res.status}`);
+        }
+        selectedPacketIds.clear();
+        clearTrendsCache();
+        await Promise.all([refreshPackets(), refreshTrends(), refreshDailyEnergy(), refreshBatteryKpis()]);
+        if (gpsMode === 'route') renderRouteMode();
+      } catch (err) {
+        clearAllErrorEl.textContent = `Delete failed: ${err.message}`;
+        clearAllErrorEl.hidden = false;
+      } finally {
+        clearAllBtn.disabled = false;
+      }
+    });
+  }
+
   // ── Theme change → restyle charts ────────────────────────────────────────
 
   new MutationObserver(() => {

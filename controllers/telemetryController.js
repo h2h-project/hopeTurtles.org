@@ -201,11 +201,29 @@ export const deleteTurtleTelemetry = async (req, res, next) => {
   }
 };
 
+export const deleteAllTurtleTelemetry = async (req, res, next) => {
+  try {
+    const turtleId = req.params.turtle_id;
+    const turtle = await resolveManagedTurtle(req, res, turtleId);
+    if (!turtle) {
+      return undefined;
+    }
+
+    // Note: leaves turtles_tb.last_lat/last_update stale until the next
+    // reading arrives — same tradeoff as the selective delete above.
+    const deleted = await telemetryModel.deleteAllForTurtle(turtleId);
+    return res.json({ success: true, data: { deleted } });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   getTelemetryForTurtle,
   getLatestTelemetry,
   getTurtleTrends,
   getDailyEnergy,
   getBatteryKpis,
-  deleteTurtleTelemetry
+  deleteTurtleTelemetry,
+  deleteAllTurtleTelemetry
 };

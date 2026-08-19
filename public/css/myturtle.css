@@ -53,6 +53,27 @@
   margin: 0 0 0.75rem;
 }
 
+.danger-zone {
+  border: 1px solid rgba(220, 53, 69, 0.4);
+}
+
+.danger-zone h2 {
+  color: #dc3545;
+}
+
+.danger-zone__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.danger-zone__title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;
