@@ -7,7 +7,8 @@
 -- telemetry packet integrates ina_current_ma over the elapsed time since the
 -- previous packet into a running SoC%, anchored back to 100%/0% at charger
 -- termination / near-empty voltage to bound long-run drift. See
--- controllers/deviceApiController.js and utils/batterySoc.js.
+-- controllers/deviceApiController.js and utils/batterySoc.js.  ya yada
+
 --
 -- turtles_tb gets the battery capacities (coulomb counting's denominator)
 -- and the latest running SoC + its reference timestamp, so the integration
