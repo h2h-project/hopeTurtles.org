@@ -185,7 +185,9 @@ export const updateTurtle = async (req, res, next) => {
       status: statusRaw ? normalizeStatus(statusRaw) : null,
       mission_id: missionId,
       hub_id: hubId,
-      boat_id: boatId
+      boat_id: boatId,
+      control_battery_capacity_ah: toOptionalPositiveFloat(req.body?.control_battery_capacity_ah),
+      servo_battery_capacity_ah: toOptionalPositiveFloat(req.body?.servo_battery_capacity_ah)
     };
 
     const turtle = await turtlesModel.update(req.params.id, payload);

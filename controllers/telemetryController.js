@@ -1,6 +1,15 @@
 import { isAdminRole } from '../utils/roles.js';
 import telemetryModel from '../models/telemetryModel.js';
 import turtlesModel from '../models/turtlesModel.js';
+import {
+  computeSocSeries,
+  computeMinSocKpis,
+  computeOvernightDrawdowns,
+  worstOvernightDrawdown,
+  computeDailyNetEnergy,
+  excludeInProgressDay,
+  computeDeficitStreaks
+} from '../utils/batteryKpis.js';
 
 export const getTelemetryForTurtle = async (req, res, next) => {
   try {
@@ -112,6 +121,64 @@ export const getDailyEnergy = async (req, res, next) => {
   }
 };
 
+// Three battery-health KPIs computed on demand from raw current/voltage via
+// coulomb counting — see utils/batteryKpis.js. Min SoC is tracked over fixed
+// 7-day/all-time windows regardless of the requested range; overnight
+// drawdown and deficit-day streaks are scoped to `hours` (same semantics as
+// getTurtleTrends' range bar).
+export const getBatteryKpis = async (req, res, next) => {
+  try {
+    const turtleId = req.params.turtle_id;
+    const turtle = await resolveManagedTurtle(req, res, turtleId);
+    if (!turtle) {
+      return undefined;
+    }
+
+    const parsedHours = Number.parseFloat(req.query.hours);
+    const rangeHours = Number.isFinite(parsedHours) ? Math.min(Math.max(parsedHours, 0.25), 721) : 721;
+    const nowUnix = Math.floor(Date.now() / 1000);
+    const rangeStartUnix = nowUnix - rangeHours * 3600;
+
+    const rawRows = await telemetryModel.getBatteryReadingsForTurtle(turtleId);
+    const readings = rawRows
+      .map((row) => ({
+        ts: toNumberOrNull(row.ts),
+        currentMa: toNumberOrNull(row.ina_current_ma),
+        busV: toNumberOrNull(row.ina_bus_v)
+      }))
+      .filter((row) => Number.isFinite(row.ts));
+
+    const capacityAh = toNumberOrNull(turtle.control_battery_capacity_ah) ?? 4.2;
+    const socSeries = computeSocSeries(readings, { capacityAh });
+    const minSoc = computeMinSocKpis(socSeries, nowUnix);
+
+    const rangeReadings = readings.filter((row) => row.ts >= rangeStartUnix);
+
+    const nights = computeOvernightDrawdowns(rangeReadings);
+    const worstNight = worstOvernightDrawdown(nights);
+
+    const timeZone = await turtlesModel.getManagerTimeZone(turtleId);
+    const days = excludeInProgressDay(
+      computeDailyNetEnergy(rangeReadings, { timeZone }),
+      nowUnix,
+      timeZone
+    );
+    const deficitStreaks = computeDeficitStreaks(days);
+
+    return res.json({
+      success: true,
+      data: {
+        rangeHours,
+        minSoc,
+        overnightDrawdown: { worst: worstNight, nights },
+        deficitDays: { ...deficitStreaks, days }
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const deleteTurtleTelemetry = async (req, res, next) => {
   try {
     const turtleId = req.params.turtle_id;
@@ -139,5 +206,6 @@ export default {
   getLatestTelemetry,
   getTurtleTrends,
   getDailyEnergy,
+  getBatteryKpis,
   deleteTurtleTelemetry
 };

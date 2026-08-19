@@ -534,6 +534,7 @@
     universalRange = key;
     setActiveRange(universalRangeBars, key);
     refreshTrends();
+    refreshBatteryKpis();
   }
 
   universalRangeBars.forEach((bar) =>
@@ -858,6 +859,72 @@
   }
 
   setInterval(refreshDailyEnergy, 300000);
+
+  // ── Battery KPI tiles (min SoC, overnight drawdown, deficit-day streak) ──
+
+  function setKpiValue(key, text) {
+    const el = main.querySelector(`[data-kpi-value="${key}"]`);
+    if (el) el.textContent = text;
+  }
+
+  function setKpiSub(key, text) {
+    const el = main.querySelector(`[data-kpi-sub="${key}"]`);
+    if (el) el.textContent = text;
+  }
+
+  const formatKpiDate = (unixSeconds) =>
+    Number.isFinite(Number(unixSeconds)) ? fmtTimeFull.format(new Date(Number(unixSeconds) * 1000)) : '—';
+
+  const formatDayKey = (dayKey) => {
+    if (!dayKey) return '—';
+    const d = new Date(`${dayKey}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? dayKey : fmtAxisDay.format(d);
+  };
+
+  function renderBatteryKpis(data) {
+    const minSoc = data && data.minSoc;
+    const min7d = minSoc && minSoc.last7d;
+    const minAll = minSoc && minSoc.allTime;
+    setKpiValue('min-soc-7d', min7d ? formatMetric(min7d.pct, 0) : '--');
+    setKpiSub('min-soc-7d', min7d ? `7-day · ${formatKpiDate(min7d.atUnix)}` : '7-day · no data yet');
+    setKpiValue('min-soc-alltime', minAll ? formatMetric(minAll.pct, 0) : '--');
+    setKpiSub('min-soc-alltime', minAll ? `All-time · ${formatKpiDate(minAll.atUnix)}` : 'All-time · no data yet');
+
+    const worstNight = data && data.overnightDrawdown && data.overnightDrawdown.worst;
+    setKpiValue('overnight-drawdown', worstNight ? formatMetric(worstNight.wh, 2) : '--');
+    setKpiSub(
+      'overnight-drawdown',
+      worstNight ? `Night of ${formatKpiDate(worstNight.startUnix)}` : 'No qualifying nights in range'
+    );
+
+    const deficit = (data && data.deficitDays) || {};
+    setKpiValue('deficit-streak-current', String(deficit.currentStreak ?? 0));
+    setKpiSub(
+      'deficit-streak-current',
+      deficit.currentStreak ? `Since ${formatDayKey(deficit.currentStreakStart)}` : 'No active streak'
+    );
+    const longest = deficit.longestStreak;
+    setKpiValue('deficit-streak-longest', longest ? String(longest.length) : '0');
+    setKpiSub(
+      'deficit-streak-longest',
+      longest ? `${formatDayKey(longest.startDayKey)} – ${formatDayKey(longest.endDayKey)}` : 'No deficit days in range'
+    );
+  }
+
+  async function refreshBatteryKpis() {
+    const hours = RANGE_FETCH_HOURS[universalRange] ?? 25;
+    try {
+      const res = await fetch(`/api/telemetry/${turtleId}/battery-kpis?hours=${hours}`, {
+        credentials: 'same-origin',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      renderBatteryKpis(body && body.data);
+    } catch (err) {
+      renderBatteryKpis(null);
+    }
+  }
 
   // ── Latest Packets panel ─────────────────────────────────────────────────
 
@@ -1201,4 +1268,5 @@
   refreshLive();
   refreshPackets();
   refreshDailyEnergy();
+  refreshBatteryKpis();
 })();

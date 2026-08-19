@@ -154,6 +154,26 @@ telemetryModel.getDailyEnergyForTurtle = async (turtleId, timeZone = 'Etc/UTC') 
   };
 };
 
+// Raw current/voltage history for the battery KPI engine (utils/batteryKpis.js).
+// Bounded to the most recent `limit` samples — same bounded-fetch approach as
+// getTrendsForTurtle/getDailyEnergyForTurtle — then reversed to ascending so
+// coulomb-counting integration can run forward through time.
+telemetryModel.getBatteryReadingsForTurtle = async (turtleId, limit = 50000) => {
+  const safeLimit = toSafeLimit(limit, 50000, 50000);
+  const sql = `
+    SELECT
+      TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
+      CAST(JSON_EXTRACT(raw_data, '$.values.ina_bus_v') AS DOUBLE) AS ina_bus_v,
+      CAST(JSON_EXTRACT(raw_data, '$.values.ina_current_ma') AS DOUBLE) AS ina_current_ma
+    FROM telemetry_tb
+    WHERE turtle_id = ?
+    ORDER BY \`timestamp\` DESC
+    LIMIT ${safeLimit}
+  `;
+  const rows = await query(sql, [turtleId]);
+  return rows.reverse();
+};
+
 telemetryModel.deleteByIdsForTurtle = async (telemetryIds, turtleId) => {
   const ids = (Array.isArray(telemetryIds) ? telemetryIds : [])
     .map((id) => Number.parseInt(id, 10))

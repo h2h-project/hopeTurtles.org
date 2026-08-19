@@ -837,12 +837,23 @@ const populateManageForm = (turtle) => {
     manageTurtleForm.reset();
   }
 
-  const { name, status, missionId, hubId, boatId, photoUrl } = turtle;
+  const {
+    name,
+    status,
+    missionId,
+    hubId,
+    boatId,
+    controlBatteryCapacityAh,
+    servoBatteryCapacityAh,
+    photoUrl
+  } = turtle;
   const nameField = manageTurtleForm.querySelector('[name="name"]');
   const statusField = manageTurtleForm.querySelector('[name="status"]');
   const missionField = manageTurtleForm.querySelector('[name="mission_id"]');
   const hubField = manageTurtleForm.querySelector('[name="hub_id"]');
   const boatField = manageTurtleForm.querySelector('[name="boat_id"]');
+  const controlBatteryField = manageTurtleForm.querySelector('[name="control_battery_capacity_ah"]');
+  const servoBatteryField = manageTurtleForm.querySelector('[name="servo_battery_capacity_ah"]');
 
   if (nameField) {
     nameField.value = name || '';
@@ -858,6 +869,12 @@ const populateManageForm = (turtle) => {
   }
   if (boatField) {
     boatField.value = boatId || '';
+  }
+  if (controlBatteryField) {
+    controlBatteryField.value = controlBatteryCapacityAh || '';
+  }
+  if (servoBatteryField) {
+    servoBatteryField.value = servoBatteryCapacityAh || '';
   }
   updateFeaturePhotoPreview(photoUrl || '');
 };
@@ -886,6 +903,8 @@ const openManageTurtleDialog = (sourceElement) => {
     missionId: row.dataset.turtleMission || '',
     hubId: row.dataset.turtleHub || '',
     boatId: row.dataset.turtleBoat || '',
+    controlBatteryCapacityAh: row.dataset.turtleControlBatteryCapacityAh || '',
+    servoBatteryCapacityAh: row.dataset.turtleServoBatteryCapacityAh || '',
     photoUrl: row.dataset.turtlePhotoUrl || ''
   };
 
@@ -1304,7 +1323,15 @@ if (manageTurtleForm) {
     }
 
     const formData = new FormData(manageTurtleForm);
-    const stringFields = ['name', 'status', 'mission_id', 'hub_id', 'boat_id'];
+    const stringFields = [
+      'name',
+      'status',
+      'mission_id',
+      'hub_id',
+      'boat_id',
+      'control_battery_capacity_ah',
+      'servo_battery_capacity_ah'
+    ];
     stringFields.forEach((field) => {
       const value = formData.get(field);
       if (typeof value === 'string') {

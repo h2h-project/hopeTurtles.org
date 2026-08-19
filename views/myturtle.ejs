@@ -158,6 +158,28 @@
       <div class="range-bar" role="group" aria-label="Time range" data-universal-range-bar></div>
     </div>
 
+    <div class="battery-kpi-grid">
+      <div class="battery-kpi-card" data-kpi="min-soc">
+        <div class="battery-kpi-card__label"><%= t.myturtle_min_soc || 'Minimum SoC Reached' %></div>
+        <div class="battery-kpi-card__value"><span data-kpi-value="min-soc-7d">--</span><span class="battery-kpi-card__unit">%</span></div>
+        <div class="battery-kpi-card__sub" data-kpi-sub="min-soc-7d">7-day</div>
+        <div class="battery-kpi-card__value battery-kpi-card__value--secondary"><span data-kpi-value="min-soc-alltime">--</span><span class="battery-kpi-card__unit">%</span></div>
+        <div class="battery-kpi-card__sub" data-kpi-sub="min-soc-alltime">All-time</div>
+      </div>
+      <div class="battery-kpi-card" data-kpi="overnight-drawdown">
+        <div class="battery-kpi-card__label"><%= t.myturtle_overnight_drawdown || 'Deepest Overnight Drawdown' %></div>
+        <div class="battery-kpi-card__value"><span data-kpi-value="overnight-drawdown">--</span><span class="battery-kpi-card__unit">Wh</span></div>
+        <div class="battery-kpi-card__sub" data-kpi-sub="overnight-drawdown">&nbsp;</div>
+      </div>
+      <div class="battery-kpi-card" data-kpi="deficit-streak">
+        <div class="battery-kpi-card__label"><%= t.myturtle_deficit_streak || 'Consecutive Deficit Days' %></div>
+        <div class="battery-kpi-card__value"><span data-kpi-value="deficit-streak-current">--</span></div>
+        <div class="battery-kpi-card__sub" data-kpi-sub="deficit-streak-current">Current streak</div>
+        <div class="battery-kpi-card__value battery-kpi-card__value--secondary"><span data-kpi-value="deficit-streak-longest">--</span></div>
+        <div class="battery-kpi-card__sub" data-kpi-sub="deficit-streak-longest">Longest streak</div>
+      </div>
+    </div>
+
     <div class="metric-grid battery-daily-grid">
       <div class="metric-card">
         <div class="metric-card__value"><span data-metric="wh-harvested">--</span></div>
