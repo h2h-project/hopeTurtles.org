@@ -141,6 +141,12 @@ const buildIngestArgs = (turtleId, body, batterySocPct = null) => {
   };
 };
 
+// TEMPORARY — set DEBUG_BATTERY_SOC=true to log every SoC integration
+// decision (raw capacity, dt, charge delta, which anchor if any fired, and
+// the resulting SoC) while investigating the SoC-flatlining-at-0 report.
+// Remove this flag and the `debug` plumbing below once confirmed fixed.
+const DEBUG_BATTERY_SOC = String(process.env.DEBUG_BATTERY_SOC || '').toLowerCase() === 'true';
+
 // Integrates one packet's current/voltage into the turtle's running
 // coulomb-counted SoC. `prevState` is the turtle's persisted state
 // (survives restarts); `fallbackPct` seeds SoC on a turtle's very first
@@ -155,7 +161,8 @@ const integrateBatterySoc = (prevState, body) =>
     busV: finiteOrNull(body.values.ina_bus_v),
     recordedAtUnix: body.recorded_at,
     capacityAh: finiteOrNull(prevState.control_battery_capacity_ah),
-    fallbackPct: finiteOrNull(body.values.ina_batt_pct)
+    fallbackPct: finiteOrNull(body.values.ina_batt_pct),
+    debug: DEBUG_BATTERY_SOC
   });
 
 // ------------------------------------------------------------
