@@ -4685,6 +4685,11 @@ label.ht-toggle {
   font-size: 1.05rem;
 }
 
+.turtleos-page .page-banner__actions {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .turtleos-page .layout,
 .ecojoiners-page .layout,
 .about-page .layout {
@@ -4910,6 +4915,7 @@ label.ht-toggle {
 
 .page-split__aside .button {
   width: 100%;
+  box-sizing: border-box;
   justify-content: center;
 }
 
