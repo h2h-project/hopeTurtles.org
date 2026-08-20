@@ -4942,6 +4942,14 @@ label.ht-toggle {
   line-height: 1.6;
 }
 
+.turtleos-pcb-card__caption {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-align: center;
+}
+
 .about-whitepaper-cta {
   display: flex;
   justify-content: center;

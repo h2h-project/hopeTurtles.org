@@ -18,6 +18,9 @@
         <a class="button" href="<%= githubRepo %>" target="_blank" rel="noopener noreferrer">
           <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_view_code %>
         </a>
+        <a class="button" href="<%= turtleShellRepo %>" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_view_pcb %>
+        </a>
       </div>
     </div>
   </section>
@@ -75,27 +78,29 @@
       </div>
 
       <aside class="page-split__aside">
-        <figure class="turtleos-figure">
-          <img src="/images/circuit-dev.webp" alt="<%= t.turtleos_circuit_alt %>" loading="lazy" />
-          <figcaption><%= t.turtleos_circuit_caption %></figcaption>
-        </figure>
+        <div class="turtleos-pcb-card">
+          <figure class="turtleos-figure">
+            <img src="/images/circuit-dev.webp" alt="<%= t.turtleos_circuit_alt %>" loading="lazy" />
+            <figcaption><%= t.turtleos_circuit_caption %></figcaption>
+          </figure>
 
-        <p class="code-copy__caption"><%= t.turtleos_install_caption %></p>
-        <div class="code-copy" data-code-copy>
-          <code class="code-copy__text"><%= installCommand %></code>
-          <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_install_aria %>">
-            <i class="fa-regular fa-copy" aria-hidden="true"></i>
-            <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
-          </button>
-        </div>
+          <p class="code-copy__caption"><%= t.turtleos_install_caption %></p>
+          <div class="code-copy" data-code-copy>
+            <code class="code-copy__text"><%= installCommand %></code>
+            <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_install_aria %>">
+              <i class="fa-regular fa-copy" aria-hidden="true"></i>
+              <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
+            </button>
+          </div>
 
-        <p class="code-copy__caption"><%= t.turtleos_sync_caption %></p>
-        <div class="code-copy" data-code-copy>
-          <code class="code-copy__text"><%= syncCommand %></code>
-          <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_sync_aria %>">
-            <i class="fa-regular fa-copy" aria-hidden="true"></i>
-            <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
-          </button>
+          <p class="code-copy__caption"><%= t.turtleos_sync_caption %></p>
+          <div class="code-copy" data-code-copy>
+            <code class="code-copy__text"><%= syncCommand %></code>
+            <button type="button" class="code-copy__button" data-copy-target aria-label="<%= t.turtleos_copy_sync_aria %>">
+              <i class="fa-regular fa-copy" aria-hidden="true"></i>
+              <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
+            </button>
+          </div>
         </div>
 
         <div class="turtleos-pcb-card">
@@ -105,6 +110,7 @@
           <a class="button" href="<%= turtleShellRepo %>" target="_blank" rel="noopener noreferrer">
             <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_pcb_button %>
           </a>
+          <p class="turtleos-pcb-card__caption"><%= t.turtleos_pcb_button_caption %></p>
         </div>
       </aside>
     </section>
