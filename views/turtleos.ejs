@@ -1,4 +1,5 @@
 <% const githubRepo = 'https://github.com/h2h-project/turtleOS'; %>
+<% const turtleShellRepo = 'https://github.com/h2h-project/turtle_Shells'; %>
 <% const installCommand = 'bash <(curl -fsSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/install_turtleOS.sh)'; %>
 <% const syncCommand = 'bash <(curl -fsSL https://raw.githubusercontent.com/h2h-project/turtleOS/main/scripts/sync_turtleOS.sh)'; %>
 <%- include('partials/header', { pageTitle, theme, lang, direction }) %>
@@ -45,7 +46,7 @@
         </p>
 
         <p>
-          <%= t.turtleos_body_p6 %>
+          <%- t.turtleos_body_p6 %>
         </p>
 
         <p>
@@ -95,6 +96,15 @@
             <i class="fa-regular fa-copy" aria-hidden="true"></i>
             <span class="code-copy__label"><%= t.turtleos_copy_label %></span>
           </button>
+        </div>
+
+        <div class="turtleos-pcb-card">
+          <img class="turtleos-pcb-card__image" src="/images/shell-v1.webp" alt="<%= t.turtleos_pcb_alt %>" loading="lazy" />
+          <h2 class="turtleos-pcb-card__title"><%= t.turtleos_pcb_title %></h2>
+          <p class="turtleos-pcb-card__body"><%= t.turtleos_pcb_body %></p>
+          <a class="button" href="<%= turtleShellRepo %>" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtleos_pcb_button %>
+          </a>
         </div>
       </aside>
     </section>
