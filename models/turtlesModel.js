@@ -117,6 +117,7 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
       t.turtle_manager,
       t.control_battery_capacity_ah,
       t.servo_battery_capacity_ah,
+      t.battery_soc_pct,
       m.full_name AS mission_name,
       h.name AS hub_name,
       b.name AS boat_name,

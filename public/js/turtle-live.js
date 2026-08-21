@@ -18,6 +18,21 @@
   ];
   const DOT_CLASS_NAMES = DOT_THRESHOLDS.map((entry) => entry.className).concat('turtle-live-dot--grey');
 
+  const formatRelativeTime = (value) => {
+    if (!value) {
+      return null;
+    }
+    const then = new Date(value).getTime();
+    if (!Number.isFinite(then)) {
+      return null;
+    }
+    const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`;
+    return `${Math.round(seconds / 86400)}d ago`;
+  };
+
   const applyDotState = () => {
     panel.querySelectorAll('[data-live-dot]').forEach((dot) => {
       const lastUpdate = dot.dataset.lastUpdate ? new Date(dot.dataset.lastUpdate).getTime() : NaN;
@@ -42,8 +57,18 @@
     });
   };
 
+  const applyLastSeenText = () => {
+    panel.querySelectorAll('[data-last-seen]').forEach((el) => {
+      el.textContent = formatRelativeTime(el.dataset.lastUpdate) || 'Never';
+    });
+  };
+
   applyDotState();
-  window.setInterval(applyDotState, 30000);
+  applyLastSeenText();
+  window.setInterval(() => {
+    applyDotState();
+    applyLastSeenText();
+  }, 30000);
 
   // Per-turtle state: { map, marker, pollTimer, loaded }
   const liveState = new Map();
@@ -67,21 +92,6 @@
   const toFinite = (value) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : null;
-  };
-
-  const formatRelativeTime = (value) => {
-    if (!value) {
-      return null;
-    }
-    const then = new Date(value).getTime();
-    if (!Number.isFinite(then)) {
-      return null;
-    }
-    const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
-    if (seconds < 60) return `${seconds}s ago`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
-    if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`;
-    return `${Math.round(seconds / 86400)}d ago`;
   };
 
   const READOUT_FIELDS = [

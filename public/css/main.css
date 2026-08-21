@@ -1543,10 +1543,67 @@ body.mobile-menu-open {
   width: 100px;
 }
 
+.my-turtles-table .turtle-last-seen-column,
+.my-turtles-table .turtle-battery-column {
+  min-width: 100px;
+  white-space: nowrap;
+}
+
 .my-turtles-table .turtle-status-column {
   min-width: 140px;
   width: auto;
   padding-right: 1.25rem;
+}
+
+.my-turtles-table .turtle-actions-column {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.turtle-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.turtle-icon-button {
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(1, 121, 25, 0.2);
+  background: rgba(1, 121, 25, 0.06);
+  color: var(--color-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.turtle-icon-button:hover,
+.turtle-icon-button[aria-expanded="true"] {
+  background: rgba(1, 121, 25, 0.14);
+}
+
+.turtle-icon-button .chevron {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.turtle-icon-button[aria-expanded="true"] .chevron {
+  transform: rotate(180deg);
+}
+
+[data-theme="dark"] .turtle-icon-button {
+  border-color: rgba(192, 227, 203, 0.2);
+  background: rgba(192, 227, 203, 0.08);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .turtle-icon-button:hover,
+[data-theme="dark"] .turtle-icon-button[aria-expanded="true"] {
+  background: rgba(192, 227, 203, 0.16);
 }
 
 .turtle-actions {
@@ -1576,6 +1633,11 @@ body.mobile-menu-open {
   display: flex;
   gap: 0.85rem;
   align-items: center;
+}
+
+.turtle-profile > .turtle-live-dot {
+  flex: 0 0 auto;
+  margin-right: 0;
 }
 
 [data-manageable-turtle],
@@ -4473,11 +4535,22 @@ label.ht-toggle {
   text-align: center;
 }
 
+.turtle-live__meta,
 .turtle-live__readout {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 0.6rem;
   margin: 0;
+}
+
+.turtle-live__meta {
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(1, 121, 25, 0.12);
+}
+
+[data-theme="dark"] .turtle-live__meta {
+  border-bottom-color: rgba(192, 227, 203, 0.16);
 }
 
 .turtle-live__metric dt {

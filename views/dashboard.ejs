@@ -24,6 +24,22 @@
   if (Number.isNaN(numeric)) return '—';
   return `${numeric.toLocaleString()} g`;
 }; %>
+<% const formatRelativeTime = (value) => {
+  if (!value) return null;
+  const then = new Date(value).getTime();
+  if (Number.isNaN(then)) return null;
+  const seconds = Math.max(0, Math.round((Date.now() - then) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.round(seconds / 3600)}h ago`;
+  return `${Math.round(seconds / 86400)}d ago`;
+}; %>
+<% const formatBatteryPct = (value) => {
+  if (value === undefined || value === null || String(value).trim() === '') return '—';
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return '—';
+  return `${Math.round(numeric)}%`;
+}; %>
 <%
   const dashboardUserRecord = dashboardUser || currentUser || null;
   const userFirstName =
@@ -129,11 +145,11 @@
           <thead>
             <tr>
               <th scope="col">Profile</th>
-              <th scope="col" class="turtle-live-column">Status</th>
-              <th scope="col">Mission</th>
-              <th scope="col">Hub</th>
+              <th scope="col" class="turtle-last-seen-column">Last Seen</th>
+              <th scope="col" class="turtle-battery-column">Battery %</th>
               <th scope="col" class="turtle-bottles-column">Bottles</th>
-              <th scope="col" class="turtle-status-column">Manage</th>
+              <th scope="col" class="turtle-status-column">Status</th>
+              <th scope="col" class="turtle-actions-column"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -157,6 +173,7 @@
               >
                 <td data-label="Profile">
                   <div class="turtle-profile">
+                    <span class="turtle-live-dot" data-live-dot data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>" aria-hidden="true"></span>
                     <div class="turtle-profile__photo">
                       <div class="turtle-profile__badge">
                         <span class="turtle-profile__badge-id">#<%= turtle.turtle_id %></span>
@@ -177,27 +194,12 @@
                     </div>
                   </div>
                 </td>
-                <td data-label="Status" class="turtle-live-column">
-                  <span class="turtle-live-dot" data-live-dot data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>" aria-hidden="true"></span>
-                  <button
-                    type="button"
-                    class="status-pill turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"
-                    <% if (turtle.last_machine_state) { %>data-state="<%= turtle.last_machine_state %>"<% } %>
-                    data-toggle-turtle-live
-                    data-turtle-id="<%= turtle.turtle_id %>"
-                    data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>"
-                    aria-expanded="false"
-                    aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
-                    <% if (turtle.last_machine_state) { %>title="Device machine state reported with the latest telemetry"<% } %>
-                  >
-                    <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
-                    <% if (turtle.last_machine_state) { %>
-                      <span class="turtle-live-toggle__state"><%= String(turtle.last_machine_state).replace(/_/g, '-') %></span>
-                    <% } %>
-                  </button>
+                <td data-label="Last Seen" class="turtle-last-seen-column">
+                  <span data-last-seen data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>">
+                    <%= formatRelativeTime(turtle.last_update) || 'Never' %>
+                  </span>
                 </td>
-                <td data-label="Mission"><%= turtle.mission_name || '—' %></td>
-                <td data-label="Hub"><%= turtle.hub_name || '—' %></td>
+                <td data-label="Battery %" class="turtle-battery-column"><%= formatBatteryPct(turtle.battery_soc_pct) %></td>
                 <td data-label="Bottles" class="turtle-bottles-column">
                   <button
                     type="button"
@@ -210,15 +212,41 @@
                   </button>
                 </td>
                 <td data-label="Status" class="turtle-status-column">
-                  <button
-                    type="button"
+                  <a
                     class="status-pill turtle-status-pill turtle-status-pill--action"
                     data-status="<%= formatStatusKey(turtle.status) %>"
-                    data-trigger-manage-turtle
+                    href="/my-turtle/<%= turtle.turtle_id %>"
+                    aria-label="View turtle <%= turtle.name || '#' + turtle.turtle_id %>"
                   >
-                    <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                    <i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>
                     <span><%= formatTurtleStatus(turtle.status) %></span>
-                  </button>
+                  </a>
+                </td>
+                <td data-label="Actions" class="turtle-actions-column">
+                  <div class="turtle-row-actions">
+                    <button
+                      type="button"
+                      class="turtle-icon-button"
+                      data-trigger-manage-turtle
+                      aria-label="Manage turtle <%= turtle.name || '#' + turtle.turtle_id %>"
+                      title="Manage turtle"
+                    >
+                      <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      type="button"
+                      class="turtle-icon-button turtle-live-toggle<% if (turtle.last_machine_state) { %> turtle-live-toggle--stateful machine-state-pill<% } %>"
+                      <% if (turtle.last_machine_state) { %>data-state="<%= turtle.last_machine_state %>"<% } %>
+                      data-toggle-turtle-live
+                      data-turtle-id="<%= turtle.turtle_id %>"
+                      data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>"
+                      aria-expanded="false"
+                      aria-label="Show live telemetry for <%= turtle.name || 'turtle #' + turtle.turtle_id %>"
+                      title="<% if (turtle.last_machine_state) { %>Device state: <%= String(turtle.last_machine_state).replace(/_/g, '-') %><% } else { %>Show live telemetry<% } %>"
+                    >
+                      <i class="fa-solid fa-chevron-down chevron" aria-hidden="true"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr class="turtle-live-row" hidden data-turtle-live-row data-turtle-id="<%= turtle.turtle_id %>">
@@ -226,6 +254,11 @@
                   <div class="turtle-live">
                     <div class="turtle-live__map" data-live-map></div>
                     <div class="turtle-live__details">
+                      <dl class="turtle-live__meta">
+                        <div class="turtle-live__metric"><dt>Mission</dt><dd><%= turtle.mission_name || '—' %></dd></div>
+                        <div class="turtle-live__metric"><dt>Hub</dt><dd><%= turtle.hub_name || '—' %></dd></div>
+                        <div class="turtle-live__metric"><dt>Boat</dt><dd><%= turtle.boat_name || '—' %></dd></div>
+                      </dl>
                       <dl class="turtle-live__readout" data-live-readout></dl>
                       <p class="muted turtle-live__status" data-live-status>Loading…</p>
                     </div>

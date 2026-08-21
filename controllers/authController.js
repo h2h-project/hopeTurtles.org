@@ -46,6 +46,26 @@ const sanitizeReturnTo = (value) => {
   return value;
 };
 
+// Pages that require login (or self-gate their content behind login) are the
+// only ones worth returning a user to after auth. Logging in from a public
+// page (index, about, ecojoiner catalog, etc.) should land on the dashboard
+// instead of bouncing back to a page that never needed auth.
+const PROTECTED_RETURN_PREFIXES = [
+  '/dashboard',
+  '/my-turtle',
+  '/admin',
+  '/profile',
+  '/commission',
+  '/ecojoiners/generate'
+];
+
+const isProtectedReturnPath = (path) => {
+  const pathname = path.split('?')[0].split('#')[0];
+  return PROTECTED_RETURN_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+};
+
 // --------------------------------------------------------------------
 // JWKS Client for verifying ID tokens
 // --------------------------------------------------------------------
@@ -265,11 +285,13 @@ export const login = async (req, res) => {
   const state = crypto.randomBytes(32).toString('base64url');
   const nonce = crypto.randomBytes(32).toString('base64url');
 
+  const sanitizedReturnTo = sanitizeReturnTo(req.query.returnTo);
+
   req.session.pkce = {
     ...pkce,
     state,
     nonce,
-    returnTo: sanitizeReturnTo(req.query.returnTo),
+    returnTo: sanitizedReturnTo && isProtectedReturnPath(sanitizedReturnTo) ? sanitizedReturnTo : null,
     createdAt: Date.now()
   };
 
