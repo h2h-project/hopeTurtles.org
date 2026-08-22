@@ -229,6 +229,16 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "id": "Presser: ⌀{value}mm",
         "tr": "Presser: ⌀{value}mm",
     },
+    "presser_source_note": {
+        "en": "Made from the cut-out holes of the Long, Little and Master Johns.",
+        "id": "Dibuat dari lubang potongan Long John, Little John, dan Master John.",
+        "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
+    },
+    "final_key_note": {
+        "en": "Use board thickness {thickness}mm, but allow for sanding down for final fit.",
+        "id": "Gunakan ketebalan papan {thickness}mm, tetapi sisakan ruang untuk diamplas demi kepas-an akhir.",
+        "tr": "Tahta kalınlığı olarak {thickness}mm kullanın, ancak son oturma için zımparalama payı bırakın.",
+    },
     "notes": {
         "en": (
             "Note: This one-page PDF is a scaled carpenter reference. Use the SVG file for 1:1 digital cutting geometry. "
@@ -1527,15 +1537,30 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     fk_w = d.final_key_length * fk_scale
     fk_h = d.final_key_width * fk_scale
     fk_x = page_w - margin - fk_w
-    # Title sits a fixed clearance above the box's own top edge (rather than
-    # a fixed page position) so a taller box — a thicker board means a taller
-    # final_key_width — never runs up into the title text.
-    fk_title_gap = 14
+    # Title sits above a wrapped sanding-allowance note, which itself sits a
+    # fixed clearance above the box's own top edge (rather than a fixed page
+    # position) so a taller box — a thicker board means a taller
+    # final_key_width — never runs up into either. The note is wrapped
+    # (rather than drawString'd) since at this column width the full
+    # sentence doesn't fit on one line and would otherwise run off the page.
+    fk_box_top = right_y + 90
+    fk_note_style = ParagraphStyle(
+        name="fk_note", fontName=body_font, fontSize=5.5, leading=6.6,
+        textColor=colors.HexColor("#333333"),
+    )
+    fk_note_p = Paragraph(
+        html.escape(T(lang, "final_key_note", thickness=_ceil_mm(inputs.slat_thickness))),
+        fk_note_style,
+    )
+    fk_note_p.wrapOn(c, fk_w, 40)
+    fk_note_y = fk_box_top + fk_h + 8
+    fk_title_y = fk_note_y + fk_note_p.height + 10
     c.setFont(title_font, 9)
-    c.drawString(fk_x, right_y + 90 + fk_h + fk_title_gap, "Final Key x 4")
+    c.drawString(fk_x, fk_title_y, "Final Key x 4")
+    fk_note_p.drawOn(c, fk_x, fk_note_y)
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
-    c.rect(fk_x, right_y + 90, fk_w, fk_h, fill=0, stroke=1)
+    c.rect(fk_x, fk_box_top, fk_w, fk_h, fill=0, stroke=1)
     _draw_dimension_line(
         c, fk_x, right_y + 74, fk_x + fk_w, right_y + 74, f"{_ceil_mm(d.final_key_length)}mm", body_font, 5,
         ext1=(fk_x, right_y + 90), ext2=(fk_x + fk_w, right_y + 90),
@@ -1550,22 +1575,37 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # sits to the right of the circle, so the circle's centre is pulled left
     # by the label's own rendered width, keeping the label's right edge (not
     # the circle's) flush with the margin.
-    p_top_cy = right_y + 10
+    # Dropped an extra 1.5cm below its natural position so there's clear air
+    # between this section and the Final Key box above it.
+    presser_section_gap = 15 * mm
+    p_top_cy = right_y + 10 - presser_section_gap
     p_r = 22
     through_hole_text = T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter))
     through_hole_text_w = c.stringWidth(through_hole_text, body_font, 6)
     label_gap = 12
     p_top_cx = page_w - margin - through_hole_text_w - label_gap - p_r
+    # Title and the cut-source note stack above the circle. The note is
+    # wrapped rather than drawString'd — the sentence doesn't fit on one
+    # line in this column and would otherwise run off the page edge.
+    presser_note_width = through_hole_text_w + label_gap + 2 * p_r
+    presser_note_style = ParagraphStyle(
+        name="presser_note", fontName=body_font, fontSize=5.5, leading=6.6,
+        textColor=colors.HexColor("#333333"),
+    )
+    presser_note_p = Paragraph(html.escape(T(lang, "presser_source_note")), presser_note_style)
+    presser_note_p.wrapOn(c, presser_note_width, 40)
+    presser_note_y = p_top_cy + p_r + 6
+    presser_title_y = presser_note_y + presser_note_p.height + 10
     c.setFont(title_font, 9)
-    c.drawString(p_top_cx - p_r, p_top_cy + 46, "Presser x 12")
+    c.drawString(p_top_cx - p_r, presser_title_y, "Presser x 12")
+    presser_note_p.drawOn(c, p_top_cx - p_r, presser_note_y)
     c.setStrokeColor(colors.black)
     c.setLineWidth(1)
     c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
     c.circle(p_top_cx, p_top_cy, p_r * d.presser_through_hole_diameter / d.presser_diameter, stroke=1, fill=0)
-    _draw_dimension_line(
-        c, p_top_cx - p_r, p_top_cy - p_r - 8, p_top_cx + p_r, p_top_cy - p_r - 8, f"⌀{_ceil_mm(d.presser_diameter)}mm", body_font, 5,
-        ext1=(p_top_cx - p_r, p_top_cy), ext2=(p_top_cx + p_r, p_top_cy),
-    )
+    # No diameter dimension here — a Presser's cap-side and collar-side
+    # holes can differ, so a single ⌀ label under the diagram would be
+    # misleading. Left dimensionless intentionally.
     c.setFont(body_font, 6)
     c.drawString(p_top_cx + p_r + label_gap, p_top_cy + 8, through_hole_text)
 
