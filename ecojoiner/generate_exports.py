@@ -300,16 +300,14 @@ def T(lang: str, key: str, **kwargs) -> str:
     return template.format(**kwargs) if kwargs else template
 
 
-def _ceil_mm(value: float) -> int:
-    """Round a millimetre dimension up to the nearest whole mm for the PDF.
+def _ceil_mm(value: float) -> str:
+    """Format a millimetre dimension to 1 decimal place for the PDF.
 
     The PDF is a scaled carpenter reference (the SVG/DXF carry the exact 1:1
-    geometry), and carpenters work off a tape measure with mm graduations —
-    rounding down could leave a part fractionally short, so every displayed
-    dimension rounds up instead. `round(value, 6)` first absorbs float noise
-    (e.g. 12.000000001) so it doesn't get bumped up to the next mm.
+    geometry). `round(value, 6)` first absorbs float noise (e.g. 12.000000001)
+    before formatting.
     """
-    return int(math.ceil(round(value, 6)))
+    return f"{round(value, 6):.1f}"
 
 
 # ---------------------------------------------------------------------------
