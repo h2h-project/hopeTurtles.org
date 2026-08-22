@@ -305,9 +305,10 @@ def _ceil_mm(value: float) -> str:
 
     The PDF is a scaled carpenter reference (the SVG/DXF carry the exact 1:1
     geometry). `round(value, 6)` first absorbs float noise (e.g. 12.000000001)
-    before formatting.
+    before formatting. Whole-number values drop the trailing ".0" (56.0 -> "56").
     """
-    return f"{round(value, 6):.1f}"
+    text = f"{round(value, 6):.1f}"
+    return text[:-2] if text.endswith(".0") else text
 
 
 # ---------------------------------------------------------------------------
