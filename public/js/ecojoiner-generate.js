@@ -38,6 +38,8 @@
       gen_fb_fabrication_ok: "Fabrication selected.",
       gen_alert_type_dev:
         "This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).",
+      gen_fin_coming_soon:
+        "Fin Attachment generation is still in development. You can enter and save its measurements, but file generation isn't available yet — please choose the Normal Ecojoiner (6FC) to generate files today.",
       gen_alert_save_dev:
         "Saving ecojoiners is still in development. Hold tight!",
       gen_res_title: "Your ecojoiner, worked out",
@@ -243,6 +245,73 @@
       return true;
     },
 
+    "eco-cap-height": () => {
+      const v = num("eco-cap-height");
+      if (v === null) return (setFeedback("eco-cap-height", "", ""), false);
+      if (v < 5 || v > 50) {
+        setFeedback("eco-cap-height", "error", s("gen_fb_looks_wrong"));
+        return false;
+      }
+      setFeedback("eco-cap-height", "ok", s("gen_fb_looks_good"));
+      return true;
+    },
+
+    "eco-board-max-width": () => {
+      const v = num("eco-board-max-width");
+      if (v === null)
+        return (setFeedback("eco-board-max-width", "", ""), false);
+      if (v < 40 || v > 300) {
+        setFeedback("eco-board-max-width", "error", s("gen_fb_looks_wrong"));
+        return false;
+      }
+      setFeedback("eco-board-max-width", "ok", s("gen_fb_looks_good"));
+      return true;
+    },
+
+    "eco-solar-panel-width": () => {
+      const v = num("eco-solar-panel-width");
+      if (v === null)
+        return (setFeedback("eco-solar-panel-width", "", ""), false);
+      if (v < 100 || v > 300) {
+        setFeedback("eco-solar-panel-width", "error", s("gen_fb_looks_wrong"));
+        return false;
+      }
+      setFeedback("eco-solar-panel-width", "ok", s("gen_fb_looks_good"));
+      return true;
+    },
+
+    "eco-solar-panel-thickness": () => {
+      const v = num("eco-solar-panel-thickness");
+      if (v === null)
+        return (setFeedback("eco-solar-panel-thickness", "", ""), false);
+      if (v < 0.3 || v > 20) {
+        setFeedback(
+          "eco-solar-panel-thickness",
+          "error",
+          s("gen_fb_looks_wrong"),
+        );
+        return false;
+      }
+      setFeedback("eco-solar-panel-thickness", "ok", s("gen_fb_looks_good"));
+      return true;
+    },
+
+    "eco-solar-panel-height": () => {
+      const v = num("eco-solar-panel-height");
+      if (v === null)
+        return (setFeedback("eco-solar-panel-height", "", ""), false);
+      if (v < 100 || v > 300) {
+        setFeedback(
+          "eco-solar-panel-height",
+          "error",
+          s("gen_fb_looks_wrong"),
+        );
+        return false;
+      }
+      setFeedback("eco-solar-panel-height", "ok", s("gen_fb_looks_good"));
+      return true;
+    },
+
     "eco-fabrication": () => {
       const chosen =
         el("eco-fab-carpentry").checked ||
@@ -274,6 +343,7 @@
     "eco-height",
     "eco-top-tapper",
     "eco-bottom-tapper",
+    "eco-cap-height",
   ];
   form.addEventListener("input", (event) => {
     const key = event.target.id;
@@ -325,9 +395,12 @@
     connectionSlider.addEventListener("input", applyConnectionStep);
   }
 
-  // Visual ecojoiner-type picker. Only the "Normal" card is available; the rest
-  // are still in development and just alert the user when clicked.
+  // Visual ecojoiner-type picker. "Normal" (6FC) and "Fin Attachment" are
+  // available to select; the rest are still in development and just alert
+  // the user when clicked. Fin Attachment reveals its solar panel fields but
+  // — per the submit guard below — can't generate files yet.
   const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
+  const finSolarFields = form.querySelector("[data-fin-solar-fields]");
   typeCards.forEach((card) => {
     card.addEventListener("click", () => {
       if (card.dataset.available !== "true") {
@@ -341,6 +414,8 @@
       });
       el("eco-type").value = card.dataset.type;
       check("eco-type");
+      if (finSolarFields)
+        finSolarFields.hidden = card.dataset.type !== "fin";
     });
   });
 
@@ -412,10 +487,15 @@
     height: el("eco-height").value,
     topTapper: el("eco-top-tapper").value,
     bottomTapper: el("eco-bottom-tapper").value,
+    capHeight: el("eco-cap-height").value,
     material: el("eco-material").value,
     thickness: el("eco-thickness").value,
+    boardMaxWidth: el("eco-board-max-width").value,
     ecojoinerType: el("eco-type").value,
     portFitMm: el("eco-connection-mm").value,
+    solarPanelWidth: el("eco-solar-panel-width").value,
+    solarPanelThickness: el("eco-solar-panel-thickness").value,
+    solarPanelHeight: el("eco-solar-panel-height").value,
     fabCarpentry: el("eco-fab-carpentry").checked,
     fab3d: el("eco-fab-3d").checked,
     fabDxf: el("eco-fab-dxf").checked,
@@ -447,9 +527,14 @@
       height: values.height,
       topTapper: values.topTapper,
       bottomTapper: values.bottomTapper,
+      capHeight: values.capHeight,
       material: values.material,
       thickness: values.thickness,
+      boardMaxWidth: values.boardMaxWidth,
       portFitMm: values.portFitMm,
+      solarPanelWidth: values.solarPanelWidth,
+      solarPanelThickness: values.solarPanelThickness,
+      solarPanelHeight: values.solarPanelHeight,
       ...extra,
     }).forEach(([key, value]) => {
       if (value !== null && value !== undefined) formData.set(key, value);
@@ -608,6 +693,15 @@
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    // Fin Attachment can be selected and its fields saved, but real fin
+    // geometry generation is a follow-up project — block before hitting the
+    // network with a request the Python generator can't yet fulfil.
+    if (el("eco-type").value === "fin") {
+      hideResults();
+      window.alert(s("gen_fin_coming_soon"));
+      return;
+    }
+
     const order = [
       "eco-brand",
       "eco-volume",
@@ -617,8 +711,10 @@
       "eco-height",
       "eco-top-tapper",
       "eco-bottom-tapper",
+      "eco-cap-height",
       "eco-material",
       "eco-thickness",
+      "eco-board-max-width",
       "eco-type",
       "eco-fabrication",
     ];
@@ -671,6 +767,7 @@
     "eco-height",
     "eco-top-tapper",
     "eco-bottom-tapper",
+    "eco-cap-height",
   ];
   let loadedProfileSpecs = null;
 
@@ -707,8 +804,14 @@
     el("eco-height").value = wholeNumber(profile.height_mm);
     el("eco-top-tapper").value = wholeNumber(profile.top_tapper_mm);
     el("eco-bottom-tapper").value = wholeNumber(profile.bottom_tapper_mm);
+    el("eco-cap-height").value = wholeNumber(profile.cap_height_mm);
     el("eco-material").value = profile.material || "";
     el("eco-thickness").value = profile.thickness_mm ?? "";
+    el("eco-board-max-width").value = profile.board_max_width_mm ?? "";
+    el("eco-solar-panel-width").value = profile.solar_panel_width_mm ?? "";
+    el("eco-solar-panel-thickness").value =
+      profile.solar_panel_thickness_mm ?? "";
+    el("eco-solar-panel-height").value = profile.solar_panel_height_mm ?? "";
     showBottlePhotoPreview(profile.bottle_photo_url);
     if (connectionSlider) {
       const mm = Number(profile.port_fit_mm ?? 0);
@@ -725,8 +828,13 @@
       "eco-height",
       "eco-top-tapper",
       "eco-bottom-tapper",
+      "eco-cap-height",
       "eco-material",
       "eco-thickness",
+      "eco-board-max-width",
+      "eco-solar-panel-width",
+      "eco-solar-panel-thickness",
+      "eco-solar-panel-height",
     ].forEach(check);
     hideResults();
     lastGenerated = null;

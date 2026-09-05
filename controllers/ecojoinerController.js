@@ -89,6 +89,21 @@ const parseProfileFields = (body = {}, { requireLabel = true } = {}) => {
   const portFitMm = toNumberOrNull(body.portFitMm);
   optional.port_fit_mm =
     portFitMm !== null && !Number.isNaN(portFitMm) ? portFitMm : 0;
+  const capHeight = toNumberOrNull(body.capHeight);
+  if (capHeight !== null && !Number.isNaN(capHeight))
+    optional.cap_height_mm = capHeight;
+  const boardMaxWidth = toNumberOrNull(body.boardMaxWidth);
+  if (boardMaxWidth !== null && !Number.isNaN(boardMaxWidth))
+    optional.board_max_width_mm = boardMaxWidth;
+  const solarPanelWidth = toNumberOrNull(body.solarPanelWidth);
+  if (solarPanelWidth !== null && !Number.isNaN(solarPanelWidth))
+    optional.solar_panel_width_mm = solarPanelWidth;
+  const solarPanelThickness = toNumberOrNull(body.solarPanelThickness);
+  if (solarPanelThickness !== null && !Number.isNaN(solarPanelThickness))
+    optional.solar_panel_thickness_mm = solarPanelThickness;
+  const solarPanelHeight = toNumberOrNull(body.solarPanelHeight);
+  if (solarPanelHeight !== null && !Number.isNaN(solarPanelHeight))
+    optional.solar_panel_height_mm = solarPanelHeight;
 
   if (errors.length) {
     throw new EcojoinerRequestError(

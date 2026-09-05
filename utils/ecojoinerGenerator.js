@@ -147,8 +147,13 @@ export const mapFormFields = (body = {}) => {
     context: {
       bottleHeight: toNumber(body.height),
       bottomTapper: toNumber(body.bottomTapper),
+      capHeight: toNumber(body.capHeight),
       material: body.material ? String(body.material) : null,
-      ecojoinerType: body.ecojoinerType ? String(body.ecojoinerType) : null
+      ecojoinerType: body.ecojoinerType ? String(body.ecojoinerType) : null,
+      boardMaxWidth: toNumber(body.boardMaxWidth),
+      solarPanelWidth: toNumber(body.solarPanelWidth),
+      solarPanelThickness: toNumber(body.solarPanelThickness),
+      solarPanelHeight: toNumber(body.solarPanelHeight)
     },
     notices: []
   };

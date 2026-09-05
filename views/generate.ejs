@@ -154,6 +154,11 @@
                   <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-bottom-tapper"></span>
                 </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_cap_height %></span>
+                  <input type="number" id="eco-cap-height" name="capHeight" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_cap_height_ph %>" />
+                  <span class="eco-feedback" data-for="eco-cap-height"></span>
+                </label>
               </div>
             </div>
             <figure class="eco-panel__figure">
@@ -208,6 +213,11 @@
                   <input type="number" id="eco-thickness" name="thickness" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_thickness_ph %>" />
                   <span class="eco-feedback" data-for="eco-thickness"></span>
                 </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_board_max_width %> <span class="eco-field__unit"><%= t.gen_unit_mm %></span></span>
+                  <input type="number" id="eco-board-max-width" name="boardMaxWidth" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_board_max_width_ph %>" />
+                  <span class="eco-feedback" data-for="eco-board-max-width"></span>
+                </label>
               </div>
             </div>
             <figure class="eco-panel__figure">
@@ -235,7 +245,6 @@
                 { type: '3fc', label: t.gen_type_3fc },
                 { type: '4fc', label: t.gen_type_4fc },
                 { type: '2fc', label: t.gen_type_2fc },
-                { type: 'fin', label: t.gen_type_fin },
                 { type: 'ballast', label: t.gen_type_ballast }
               ]; %>
               <div class="eco-type-grid" role="radiogroup" aria-label="<%= t.gen_type_group %>">
@@ -244,6 +253,12 @@
                     <img src="/images/ecojoiners/just-ecojoiner.webp" alt="<%= t.gen_type_6fc %>" loading="lazy" />
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_6fc %></span>
+                </button>
+                <button type="button" class="eco-type-card" data-type="fin" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= t.gen_type_fin %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_fin %></span>
                 </button>
                 <% devTypes.forEach(function (option) { %>
                   <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
@@ -256,6 +271,23 @@
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
               <span class="eco-feedback" data-for="eco-type"></span>
+              <div class="eco-fields eco-fields--grid" data-fin-solar-fields hidden>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_solar_panel_width %> <span class="eco-field__unit"><%= t.gen_unit_mm %></span></span>
+                  <input type="number" id="eco-solar-panel-width" name="solarPanelWidth" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_solar_panel_width_ph %>" />
+                  <span class="eco-feedback" data-for="eco-solar-panel-width"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_solar_panel_thickness %> <span class="eco-field__unit"><%= t.gen_unit_mm %></span></span>
+                  <input type="number" id="eco-solar-panel-thickness" name="solarPanelThickness" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_solar_panel_thickness_ph %>" />
+                  <span class="eco-feedback" data-for="eco-solar-panel-thickness"></span>
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_solar_panel_height %> <span class="eco-field__unit"><%= t.gen_unit_mm %></span></span>
+                  <input type="number" id="eco-solar-panel-height" name="solarPanelHeight" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_solar_panel_height_ph %>" />
+                  <span class="eco-feedback" data-for="eco-solar-panel-height"></span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
