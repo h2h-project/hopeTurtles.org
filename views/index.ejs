@@ -1,5 +1,4 @@
-<% const extraStyles = ['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css']; %>
-<%- include('partials/header', { pageTitle, theme, extraStyles }) %>
+<%- include('partials/header', { pageTitle, theme }) %>
 <%- include('partials/nav') %>
 <main id="main" class="layout layout--home">
   <section class="hero">
@@ -20,32 +19,33 @@
     { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: '/turtleos', image: '/images/help-code.webp', subtitleIcon: 'fa-code' },
     { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Generate the carpentry, 3D printing and CNC files to build with your own bottle.', url: '/ecojoiners', image: '/images/ecojoiner-spec-hero.webp', subtitleIcon: 'fa-screwdriver-wrench' },
     { title: t.contribute_bottle_title || 'Bottle', subtitle: t.contribute_bottle_body || 'Send in food filled aid bottles to our coordination hubs', image: '/images/help-food.webp', subtitleIcon: 'fa-bottle-water' },
-    { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', url: '/about', image: '/images/turtle-floating2.webp', subtitleIcon: 'fa-book-open' },
-    { title: t.contribute_deploy_title || 'Print', subtitle: t.contribute_deploy_body || 'Print (or help engineer!) our 3D designed components', image: '/images/help-3d.webp', subtitleIcon: 'fa-cube' },
-    { title: t.contribute_buy_title || 'Contribute', subtitle: t.contribute_buy_body || 'Contribute financially to the project to help realize our vision', image: '/images/help-realize.webp', subtitleIcon: 'fa-hand-holding-heart' }
+    { title: t.contribute_commission_title || 'Learn', subtitle: t.contribute_commission_body || 'Learn about our Earthen Humanitarian philosophy', url: '/about', image: '/images/help-realize.webp', subtitleIcon: 'fa-book-open' },
+    { title: t.contribute_deploy_title || 'Design', subtitle: t.contribute_deploy_body || 'Get the latest turtle body design source files', image: '/images/help-3d.webp', subtitleIcon: 'fa-cube' },
+    { title: t.contribute_buy_title || 'Turtle Shell', subtitle: t.contribute_buy_body || 'Help us develop the printed circuit boards that hold our navigation system.', url: 'https://github.com/h2h-project/turtle_Shells', image: '/images/pcb-card.webp', subtitleIcon: 'fa-hand-holding-heart' }
   ]; %>
   <div class="contribute-grid" id="contribute">
     <% contributeCards.forEach(function (card) { %>
       <% if (card.url) { %>
         <% const isExternal = /^https?:\/\//u.test(card.url); %>
         <a href="<%= card.url %>"<% if (isExternal) { %> target="_blank" rel="noreferrer"<% } %> class="contribute-card">
-          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /><span class="contribute-card__title contribute-card__title--overlay"><%= card.title %></span></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
-          <div class="contribute-card__body">
-            <% if (!card.image) { %><span class="contribute-card__title"><%= card.title %></span><% } %>
-            <span class="contribute-card__subtitle"><% if (card.subtitleIcon) { %><i class="fa-solid <%= card.subtitleIcon %> contribute-card__subtitle-icon" aria-hidden="true"></i><% } %><span class="contribute-card__subtitle-text"><%= card.subtitle %></span></span>
-          </div>
+          <%- include('partials/contribute-card-inner', { card }) %>
         </a>
       <% } else { %>
         <button type="button" class="contribute-card" data-contribute-action="<%= card.title %>">
-          <% if (card.image) { %><div class="contribute-card__image-wrap"><img src="<%= card.image %>" alt="" class="contribute-card__image" loading="lazy" /><span class="contribute-card__title contribute-card__title--overlay"><%= card.title %></span></div><% } else if (card.icon) { %><div class="contribute-card__icon-wrap"><i class="fa-solid <%= card.icon %> contribute-card__icon" aria-hidden="true"></i></div><% } %>
-          <div class="contribute-card__body">
-            <% if (!card.image) { %><span class="contribute-card__title"><%= card.title %></span><% } %>
-            <span class="contribute-card__subtitle"><% if (card.subtitleIcon) { %><i class="fa-solid <%= card.subtitleIcon %> contribute-card__subtitle-icon" aria-hidden="true"></i><% } %><span class="contribute-card__subtitle-text"><%= card.subtitle %></span></span>
-          </div>
+          <%- include('partials/contribute-card-inner', { card }) %>
         </button>
       <% } %>
     <% }) %>
   </div>
+
+  <section class="contribute-actions">
+    <button type="button" class="button ghost" data-contribute-action="Contribute">
+      <%= t.landing_contribute_action || 'Contribute Directly' %>
+    </button>
+    <button type="button" class="button ghost" data-contribute-action="Commission">
+      <%= t.landing_commission_action || 'Commission a Turtle' %>
+    </button>
+  </section>
 
   <% if (false) { /* landing metrics hidden for now */ %>
   <section class="landing-metrics">
@@ -64,8 +64,5 @@
   </section>
   <% } %>
 </main>
-<% const pageScripts = [
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-  '/js/home.js'
-]; %>
+<% const pageScripts = ['/js/home.js']; %>
 <%- include('partials/footer', { pageScripts }) %>

@@ -1059,6 +1059,24 @@ body.mobile-menu-open {
   line-height: 1.5;
 }
 
+.contribute-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 0 2rem;
+  padding: 1.5rem;
+  border: 1px solid rgba(1, 121, 25, 0.2);
+  border-radius: 1.2rem;
+  background: var(--color-surface);
+}
+
+@media (max-width: 480px) {
+  .contribute-actions {
+    flex-direction: column;
+  }
+}
+
 @media (max-width: 768px) {
   .contribute-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1264,18 +1282,6 @@ body.mobile-menu-open {
   margin: 0;
   font-weight: 600;
   letter-spacing: 0.03em;
-}
-
-.mission-card-map {
-  height: 180px;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 1px rgba(1, 121, 25, 0.12);
-}
-
-.mission-card-map .map-canvas {
-  height: 100%;
-  width: 100%;
 }
 
 .mission-card__status,
