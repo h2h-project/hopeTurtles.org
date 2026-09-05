@@ -101,6 +101,40 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
   return query(sql, [turtleId, minutes]);
 };
 
+// GPS route for the map's Route view, anchored on the turtle's *last valid
+// fix* rather than the current time — a turtle that has been dark for weeks
+// should still show its final hour of movement, not an empty "last hour
+// from now" window. `hours` sizes the window backwards from that last fix.
+// (0, 0) "null island" boot-garbage is excluded, same as the ingestion and
+// live-location fixes.
+telemetryModel.getRouteForTurtle = async (turtleId, hours = 1) => {
+  const parsed = Number.parseFloat(hours);
+  const safeHours = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0.25), 721) : 1;
+  const minutes = Math.round(safeHours * 60);
+
+  const sql = `
+    SELECT
+      telemetry_id,
+      TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
+      latitude,
+      longitude
+    FROM telemetry_tb
+    WHERE turtle_id = ?
+      AND latitude IS NOT NULL AND longitude IS NOT NULL
+      AND NOT (latitude = 0 AND longitude = 0)
+      AND \`timestamp\` >= (
+        SELECT DATE_SUB(MAX(t2.\`timestamp\`), INTERVAL ? MINUTE)
+        FROM telemetry_tb t2
+        WHERE t2.turtle_id = ?
+          AND t2.latitude IS NOT NULL AND t2.longitude IS NOT NULL
+          AND NOT (t2.latitude = 0 AND t2.longitude = 0)
+      )
+    ORDER BY \`timestamp\` ASC
+    LIMIT 5000
+  `;
+  return query(sql, [turtleId, minutes, turtleId]);
+};
+
 // Daily energy rollup: Wh harvested (current > 0) and Wh consumed
 // (current < 0), reset at local midnight in `timeZone`. Each sample's
 // voltage*current is integrated over the elapsed time since the *previous*

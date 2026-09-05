@@ -186,6 +186,33 @@
 
   const clearTrendsCache = () => trendsCache.clear();
 
+  // Route view has its own endpoint: its window is anchored on the turtle's
+  // last valid GPS fix, not on "now" like the trend charts, so a turtle that
+  // has been dark for weeks still shows its last hour of movement.
+  const routeCache = new Map();
+
+  async function fetchRoute(hours) {
+    const key = String(hours);
+    if (routeCache.has(key)) {
+      return routeCache.get(key);
+    }
+    const promise = fetch(`/api/telemetry/${turtleId}/route?hours=${hours}`, {
+      credentials: 'same-origin',
+      headers: { 'Cache-Control': 'no-cache' }
+    }).then((res) => {
+      if (res.status === 401) {
+        throw new Error('session-expired');
+      }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.json();
+    }).then((body) => body?.data ?? null);
+    routeCache.set(key, promise);
+    promise.catch(() => routeCache.delete(key));
+    return promise;
+  }
+
   const errorMessage = (err) =>
     err?.message === 'session-expired'
       ? 'Session expired — please log in again.'
@@ -670,8 +697,8 @@
     mapLoadingEl.hidden = false;
     let coords = [];
     try {
-      const trends = await fetchTrends(routeHours);
-      coords = routeCoordsFrom(trends);
+      const route = await fetchRoute(routeHours);
+      coords = routeCoordsFrom(route);
     } catch (err) {
       mapLoadingEl.hidden = true;
       setMapEmpty(errorMessage(err));
@@ -1212,6 +1239,7 @@
       }
       selectedPacketIds.clear();
       clearTrendsCache();
+      routeCache.clear();
       await Promise.all([refreshPackets(), refreshTrends()]);
       if (gpsMode === 'route') renderRouteMode();
     } catch (err) {
@@ -1293,6 +1321,7 @@
         }
         selectedPacketIds.clear();
         clearTrendsCache();
+        routeCache.clear();
         await Promise.all([refreshPackets(), refreshTrends(), refreshDailyEnergy(), refreshBatteryKpis()]);
         if (gpsMode === 'route') renderRouteMode();
       } catch (err) {

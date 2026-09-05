@@ -105,6 +105,29 @@ export const getTurtleTrends = async (req, res, next) => {
   }
 };
 
+export const getTurtleRoute = async (req, res, next) => {
+  try {
+    const turtleId = req.params.turtle_id;
+    const turtle = await resolveManagedTurtle(req, res, turtleId);
+    if (!turtle) {
+      return undefined;
+    }
+
+    const rows = await telemetryModel.getRouteForTurtle(turtleId, req.query.hours ?? 1);
+
+    return res.json({
+      success: true,
+      data: {
+        timestamps: rows.map((row) => toNumberOrNull(row.ts)),
+        lats: rows.map((row) => toNumberOrNull(row.latitude)),
+        lons: rows.map((row) => toNumberOrNull(row.longitude))
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const getDailyEnergy = async (req, res, next) => {
   try {
     const turtleId = req.params.turtle_id;
