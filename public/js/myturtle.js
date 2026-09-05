@@ -682,8 +682,26 @@
     if (gpsMode !== 'route') return;
 
     if (!coords.length) {
-      setMapEmpty('No GPS route data in this time range.');
-      mapMetaEl.textContent = '';
+      // No real fix inside the selected window (either no telemetry, or all
+      // of it was 0,0 boot-garbage) — fall back to the last known real fix
+      // regardless of age, same as the Current Location panel, rather than
+      // showing a blank map.
+      if (lastLocation) {
+        setMapEmpty(null);
+        ensureMap(lastLocation);
+        clearRouteLayers();
+        clearLocationLayer();
+        mapObj.invalidateSize();
+        mapObj.setView(lastLocation, mapObj.getZoom() || 15);
+        const asOf = lastLocationAt ? fmtTimeFull.format(new Date(lastLocationAt)) : '—';
+        locationMarker = L.marker(lastLocation)
+          .addTo(mapObj)
+          .bindPopup(`<b>${turtleName}</b><br>Last known fix: ${asOf}<br>${lastLocation[0].toFixed(6)}, ${lastLocation[1].toFixed(6)}`);
+        mapMetaEl.innerHTML = `No GPS fix in this time range · showing last known location as of ${asOf}`;
+      } else {
+        setMapEmpty('No GPS route data in this time range.');
+        mapMetaEl.textContent = '';
+      }
       return;
     }
     setMapEmpty(null);
@@ -831,7 +849,10 @@
         parseLocation(data.turtle && data.turtle.last_lat, data.turtle && data.turtle.last_lng);
       if (coords) {
         lastLocation = coords;
-        lastLocationAt = reading.timestamp || null;
+        // reading.fix_timestamp is only set when the newest reading itself
+        // had no GPS fix and these coords come from an older fallback
+        // reading instead (see controllers/turtlesController.js getTurtleLive).
+        lastLocationAt = reading.fix_timestamp || reading.timestamp || null;
         if (gpsMode === 'location') renderLocationMode();
       }
     }

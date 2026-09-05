@@ -202,6 +202,23 @@ telemetryModel.getLatestForTurtle = async (turtleId) => {
   return rows[0] ?? null;
 };
 
+// Latest reading that actually carries a real GPS fix — excludes rows with
+// no lat/lon and "null island" (0,0) boot-garbage that predates the fix at
+// ingestion time. Used as a fallback when the newest reading has no fix, so
+// the map can still show the turtle's last known location.
+telemetryModel.getLastFixForTurtle = async (turtleId) => {
+  const rows = await query(
+    `SELECT * FROM telemetry_tb
+     WHERE turtle_id = ?
+       AND latitude IS NOT NULL AND longitude IS NOT NULL
+       AND NOT (latitude = 0 AND longitude = 0)
+     ORDER BY \`timestamp\` DESC
+     LIMIT 1`,
+    [turtleId]
+  );
+  return rows[0] ?? null;
+};
+
 telemetryModel.getLatest = async () => {
   const sql = `
     SELECT t1.*

@@ -123,11 +123,19 @@ const buildIngestArgs = (turtleId, body, batterySocPct = null) => {
   const values = body.values;
   const tempC = firstFinite(values.aht_temp, values.scd_temp, values.bme_temp);
 
+  // (0, 0) is "null island" — no real deployment sits there, so a device
+  // reporting exactly 0,0 means "no GPS fix" (some firmware sends 0,0
+  // instead of omitting lat/lon). Store null rather than a fake fix so it
+  // never gets picked up as the turtle's last known location.
+  const rawLat = finiteOrNull(body.lat);
+  const rawLon = finiteOrNull(body.lon);
+  const hasFix = !(rawLat === 0 && rawLon === 0);
+
   return {
     turtleId,
     recordedAtUnix: body.recorded_at,
-    lat: finiteOrNull(body.lat),
-    lon: finiteOrNull(body.lon),
+    lat: hasFix ? rawLat : null,
+    lon: hasFix ? rawLon : null,
     batteryVoltage: finiteOrNull(values.ina_bus_v),
     batterySocPct,
     tempC: tempC === null ? null : Math.round(tempC * 10) / 10,

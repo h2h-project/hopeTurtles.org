@@ -210,7 +210,13 @@ turtlesModel.touchLiveness = async (
   const assignments = ['last_update = UTC_TIMESTAMP()', "status = IF(status = 'awaiting_serial', 'idle', status)"];
   const params = [];
 
-  if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))) {
+  // (0, 0) is "null island", not a real fix — never let it overwrite a
+  // previously known-good last_lat/last_lng.
+  if (
+    Number.isFinite(Number(lat)) &&
+    Number.isFinite(Number(lng)) &&
+    !(Number(lat) === 0 && Number(lng) === 0)
+  ) {
     assignments.push('last_lat = ?', 'last_lng = ?');
     params.push(Number(lat), Number(lng));
   }

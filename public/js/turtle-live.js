@@ -152,17 +152,31 @@
     }
   };
 
+  // (0, 0) is "null island" — never a real fix — so a coordinate pair must
+  // be rejected together, not field-by-field (lat 0 alone is valid, e.g.
+  // on the equator).
+  const toFix = (latRaw, lngRaw) => {
+    const lat = toFinite(latRaw);
+    const lng = toFinite(lngRaw);
+    if (lat === null || lng === null || (lat === 0 && lng === 0)) {
+      return null;
+    }
+    return { lat, lng };
+  };
+
   const updateMap = (state, mapEl, data) => {
     const reading = data.reading;
-    const lat = toFinite(reading?.latitude) ?? toFinite(data.turtle?.last_lat);
-    const lng = toFinite(reading?.longitude) ?? toFinite(data.turtle?.last_lng);
+    const fix =
+      toFix(reading?.latitude, reading?.longitude) ??
+      toFix(data.turtle?.last_lat, data.turtle?.last_lng);
 
-    if (lat === null || lng === null) {
+    if (!fix) {
       teardownMap(state);
       mapEl.classList.add('turtle-live__map--no-fix');
       mapEl.textContent = 'No GPS fix yet';
       return;
     }
+    const { lat, lng } = fix;
 
     if (mapEl.classList.contains('turtle-live__map--no-fix')) {
       mapEl.classList.remove('turtle-live__map--no-fix');
@@ -182,6 +196,11 @@
       state.marker.setLatLng([lat, lng]);
     }
     state.map.setView([lat, lng], Math.max(state.map.getZoom(), 8));
+
+    // reading.fix_timestamp is only set when the newest reading itself had
+    // no GPS fix and this pin comes from an older fallback reading instead.
+    const fixAge = formatRelativeTime(reading?.fix_timestamp);
+    state.marker.bindPopup(fixAge ? `Last GPS fix: ${fixAge}` : 'Latest GPS fix');
   };
 
   const refreshLiveRow = async (turtleId, row, state) => {

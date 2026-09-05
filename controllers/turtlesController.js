@@ -257,6 +257,16 @@ export const getTurtleLive = async (req, res, next) => {
       values = raw?.values ?? raw ?? null;
     }
 
+    // The newest reading may have no GPS fix (or a stale "null island" 0,0
+    // row from before ingestion filtered that out) — fall back to the last
+    // reading that actually had a real fix, however old, so the map never
+    // plots the ocean origin.
+    const readingLat = Number(reading?.latitude);
+    const readingLng = Number(reading?.longitude);
+    const latestHasFix =
+      Number.isFinite(readingLat) && Number.isFinite(readingLng) && !(readingLat === 0 && readingLng === 0);
+    const lastFix = latestHasFix ? null : await telemetryModel.getLastFixForTurtle(turtleId);
+
     return res.json({
       success: true,
       data: {
@@ -273,8 +283,9 @@ export const getTurtleLive = async (req, res, next) => {
         reading: reading
           ? {
               timestamp: reading.timestamp,
-              latitude: reading.latitude,
-              longitude: reading.longitude,
+              latitude: latestHasFix ? reading.latitude : (lastFix?.latitude ?? null),
+              longitude: latestHasFix ? reading.longitude : (lastFix?.longitude ?? null),
+              fix_timestamp: latestHasFix ? reading.timestamp : (lastFix?.timestamp ?? null),
               battery_voltage: reading.battery_voltage,
               temp_c: reading.temp_c,
               connection: reading.connection,

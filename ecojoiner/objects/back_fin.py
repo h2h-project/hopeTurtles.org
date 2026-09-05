@@ -39,7 +39,6 @@ from common import (
     _draw_dimension_line,
     _rounded_rect_text,
     colors,
-    landscape,
     letter,
     canvas,
     ezdxf,
@@ -425,19 +424,43 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 # PDF
 # ---------------------------------------------------------------------------
 
-def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir: Optional[Path] = None) -> None:
-    """One-page Letter landscape carpenter reference for the fin's 4 parts.
+def _rot_point(x: float, y: float, h_mm: float) -> Tuple[float, float]:
+    """Rotate a point 90 degrees CW within a h_mm-tall bounding box."""
+    return h_mm - y, x
 
-    English-only for this first pass - the 6FC PDF's full per-language T()
-    table is out of scope to replicate here yet.
+
+def _rot_rect(x: float, y: float, w: float, h: float, h_mm: float) -> Tuple[float, float, float, float]:
+    return h_mm - y - h, x, h, w
+
+
+def _draw_part_path(c, points, ox, oy, scale, *, stroke_color, line_width):
+    c.setStrokeColor(stroke_color)
+    c.setLineWidth(line_width)
+    path_obj = c.beginPath()
+    path_obj.moveTo(ox + points[0][0] * scale, oy + points[0][1] * scale)
+    for px, py in points[1:]:
+        path_obj.lineTo(ox + px * scale, oy + py * scale)
+    path_obj.close()
+    c.drawPath(path_obj, stroke=1, fill=0)
+
+
+def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir: Optional[Path] = None) -> None:
+    """One-page Letter portrait carpenter reference for the fin's 4 parts.
+
+    The Bottle Holder Shaft and Solar Panel Holder are long, thin parts, so
+    they're rotated 90 degrees for this reference drawing (their SVG/DXF
+    exports are unrotated) to make use of the page's full vertical space.
+    All three parts share one scale so they stay size-comparable to each
+    other. English-only for this first pass - the 6FC PDF's full
+    per-language T() table is out of scope to replicate here yet.
     """
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
     title_font, body_font, _mono_font = _register_fonts(font_dir)
 
-    page_w, page_h = landscape(letter)
-    c = canvas.Canvas(str(path), pagesize=landscape(letter))
+    page_w, page_h = letter
+    c = canvas.Canvas(str(path), pagesize=letter)
     c.setTitle(f"Flatpack Ecojoiner Back Fin v{DESIGN_VERSION}")
 
     margin = 28
@@ -448,6 +471,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
+    c.drawString(margin, title_y - 28, "Bottle Holder Shaft and Solar Panel Holder are rotated 90deg here to fit the page.")
 
     input_lines = [
         f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
@@ -464,72 +488,109 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
     ]
-    box_y = page_h - 92
-    box_w = 175
-    _rounded_rect_text(c, page_w - margin - box_w, box_y - 8, box_w, 86, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, page_w - margin - box_w, box_y - 106, box_w, 86, "Derived dimensions", derived_lines, title_font, body_font)
+    box_gap = 14
+    box_h = 86
+    box_w = (page_w - 2 * margin - box_gap) / 2
+    box_y = page_h - 160
+    _rounded_rect_text(c, margin, box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
+    _rounded_rect_text(c, margin + box_w + box_gap, box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
-    # Drawing area: 4 parts stacked left-to-right, each scaled to share the
-    # same available column height (reference only - see the note above).
+    # Drawing area: 3 columns sharing the page's full width, each part
+    # scaled identically (see the shared `scale` computed below) so the
+    # parts stay size-comparable and each column uses its full height.
     draw_left = margin
-    draw_right = page_w - margin - box_w - 20
-    draw_top = page_h - 60
+    draw_right = page_w - margin
+    draw_top = box_y - 20
     draw_bottom = 40
-    col_w = (draw_right - draw_left) / 4
+    col_w = (draw_right - draw_left) / 3
+    avail_w = col_w - 24
+    avail_h = draw_top - draw_bottom - 40
 
-    parts = [
-        ("Rear Fin", d.fin_width, d.fin_height, _fin_outline(d), _fin_notches(inputs, d)),
-        ("Bottle Holder Shaft (x2)", d.shaft_length, inputs.shaft_width,
-         [(0, 0), (d.shaft_length, 0), (d.shaft_length, inputs.shaft_width), (0, inputs.shaft_width)],
-         [(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)]),
-        ("Solar Panel Holder", d.solar_holder_length, d.solar_holder_height,
-         [(0, 0), (d.solar_holder_length, 0), (d.solar_holder_length, d.solar_holder_height), (0, d.solar_holder_height)],
-         [((d.solar_holder_length - d.solar_slot_width) / 2, 0, d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2)]),
+    parts_raw = [
+        {
+            "name": "Rear Fin",
+            "w_mm": d.fin_width,
+            "h_mm": d.fin_height,
+            "rotate": False,
+            "outline": _fin_outline(d),
+            "rects": list(_fin_notches(inputs, d)),
+            "circles": [],
+            "triangles": [],
+        },
+        {
+            "name": "Bottle Holder Shaft (x2)",
+            "w_mm": d.shaft_length,
+            "h_mm": inputs.shaft_width,
+            "rotate": True,
+            "outline": [(0, 0), (d.shaft_length, 0), (d.shaft_length, inputs.shaft_width), (0, inputs.shaft_width)],
+            "rects": [(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)],
+            "circles": [(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
+            "triangles": [],
+        },
+        {
+            "name": "Solar Panel Holder",
+            "w_mm": d.solar_holder_length,
+            "h_mm": d.solar_holder_height,
+            "rotate": True,
+            "outline": [(0, 0), (d.solar_holder_length, 0), (d.solar_holder_length, d.solar_holder_height), (0, d.solar_holder_height)],
+            "rects": [((d.solar_holder_length - d.solar_slot_width) / 2, 0, d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2)],
+            "circles": [],
+            "triangles": [
+                [(0, 0), (d.solar_chamfer, 0), (0, d.solar_chamfer)],
+                [(d.solar_holder_length, 0), (d.solar_holder_length - d.solar_chamfer, 0), (d.solar_holder_length, d.solar_chamfer)],
+            ],
+        },
     ]
 
-    for i, (name, w_mm, h_mm, outline, notches) in enumerate(parts):
+    def prepare(part):
+        w_mm, h_mm = part["w_mm"], part["h_mm"]
+        if not part["rotate"]:
+            return {**part, "eff_w": w_mm, "eff_h": h_mm}
+        return {
+            **part,
+            "eff_w": h_mm,
+            "eff_h": w_mm,
+            "outline": [_rot_point(x, y, h_mm) for x, y in part["outline"]],
+            "rects": [_rot_rect(x, y, w, h, h_mm) for x, y, w, h in part["rects"]],
+            "circles": [(*_rot_point(cx, cy, h_mm), dia) for cx, cy, dia in part["circles"]],
+            "triangles": [[_rot_point(x, y, h_mm) for x, y in tri] for tri in part["triangles"]],
+        }
+
+    parts = [prepare(p) for p in parts_raw]
+    # One shared scale so the 3 parts stay size-comparable to each other,
+    # rather than each independently maximizing its own column (which would
+    # make the physically-smaller solar holder misleadingly large).
+    scale = min(min(avail_w / p["eff_w"], avail_h / p["eff_h"]) for p in parts)
+
+    for i, part in enumerate(parts):
         cx0 = draw_left + i * col_w
-        avail_w = col_w - 24
-        avail_h = draw_top - draw_bottom - 40
-        scale = min(avail_w / w_mm, avail_h / h_mm)
         ox = cx0 + 12
         oy = draw_bottom + 20
 
         c.setFont(title_font, 9)
         c.setFillColor(colors.HexColor("#222222"))
-        c.drawString(ox, draw_top - 10, name)
+        c.drawString(ox, draw_top - 10, part["name"])
 
-        c.setStrokeColor(colors.HexColor("#333333"))
-        c.setLineWidth(0.8)
-        path_obj = c.beginPath()
-        path_obj.moveTo(ox + outline[0][0] * scale, oy + outline[0][1] * scale)
-        for px, py in outline[1:]:
-            path_obj.lineTo(ox + px * scale, oy + py * scale)
-        path_obj.close()
-        c.drawPath(path_obj, stroke=1, fill=0)
+        _draw_part_path(c, part["outline"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
+        for tri in part["triangles"]:
+            _draw_part_path(c, tri, ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
 
         c.setStrokeColor(colors.HexColor("#999999"))
         c.setLineWidth(0.5)
-        for nx, ny, nw, nh in notches:
+        for nx, ny, nw, nh in part["rects"]:
             c.rect(ox + nx * scale, oy + ny * scale, nw * scale, nh * scale, stroke=1, fill=0)
+        for cx, cy, dia in part["circles"]:
+            r = (dia / 2) * scale
+            c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
 
         _draw_dimension_line(
-            c, ox, oy - 10, ox + w_mm * scale, oy - 10,
-            f"{_ceil_mm(w_mm)}mm", font=body_font, size=6.5,
+            c, ox, oy - 10, ox + part["eff_w"] * scale, oy - 10,
+            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5,
         )
         _draw_dimension_line(
-            c, ox - 10, oy, ox - 10, oy + h_mm * scale,
-            f"{_ceil_mm(h_mm)}mm", font=body_font, size=6.5, label_side="left",
+            c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
+            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
         )
-
-    # Solar Panel Holder has 2 chamfer cuts not drawn as rect() above; note
-    # them in text rather than extending the simplified drawPath outline.
-    c.setFont(body_font, 6.5)
-    c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(
-        draw_left + 2 * col_w + 12, draw_bottom + 6,
-        f"Corners chamfered {_ceil_mm(d.solar_chamfer)}mm each side (see SVG/DXF for the exact cut).",
-    )
 
     c.showPage()
     c.save()

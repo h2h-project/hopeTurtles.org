@@ -5533,6 +5533,11 @@ body.ocean-bg {
   font-weight: 700;
 }
 
+/* Sub-step labels like "4.5" are wider than a single digit. */
+.eco-panel__step--sub {
+  font-size: 0.85rem;
+}
+
 .eco-panel__heading {
   display: flex;
   flex-direction: column;

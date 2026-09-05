@@ -395,10 +395,10 @@
 
   // Visual ecojoiner-type picker. "Normal" (6FC) and "Fin Attachment" are
   // available to select; the rest are still in development and just alert
-  // the user when clicked. Fin Attachment reveals its solar panel fields but
-  // — per the submit guard below — can't generate files yet.
+  // the user when clicked. Fin Attachment reveals the Panel 4.5 solar panel
+  // sizing panel.
   const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
-  const finSolarFields = form.querySelector("[data-fin-solar-fields]");
+  const finSolarPanel = form.querySelector('[data-panel="fin-solar"]');
   typeCards.forEach((card) => {
     card.addEventListener("click", () => {
       if (card.dataset.available !== "true") {
@@ -412,8 +412,11 @@
       });
       el("eco-type").value = card.dataset.type;
       check("eco-type");
-      if (finSolarFields)
-        finSolarFields.hidden = card.dataset.type !== "fin";
+      if (finSolarPanel) {
+        const isFin = card.dataset.type === "fin";
+        finSolarPanel.hidden = !isFin;
+        if (isFin) finSolarPanel.open = true;
+      }
     });
   });
 
@@ -1137,6 +1140,11 @@
     });
     el("eco-type").value = targetType;
     check("eco-type");
+    if (finSolarPanel) {
+      const isFin = targetType === "fin";
+      finSolarPanel.hidden = !isFin;
+      if (isFin) finSolarPanel.open = true;
+    }
 
     const formats = parseIfString(design.formats, []);
     el("eco-fab-carpentry").checked = formats.includes("pdf");
