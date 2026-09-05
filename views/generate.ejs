@@ -244,13 +244,12 @@
               <% const devTypes = [
                 { type: '3fc', label: t.gen_type_3fc },
                 { type: '4fc', label: t.gen_type_4fc },
-                { type: '2fc', label: t.gen_type_2fc },
-                { type: 'ballast', label: t.gen_type_ballast }
+                { type: '2fc', label: t.gen_type_2fc }
               ]; %>
               <div class="eco-type-grid" role="radiogroup" aria-label="<%= t.gen_type_group %>">
                 <button type="button" class="eco-type-card" data-type="6fc" data-available="true" role="radio" aria-checked="false">
                   <span class="eco-type-card__thumb">
-                    <img src="/images/ecojoiners/just-ecojoiner.webp" alt="<%= t.gen_type_6fc %>" loading="lazy" />
+                    <img src="/images/ecojoiners/ecojoiner-export.webp" alt="<%= t.gen_type_6fc %>" loading="lazy" />
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_6fc %></span>
                 </button>
@@ -268,6 +267,12 @@
                     <span class="eco-type-card__title"><%= option.label %></span>
                   </button>
                 <% }) %>
+                <button type="button" class="eco-type-card eco-type-card--dev" data-type="ballast" data-available="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/bottom_fin.webp" alt="<%= t.gen_type_ballast %> — <%= t.gen_type_dev_suffix %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_ballast %></span>
+                </button>
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
               <span class="eco-feedback" data-for="eco-type"></span>

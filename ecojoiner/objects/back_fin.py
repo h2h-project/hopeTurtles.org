@@ -429,19 +429,105 @@ def _rot_point(x: float, y: float, h_mm: float) -> Tuple[float, float]:
     return h_mm - y, x
 
 
-def _rot_rect(x: float, y: float, w: float, h: float, h_mm: float) -> Tuple[float, float, float, float]:
-    return h_mm - y - h, x, h, w
+def _rect_open(nx: float, ny: float, nw: float, nh: float, open_side: str):
+    """A slot cut into a board isn't a closed pocket - one side of it is
+    open to the board's own edge, with no material (and so no line) there.
+
+    Returns (wall_path, gap_endpoints): wall_path is the 3-sided polyline
+    of the slot's actual walls (skipping open_side), and gap_endpoints are
+    the two corners of the open side, used to punch a matching gap in the
+    board's outline at the point the slot breaks through it.
+    """
+    bl, br, tr, tl = (nx, ny), (nx + nw, ny), (nx + nw, ny + nh), (nx, ny + nh)
+    cycle = [bl, br, tr, tl]
+    edge_index = {"bottom": 0, "right": 1, "top": 2, "left": 3}[open_side]
+    gap = (cycle[edge_index], cycle[(edge_index + 1) % 4])
+    start = (edge_index + 1) % 4
+    wall = [cycle[(start + i) % 4] for i in range(4)]
+    return wall, gap
 
 
-def _draw_part_path(c, points, ox, oy, scale, *, stroke_color, line_width):
+def _draw_edge_with_gaps(c, p1, p2, gaps):
+    """Draw a straight line from p1 to p2, skipping over `gaps` - each a
+    (point, point) pair lying on the segment - so a slot that breaks through
+    this edge reads as open board material, not a closed line across it."""
+    x1, y1 = p1
+    x2, y2 = p2
+    dx, dy = x2 - x1, y2 - y1
+    length_sq = dx * dx + dy * dy
+    if length_sq == 0:
+        return
+
+    def t_of(p):
+        return ((p[0] - x1) * dx + (p[1] - y1) * dy) / length_sq
+
+    intervals = sorted((min(t_of(a), t_of(b)), max(t_of(a), t_of(b))) for a, b in gaps)
+    cursor = 0.0
+    for t0, t1 in intervals:
+        if t0 > cursor:
+            c.line(x1 + dx * cursor, y1 + dy * cursor, x1 + dx * t0, y1 + dy * t0)
+        cursor = max(cursor, t1)
+    if cursor < 1.0:
+        c.line(x1 + dx * cursor, y1 + dy * cursor, x1 + dx * 1.0, y1 + dy * 1.0)
+
+
+def _draw_edges(c, edges, ox, oy, scale, *, stroke_color, line_width):
+    c.setStrokeColor(stroke_color)
+    c.setLineWidth(line_width)
+    for p1, p2, gaps in edges:
+        a = (ox + p1[0] * scale, oy + p1[1] * scale)
+        b = (ox + p2[0] * scale, oy + p2[1] * scale)
+        gap_pts = [
+            ((ox + g1[0] * scale, oy + g1[1] * scale), (ox + g2[0] * scale, oy + g2[1] * scale))
+            for g1, g2 in gaps
+        ]
+        _draw_edge_with_gaps(c, a, b, gap_pts)
+
+
+def _draw_open_path(c, points, ox, oy, scale, *, stroke_color, line_width):
     c.setStrokeColor(stroke_color)
     c.setLineWidth(line_width)
     path_obj = c.beginPath()
     path_obj.moveTo(ox + points[0][0] * scale, oy + points[0][1] * scale)
     for px, py in points[1:]:
         path_obj.lineTo(ox + px * scale, oy + py * scale)
-    path_obj.close()
     c.drawPath(path_obj, stroke=1, fill=0)
+
+
+def _rect_edges_with_gaps(x: float, y: float, w: float, h: float, gaps_by_side: Optional[dict] = None):
+    """The 4 edges of an axis-aligned rectangle, as (p1, p2, gaps) triples
+    for _draw_edges(), with a gap punched into whichever side each notch in
+    `gaps_by_side` (side -> list of (nx,ny,nw,nh) notch rects) opens onto."""
+    gaps_by_side = gaps_by_side or {}
+    bl, br, tr, tl = (x, y), (x + w, y), (x + w, y + h), (x, y + h)
+    sides = [("bottom", bl, br), ("right", br, tr), ("top", tr, tl), ("left", tl, bl)]
+    return [
+        (p1, p2, [_rect_open(nx, ny, nw, nh, side)[1] for nx, ny, nw, nh in gaps_by_side.get(side, [])])
+        for side, p1, p2 in sides
+    ]
+
+
+def _fin_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
+    notches = list(_fin_notches(inputs, d))
+    left_gaps = [_rect_open(*notches[i], "left")[1] for i in (0, 1)]
+    top_gaps = [_rect_open(*notches[2], "top")[1]]
+    p0, p1, p2, p3, p4 = _fin_outline(d)
+    return [(p0, p1, []), (p1, p2, []), (p2, p3, []), (p3, p4, top_gaps), (p4, p0, left_gaps)]
+
+
+def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
+    """Hexagon outline with the two 45-degree corner chamfers baked in as
+    real edges (not a rectangle plus overlapping corner triangles), so the
+    chamfer cut reads as one line instead of a line laid over a corner."""
+    h0, h1 = (0, d.solar_chamfer), (d.solar_chamfer, 0)
+    h2, h3 = (d.solar_holder_length - d.solar_chamfer, 0), (d.solar_holder_length, d.solar_chamfer)
+    h4, h5 = (d.solar_holder_length, d.solar_holder_height), (0, d.solar_holder_height)
+    notch = (
+        (d.solar_holder_length - d.solar_slot_width) / 2, 0,
+        d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2,
+    )
+    bottom_gap = _rect_open(*notch, "bottom")[1]
+    return [(h0, h1, []), (h1, h2, [bottom_gap]), (h2, h3, []), (h3, h4, []), (h4, h5, []), (h5, h0, [])]
 
 
 def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir: Optional[Path] = None) -> None:
@@ -473,6 +559,123 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
     c.drawString(margin, title_y - 28, "Bottle Holder Shaft and Solar Panel Holder are rotated 90deg here to fit the page.")
 
+    # Drawing area: 3 columns sharing the page's full width, each part
+    # scaled identically (see the shared `scale` computed below) so the
+    # parts stay size-comparable to each other. Diagrams hang from a
+    # shared top line rather than a shared baseline, since the smallest
+    # part (the solar panel holder, rightmost) then leaves open space at
+    # the bottom of its own column for the input/derived-dimension boxes.
+    draw_left = margin
+    draw_right = page_w - margin
+    draw_top = title_y - 44
+    draw_bottom = 40
+    col_w = (draw_right - draw_left) / 3
+    avail_w = col_w - 24
+    diagram_top = draw_top - 20
+    avail_h = diagram_top - draw_bottom - 20
+
+    parts_raw = [
+        {
+            "name": "Bottle Holder Shaft (x2)",
+            "w_mm": d.shaft_length,
+            "h_mm": inputs.shaft_width,
+            "rotate": True,
+            "edges": _rect_edges_with_gaps(
+                0, 0, d.shaft_length, inputs.shaft_width,
+                {"right": [(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)]},
+            ),
+            "notches": [
+                _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
+            ],
+            "circles": [(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
+        },
+        {
+            "name": "Rear Fin",
+            "w_mm": d.fin_width,
+            "h_mm": d.fin_height,
+            "rotate": False,
+            "edges": _fin_edges_with_gaps(inputs, d),
+            "notches": [
+                _rect_open(nx, ny, nw, nh, "top" if i == 2 else "left")[0]
+                for i, (nx, ny, nw, nh) in enumerate(_fin_notches(inputs, d))
+            ],
+            "circles": [],
+        },
+        {
+            "name": "Solar Panel Holder",
+            "w_mm": d.solar_holder_length,
+            "h_mm": d.solar_holder_height,
+            "rotate": True,
+            "edges": _solar_edges_with_gaps(inputs, d),
+            "notches": [
+                _rect_open(
+                    (d.solar_holder_length - d.solar_slot_width) / 2, 0,
+                    d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2, "bottom",
+                )[0],
+            ],
+            "circles": [],
+        },
+    ]
+
+    def prepare(part):
+        w_mm, h_mm = part["w_mm"], part["h_mm"]
+        rotate = part["rotate"]
+
+        def r(p):
+            return _rot_point(p[0], p[1], h_mm) if rotate else p
+
+        return {
+            **part,
+            "eff_w": h_mm if rotate else w_mm,
+            "eff_h": w_mm if rotate else h_mm,
+            "edges": [(r(p1), r(p2), [(r(g1), r(g2)) for g1, g2 in gaps]) for p1, p2, gaps in part["edges"]],
+            "notches": [[r(p) for p in wall] for wall in part["notches"]],
+            "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
+        }
+
+    parts = [prepare(p) for p in parts_raw]
+    # One shared scale so the 3 parts stay size-comparable to each other,
+    # rather than each independently maximizing its own column (which would
+    # make the physically-smaller solar holder misleadingly large).
+    scale = min(min(avail_w / p["eff_w"], avail_h / p["eff_h"]) for p in parts)
+
+    solar_bottom = None
+    solar_col_x = None
+    for i, part in enumerate(parts):
+        cx0 = draw_left + i * col_w
+        ox = cx0 + 12
+        oy = diagram_top - part["eff_h"] * scale
+
+        c.setFont(title_font, 9)
+        c.setFillColor(colors.HexColor("#222222"))
+        c.drawString(ox, draw_top - 10, part["name"])
+
+        _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
+
+        for wall in part["notches"]:
+            _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
+        for cx, cy, dia in part["circles"]:
+            r = (dia / 2) * scale
+            c.setStrokeColor(colors.HexColor("#999999"))
+            c.setLineWidth(0.5)
+            c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
+
+        _draw_dimension_line(
+            c, ox, oy - 10, ox + part["eff_w"] * scale, oy - 10,
+            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5,
+        )
+        _draw_dimension_line(
+            c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
+            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
+        )
+
+        if part["name"] == "Solar Panel Holder":
+            solar_bottom = oy - 24
+            solar_col_x = cx0
+
+    # The solar panel holder is always the smallest of the 3 parts, so its
+    # column has open space below its diagram - that's where the input and
+    # derived-dimension boxes live, stacked instead of side-by-side.
     input_lines = [
         f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
         f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
@@ -488,109 +691,14 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
     ]
-    box_gap = 14
-    box_h = 86
-    box_w = (page_w - 2 * margin - box_gap) / 2
-    box_y = page_h - 160
-    _rounded_rect_text(c, margin, box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, margin + box_w + box_gap, box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
-
-    # Drawing area: 3 columns sharing the page's full width, each part
-    # scaled identically (see the shared `scale` computed below) so the
-    # parts stay size-comparable and each column uses its full height.
-    draw_left = margin
-    draw_right = page_w - margin
-    draw_top = box_y - 20
-    draw_bottom = 40
-    col_w = (draw_right - draw_left) / 3
-    avail_w = col_w - 24
-    avail_h = draw_top - draw_bottom - 40
-
-    parts_raw = [
-        {
-            "name": "Rear Fin",
-            "w_mm": d.fin_width,
-            "h_mm": d.fin_height,
-            "rotate": False,
-            "outline": _fin_outline(d),
-            "rects": list(_fin_notches(inputs, d)),
-            "circles": [],
-            "triangles": [],
-        },
-        {
-            "name": "Bottle Holder Shaft (x2)",
-            "w_mm": d.shaft_length,
-            "h_mm": inputs.shaft_width,
-            "rotate": True,
-            "outline": [(0, 0), (d.shaft_length, 0), (d.shaft_length, inputs.shaft_width), (0, inputs.shaft_width)],
-            "rects": [(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)],
-            "circles": [(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
-            "triangles": [],
-        },
-        {
-            "name": "Solar Panel Holder",
-            "w_mm": d.solar_holder_length,
-            "h_mm": d.solar_holder_height,
-            "rotate": True,
-            "outline": [(0, 0), (d.solar_holder_length, 0), (d.solar_holder_length, d.solar_holder_height), (0, d.solar_holder_height)],
-            "rects": [((d.solar_holder_length - d.solar_slot_width) / 2, 0, d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2)],
-            "circles": [],
-            "triangles": [
-                [(0, 0), (d.solar_chamfer, 0), (0, d.solar_chamfer)],
-                [(d.solar_holder_length, 0), (d.solar_holder_length - d.solar_chamfer, 0), (d.solar_holder_length, d.solar_chamfer)],
-            ],
-        },
-    ]
-
-    def prepare(part):
-        w_mm, h_mm = part["w_mm"], part["h_mm"]
-        if not part["rotate"]:
-            return {**part, "eff_w": w_mm, "eff_h": h_mm}
-        return {
-            **part,
-            "eff_w": h_mm,
-            "eff_h": w_mm,
-            "outline": [_rot_point(x, y, h_mm) for x, y in part["outline"]],
-            "rects": [_rot_rect(x, y, w, h, h_mm) for x, y, w, h in part["rects"]],
-            "circles": [(*_rot_point(cx, cy, h_mm), dia) for cx, cy, dia in part["circles"]],
-            "triangles": [[_rot_point(x, y, h_mm) for x, y in tri] for tri in part["triangles"]],
-        }
-
-    parts = [prepare(p) for p in parts_raw]
-    # One shared scale so the 3 parts stay size-comparable to each other,
-    # rather than each independently maximizing its own column (which would
-    # make the physically-smaller solar holder misleadingly large).
-    scale = min(min(avail_w / p["eff_w"], avail_h / p["eff_h"]) for p in parts)
-
-    for i, part in enumerate(parts):
-        cx0 = draw_left + i * col_w
-        ox = cx0 + 12
-        oy = draw_bottom + 20
-
-        c.setFont(title_font, 9)
-        c.setFillColor(colors.HexColor("#222222"))
-        c.drawString(ox, draw_top - 10, part["name"])
-
-        _draw_part_path(c, part["outline"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
-        for tri in part["triangles"]:
-            _draw_part_path(c, tri, ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
-
-        c.setStrokeColor(colors.HexColor("#999999"))
-        c.setLineWidth(0.5)
-        for nx, ny, nw, nh in part["rects"]:
-            c.rect(ox + nx * scale, oy + ny * scale, nw * scale, nh * scale, stroke=1, fill=0)
-        for cx, cy, dia in part["circles"]:
-            r = (dia / 2) * scale
-            c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
-
-        _draw_dimension_line(
-            c, ox, oy - 10, ox + part["eff_w"] * scale, oy - 10,
-            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5,
-        )
-        _draw_dimension_line(
-            c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
-            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
-        )
+    box_gap = 10
+    box_h = 92
+    box_x = solar_col_x + 6
+    box_w = col_w - 12
+    input_box_y = solar_bottom - box_h
+    derived_box_y = input_box_y - box_gap - box_h
+    _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
+    _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
     c.showPage()
     c.save()
