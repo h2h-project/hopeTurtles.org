@@ -33,12 +33,18 @@
     { label: '2h', hours: 2 }, { label: '3h', hours: 3 }, { label: '6h', hours: 6 },
     { label: '9h', hours: 9 }, { label: '12h', hours: 12 }, { label: '18h', hours: 18 },
     { label: '24h', hours: 24 }, { label: '36h', hours: 36 }, { label: '48h', hours: 48 },
-    { label: '50h', hours: 50 }, { label: '72h', hours: 72 }, { label: '5d', hours: 120 }
+    { label: '50h', hours: 50 }, { label: '72h', hours: 72 }, { label: '5d', hours: 120 },
+    { label: '7d', hours: 168 }, { label: '10d', hours: 240 }, { label: '14d', hours: 336 },
+    { label: '21d', hours: 504 }, { label: '30d', hours: 720 }
   ];
 
-  const PACKET_RANGE_KEYS = ['1h', '3h', '6h', '12h', '24h', '50h', '5d', '7d', '30d'];
+  // Indices into ROUTE_SLIDER_STEPS to render as tick labels beneath the
+  // slider — chosen roughly evenly spaced across the (now 20-step) range.
+  const ROUTE_SLIDER_TICK_INDICES = [0, 4, 8, 12, 16, ROUTE_SLIDER_STEPS.length - 1];
+
+  const PACKET_RANGE_KEYS = ['1h', '3h', '6h', '12h', '24h', '50h', '5d', '7d', '30d', 'all'];
   const PACKET_RANGE_HOURS = {
-    '1h': 1, '3h': 3, '6h': 6, '12h': 12, '24h': 24, '50h': 50, '5d': 120, '7d': 168, '30d': 720
+    '1h': 1, '3h': 3, '6h': 6, '12h': 12, '24h': 24, '50h': 50, '5d': 120, '7d': 168, '30d': 720, all: 'all'
   };
 
   const ECO2_BANDS = [
@@ -505,7 +511,7 @@
       btn.type = 'button';
       btn.className = 'range-btn' + (key === activeKey ? ' active' : '');
       btn.dataset.rangeKey = key;
-      btn.textContent = key;
+      btn.textContent = key === 'all' ? 'All' : key;
       btn.addEventListener('click', () => onSelect(key));
       container.appendChild(btn);
     });
@@ -601,10 +607,12 @@
   const routeSliderWrap = mapSection.querySelector('[data-route-slider-wrap]');
   const routeSlider = mapSection.querySelector('[data-route-slider]');
   const routeSliderValue = mapSection.querySelector('[data-route-slider-value]');
+  const routeSliderTicksEl = mapSection.querySelector('[data-route-slider-ticks]');
   const mapExpandBtn = mapSection.querySelector('[data-expand="map"]');
   const mapModal = document.getElementById('mapModal');
   const mapModalBody = mapModal.querySelector('[data-map-modal-body]');
   const mapModalClose = mapModal.querySelector('[data-close-map-modal]');
+  const mapJumpBtns = mapModal.querySelectorAll('[data-route-jump]');
   const locationAnchor = document.createComment('location-anchor');
   mapSection.parentNode.insertBefore(locationAnchor, mapSection);
 
@@ -615,8 +623,20 @@
   let routeMarkers = [];
   let lastLocation = parseLocation(main.dataset.lastLat, main.dataset.lastLng);
   let lastLocationAt = null;
+  let lastRouteCoords = [];
   let routeDebounceTimer = null;
   let routeHours = ROUTE_SLIDER_STEPS[Number(routeSlider.value)].hours;
+
+  // Ticks are positioned at the exact index-percentage the range input's
+  // thumb sits at for that step, so the label always lines up with its
+  // value — the slider moves in fixed index steps, not fixed hour amounts.
+  if (routeSliderTicksEl) {
+    const lastIndex = ROUTE_SLIDER_STEPS.length - 1;
+    routeSliderTicksEl.innerHTML = ROUTE_SLIDER_TICK_INDICES
+      .map((idx) => `<span style="left:${(idx / lastIndex) * 100}%">${ROUTE_SLIDER_STEPS[idx].label}</span>`)
+      .join('');
+  }
+  routeSliderValue.textContent = ROUTE_SLIDER_STEPS[Number(routeSlider.value)].label;
 
   function parseLocation(lat, lng) {
     const la = Number(lat);
@@ -725,12 +745,17 @@
           .addTo(mapObj)
           .bindPopup(`<b>${turtleName}</b><br>Last known fix: ${asOf}<br>${lastLocation[0].toFixed(6)}, ${lastLocation[1].toFixed(6)}`);
         mapMetaEl.innerHTML = `No GPS fix in this time range · showing last known location as of ${asOf}`;
+        lastRouteCoords = [lastLocation];
       } else {
         setMapEmpty('No GPS route data in this time range.');
         mapMetaEl.textContent = '';
+        lastRouteCoords = [];
       }
+      mapJumpBtns.forEach((btn) => { btn.disabled = lastRouteCoords.length < 2; });
       return;
     }
+    lastRouteCoords = coords;
+    mapJumpBtns.forEach((btn) => { btn.disabled = coords.length < 2; });
     setMapEmpty(null);
     ensureMap(coords[coords.length - 1]);
     clearRouteLayers();
@@ -804,6 +829,16 @@
     else mapModal.setAttribute('open', '');
     requestAnimationFrame(() => {
       requestAnimationFrame(() => mapObj && mapObj.invalidateSize());
+    });
+  });
+
+  mapJumpBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!mapObj || !lastRouteCoords.length) return;
+      const point = btn.dataset.routeJump === 'start'
+        ? lastRouteCoords[0]
+        : lastRouteCoords[lastRouteCoords.length - 1];
+      mapObj.setView([point[0], point[1]], Math.max(mapObj.getZoom(), 13));
     });
   });
 

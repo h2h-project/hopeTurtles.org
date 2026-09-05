@@ -392,6 +392,37 @@
   background: var(--color-surface-dark, #1a2e1f);
 }
 
+.map-modal-actions {
+  position: absolute;
+  top: 1rem;
+  right: 4.5rem;
+  z-index: 1000;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.map-modal-action-btn {
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.map-modal-action-btn:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.map-modal-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .map-modal-close {
   position: absolute;
   top: 1rem;
@@ -521,10 +552,30 @@
   accent-color: var(--color-primary);
 }
 
+/* Ticks are positioned absolutely (see myturtle.js) at the exact percentage
+   along the track their step index sits at, so a label always lines up with
+   where the thumb stops for that value — a plain flex space-between here
+   would spread labels evenly regardless of how the underlying steps are
+   spaced. */
 .route-slider-ticks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 1.1em;
   margin-top: 0.2rem;
+}
+
+.route-slider-ticks span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.route-slider-ticks span:first-child {
+  transform: translateX(0);
+}
+
+.route-slider-ticks span:last-child {
+  transform: translateX(-100%);
 }
 
 /* ── Packets table ───────────────────────────────────────────────────────── */

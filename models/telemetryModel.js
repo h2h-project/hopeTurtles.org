@@ -72,7 +72,10 @@ const TREND_VALUE_FIELDS = [
   'ina_current_ma'
 ];
 
+// `hours: 'all'` returns every reading regardless of age (used by the
+// Latest Packets panel's "All" range) instead of a DATE_SUB-bounded window.
 telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
+  const isAll = hours === 'all';
   const parsed = Number.parseFloat(hours);
   const safeHours = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0.25), 721) : 25;
   const minutes = Math.round(safeHours * 60);
@@ -83,6 +86,9 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
 
   // TIMESTAMPDIFF is pure arithmetic and ignores @@session.time_zone, unlike
   // UNIX_TIMESTAMP() which interprets the stored UTC datetime as local time.
+  // Ordered DESC then reversed in JS so the LIMIT keeps the most recent 5000
+  // readings (relevant for wide/"all" windows) while still returning them
+  // oldest-first, as callers expect.
   const sql = `
     SELECT
       telemetry_id,
@@ -94,11 +100,12 @@ telemetryModel.getTrendsForTurtle = async (turtleId, hours = 25) => {
       ${valueColumns}
     FROM telemetry_tb
     WHERE turtle_id = ?
-      AND \`timestamp\` >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? MINUTE)
-    ORDER BY \`timestamp\` ASC
+      ${isAll ? '' : 'AND `timestamp` >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? MINUTE)'}
+    ORDER BY \`timestamp\` DESC
     LIMIT 5000
   `;
-  return query(sql, [turtleId, minutes]);
+  const rows = await query(sql, isAll ? [turtleId] : [turtleId, minutes]);
+  return rows.reverse();
 };
 
 // GPS route for the map's Route view, anchored on the turtle's *last valid

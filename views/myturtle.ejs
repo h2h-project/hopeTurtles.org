@@ -247,22 +247,20 @@
     <div class="route-slider-wrap" data-route-slider-wrap>
       <div class="route-slider-head">
         <span class="tiny muted"><%= t.myturtle_route_window || 'Route range' %></span>
-        <span class="route-slider-value" data-route-slider-value>1h</span>
+        <span class="route-slider-value" data-route-slider-value>3h</span>
         <div class="location-meta tiny muted" data-map-meta></div>
       </div>
       <input
         type="range"
         min="0"
-        max="14"
+        max="19"
         step="1"
-        value="2"
+        value="4"
         class="route-slider-input"
         data-route-slider
         aria-label="<%= t.myturtle_route_window || 'Route range' %>"
       />
-      <div class="route-slider-ticks tiny muted">
-        <span>15m</span><span>3h</span><span>12h</span><span>36h</span><span>72h</span><span>5d</span>
-      </div>
+      <div class="route-slider-ticks tiny muted" data-route-slider-ticks></div>
     </div>
   </section>
 
@@ -349,6 +347,10 @@
 </dialog>
 <dialog id="mapModal" class="map-modal" aria-label="<%= t.myturtle_location || 'Current Location' %>" aria-modal="true">
   <div class="map-modal-card">
+    <div class="map-modal-actions">
+      <button type="button" class="map-modal-action-btn" data-route-jump="start">Start</button>
+      <button type="button" class="map-modal-action-btn" data-route-jump="end">End</button>
+    </div>
     <button type="button" class="map-modal-close" data-close-map-modal aria-label="Close">&times;</button>
     <div class="map-modal-body" data-map-modal-body></div>
   </div>
