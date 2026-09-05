@@ -1,574 +1,326 @@
 #!/usr/bin/env python3
+"""Generate the Hope Turtle rear-fin SCAD, with validated complementary joints.
+
+All dimensions are mm. Last full-turtle bottle/stock defaults are used.
+Run with --defaults to generate without prompting, e.g.:
+  python3 generate_turtle_rear_fin_v2.py --defaults --output turtle_rear_fin_v2.scad
+Individual --solar-panel-width/height/thickness options override those defaults.
+Without --defaults, omitted foundation dimensions are requested interactively.
+The blue panel and bottle are F5-only reference objects, excluded from exports.
 """
-Generate a parametric Hope Turtle rear-fin OpenSCAD file.
-
-If values are omitted on the command line, the script asks interactively.
-All dimensions are millimetres.
-
-Example:
-    python3 generate_turtle_rear_fin.py \
-        --cap-diameter 35 \
-        --wood-thickness 12 \
-        --bottle-height 305 \
-        --cap-height 17 \
-        --bottle-diameter 82 \
-        --solar-panel-width 148 \
-        --fin-board-width 93 \
-        --output my_turtle_fin.scad
-"""
-
 from __future__ import annotations
 
 import argparse
-import re
+import math
 from pathlib import Path
 
 DEFAULTS = {
-    "cap_diameter": 35,
-    "wood_thickness": 12,
-    "bottle_height": 305,
-    "cap_height": 17,
-    "bottle_diameter": 82,
-    "solar_panel_width": 148,
-    "fin_board_width": 93,
+    "cap_diameter": 31.0,
+    "wood_thickness": 12.0,
+    "bottle_height": 305.0,
+    "cap_height": 17.0,
+    "bottle_diameter": 82.0,
+    "solar_panel_width": 148.0,
+    "solar_panel_height": 223.0,
+    "solar_panel_thickness": 2.5,
+    "fin_board_width": 93.0,
+}
+TUNING = {
+    "half_lap_clearance": 0.2,
+    "solar_slot_clearance": 0.2,
+    "shaft_width": 59.0,
+    "shaft_hole_diameter": 6.0,
+    "shaft_hole_from_front": 50.0,
+    "fin_rear_tab_width": 15.0,
 }
 
-SCAD_TEMPLATE = r"""/*
-  Hope Turtle — Parametric Rear Fin Structure
+SCAD_BODY = r'''
+/* [Display] */
+part = "assembly"; // [assembly,fin,solar_holder,shaft]
+show_solar_panel = true; // F5 reference only, excluded from F6/STL
+show_bottle_mockup = false; // F5 simplified envelope only
 
-  Four physical pieces, three shapes:
-    1. Rear fin                  x1  (yellow)
-    2. Solar panel holder       x1  (red)
-    3. Bottle holder shafts     x2  (green)
-
-  Units: millimetres.
-
-  DESIGN PRINCIPLE
-  ----------------
-  The geometry is driven first by the bottle, wood and solar-panel variables
-  in the FOUNDATION VARIABLES section. Change those values for a new bottle
-  or panel and the dependent dimensions update automatically.
-*/
-
+/* [Hidden] */
 $fn = 96;
+eps = 0.02; // Boolean overlap ONLY; fit clearances are separate inputs
+t = wood_thickness;
+fin_width = fin_board_width + fin_rear_tab_width;
+fin_height = 3*bottle_diameter;
+fin_diagonal_rise = 2*bottle_diameter/3;
+fin_diagonal_run = fin_diagonal_rise;
 
-// ============================================================================
-// FOUNDATION VARIABLES — change these for a different bottle / stock / panel
-// ============================================================================
-
-cap_diameter       = 35;   // bottle cap OD; used by optional bottle mockup
-wood_thickness     = 12;   // common stock thickness; drives slots and board thicknesses
-bottle_height      = 305;  // overall bottle height
-cap_height         = 17;   // cap / neck section used in shaft-length formula
-bottle_diameter    = 82;   // main bottle body diameter
-solar_panel_width  = 148;  // drives red solar-holder board length
-fin_board_width    = 93;   // main front-to-rear width of yellow fin board
-
-// ============================================================================
-// FIT / TUNING VARIABLES — small allowances that usually stay the same
-// ============================================================================
-
-half_lap_clearance       = 0.0;  // extra clearance in green/yellow half-lap
-solar_slot_clearance     = 0.0;  // extra clearance around fin in red slot
-
-// Longitudinal position of cap hole from the free end of each green shaft.
-// This was not dimensioned in the original drawing, so it remains tunable.
-shaft_hole_from_front    = 50;
-
-// ============================================================================
-// DERIVED DIMENSIONS — normally do NOT edit these
-// ============================================================================
-
-// Green shaft length:
-// bottle height + 2/3 * (fin-board width - 2 * wood thickness) - cap height
-shaft_length =
-    bottle_height
-    + (2/3 * (fin_board_width - 2 * wood_thickness))
-    - cap_height;
-
-shaft_width         = 59;
-shaft_thickness     = wood_thickness;
-m6_hole_diameter    = 6;
-shaft_hole_diameter = m6_hole_diameter;
-
-// --------------------------------------------------------------------------
-// GREEN / YELLOW EDGE-SLOT JOINT
-// --------------------------------------------------------------------------
-// Yellow-fin and green-board slots use the SAME master dimensions:
-//
-//   slot depth     = (fin-board width - 2 x wood thickness) / 2
-//   slot thickness = one wood thickness
-//
-// With the current values:
-//   (93 - 24) / 2 = 34.5 mm slot depth
-//   12 mm wood = 12 mm slot thickness
-//
-// The yellow slots open from the front edge of the fin.
-// The matching green slots use the exact same depth.
-
-joint_slot_depth = (fin_board_width - 2 * wood_thickness) / 2;
-joint_slot_thickness = wood_thickness;
-
-// Clear vertical distance between the two complete green shafts.
-shaft_gap = bottle_diameter;
-
-// --------------------------------------------------------------------------
-// REAR FIN
-// --------------------------------------------------------------------------
-
-fin_rear_tab_width = 15;
-fin_width          = fin_board_width + fin_rear_tab_width;
-fin_height         = 3 * bottle_diameter;
-fin_thickness      = wood_thickness;
-
-// 45-degree lower cut.
-// The cut begins 2/3 of one bottle diameter above the bottom at the front
-// edge. Because it is 45 degrees, horizontal run = vertical rise.
-fin_diagonal_rise = (2/3) * bottle_diameter;
-fin_diagonal_run  = fin_diagonal_rise;
-fin_bottom_flat   = fin_width - fin_diagonal_run;
-
-// --------------------------------------------------------------------------
-// RED SOLAR-PANEL HOLDER
-// --------------------------------------------------------------------------
-
-solar_holder_length      = solar_panel_width;
-solar_holder_height      = 3 * wood_thickness;
-solar_holder_thickness   = wood_thickness;
-red_yellow_slot_depth    = 1.5 * wood_thickness;
-solar_holder_notch_depth = red_yellow_slot_depth;
-solar_holder_bottom_chamfer = 1.5 * wood_thickness;
-solar_holder_notch_width = fin_thickness + solar_slot_clearance;
-
-// --------------------------------------------------------------------------
-// SHAFT + SOLAR-HOLDER POSITIONS
-// --------------------------------------------------------------------------
-//
-// Upper green-board slot:
-//   top of slot = 2 x wood thickness down from top of yellow fin
-//
-// Therefore the upper green board occupies:
-//   fin_height - 3t  through  fin_height - 2t
-//
-// The red board begins exactly at the TOP of that green board, so the
-// green board rests flush against the bottom of the red solar holder.
-
-upper_green_top_offset = 2 * wood_thickness;
-
-upper_shaft_z1 = fin_height - upper_green_top_offset;
-upper_shaft_z0 = upper_shaft_z1 - shaft_thickness;
-
-lower_shaft_z1 = upper_shaft_z0 - shaft_gap;
-lower_shaft_z0 = lower_shaft_z1 - shaft_thickness;
-
-fin_upper_joint_z0 = upper_shaft_z0;
-fin_lower_joint_z0 = lower_shaft_z0;
-
-
-
-// Solar-holder receiving notch in yellow fin.
-//
-// The notch is one wood thickness in from the ACTUAL RIGHT/BACK edge
-// of the complete yellow fin, including its rear tab. The notch itself is one wood thickness wide and
-// penetrates downward by the same depth as the red-board slot.
-fin_solar_notch_width = solar_holder_thickness;
-fin_solar_notch_depth = red_yellow_slot_depth;
-fin_solar_right_inset  = wood_thickness;
-
-fin_solar_notch_x0 =
-    fin_width
-    - fin_solar_right_inset
-    - fin_solar_notch_width;
-
-// Rear end of each green shaft abuts the front face of the red board.
+// Keep the user's approved formula: 305 + (2/3)*(93-24) - 17 = 334.
+shaft_length = bottle_height + (2/3)*(fin_board_width-2*t) - cap_height;
+solar_holder_length = solar_panel_width;
+solar_holder_height = 3*t; // WOODEN holder height, not panel height
+solar_holder_thickness = t; // WOOD thickness, not panel thickness
+solar_chamfer = 1.5*t;
+solar_slot_depth = solar_holder_height/2;
+fin_solar_notch_x0 = fin_width-2*t;
 shaft_rear_x = fin_solar_notch_x0;
-// Green slot starts exactly one joint-slot-depth ahead of the red board.
-green_slot_inset_x = shaft_rear_x - joint_slot_depth;
+shaft_front_x = shaft_rear_x-shaft_length;
 
-
-// Upright red holder is perpendicular to the yellow fin and drops into
-// its rear receiving slot. Its bottom is flush with the upper green board.
-solar_holder_x0 = fin_solar_notch_x0;
+// The actual green/yellow common X span is [0, shaft_rear_x].
+// Split at ONE shared station. Yellow opens from X=0 to the midpoint;
+// green opens from its rear at shaft_rear_x back to the midpoint.
+joint_slot_depth = shaft_rear_x/2;
+joint_meet_x = joint_slot_depth;
+upper_shaft_z0 = fin_height-3*t;
+lower_shaft_z0 = upper_shaft_z0-bottle_diameter-t;
 solar_holder_z0 = upper_shaft_z0;
+solar_meet_z = solar_holder_z0+solar_slot_depth;
 
+// Panel sits horizontally on the red holder's top, extending forward.
+// Width -> Y, height/length -> X, panel thickness -> Z.
+solar_panel_x0 = fin_solar_notch_x0+t-solar_panel_height;
+solar_panel_z0 = fin_height;
 
-// ============================================================================
-// CORE PARAMETRIC RELATIONSHIPS
-// ============================================================================
-//
-// green/yellow slot depth = (fin_board_width - 2 * wood_thickness) / 2
-// green shaft length      = bottle_height - cap_height - wood_thickness
-//                           + joint_slot_depth
-// yellow fin height       = 3 * bottle_diameter
-// green-board gap         = bottle_diameter
-// fin lower 45° rise      = 2/3 * bottle_diameter
-// red holder height       = 3 * wood_thickness
-// red/yellow slot depth   = 1.5 * wood_thickness
-// red holder chamfers     = 1.5 * wood_thickness
-//
-
-// ============================================================================
-// DISPLAY CONTROLS
-// ============================================================================
-
-show_fin           = true;
-show_solar_holder  = true;
-show_shafts        = true;
-show_bottle_mockup = false;
-exploded           = 0;    // 0 = assembled; try 20–60 for exploded view
-
-// ============================================================================
-// SANITY CHECKS
-// ============================================================================
-
-assert(shaft_length > fin_board_width,
-       "Derived shaft_length must be longer than the fin board width.");
-assert(lower_shaft_z0 >= fin_diagonal_rise,
-       "Lower shaft is too low and intersects the 45-degree fin cut.");
-assert(fin_bottom_flat >= 0,
-       "Bottle diameter is too large for the current fin width and 45-degree cut.");
-assert(fin_board_width > 2 * wood_thickness,
-       "Fin board width must exceed 2x wood thickness.");
-assert(joint_slot_depth > 0 && joint_slot_depth < fin_board_width,
-       "Joint slot depth must be between 0 and the fin-board width.");
-assert(green_slot_inset_x >= 0,
-       "Green slot inset became negative; fin is too narrow for 3x wood thickness.");
-assert(fin_solar_notch_x0 >= 0,
-       "Solar slot position became negative; fin is too narrow.");
-assert(abs((fin_width - (fin_solar_notch_x0 + fin_solar_notch_width)) - wood_thickness) < 0.001,
-       "Red slot must leave exactly one wood thickness behind it.");
-assert(abs(solar_holder_z0 - upper_shaft_z0) < 0.001,
-       "Red holder bottom must be flush with upper green-board bottom.");
-assert(abs((solar_holder_z0 + solar_holder_height) - fin_height) < 0.001,
-       "Red holder top must be flush with yellow fin top.");
-assert(abs(solar_holder_notch_depth - fin_solar_notch_depth) < 0.001,
-       "Red and yellow solar-holder slot depths must match.");
-assert(abs(solar_holder_notch_width - fin_thickness) < 0.001,
-       "Red slot must be centered on yellow fin thickness.");
-assert(2 * solar_holder_bottom_chamfer + solar_holder_notch_width <= solar_holder_length,
-       "Red bottom chamfer is too large for the solar-holder length.");
-assert(abs((green_slot_inset_x + joint_slot_depth) - shaft_rear_x) < 0.001,
-       "Green slot must terminate exactly at the red-board face.");
-
-// Helpful values printed in OpenSCAD's console.
-echo("Derived shaft length = ", shaft_length, " mm");
-echo("Green-board M6 hole diameter = ", shaft_hole_diameter, " mm");
-echo("Bottle gap between shafts = ", shaft_gap, " mm");
-echo("Fin height = ", fin_height, " mm");
-echo("Green/yellow slot depth = ", joint_slot_depth, " mm");
-echo("Green/yellow slot thickness = ", joint_slot_thickness, " mm");
-echo("Solar holder length = ", solar_holder_length, " mm");
-echo("Solar holder height = ", solar_holder_height, " mm");
-echo("Green slot inset X = ", green_slot_inset_x, " mm");
-echo("Upper green slot top offset = ", upper_green_top_offset, " mm");
-echo("Solar notch right inset = ", fin_solar_right_inset, " mm");
-echo("Solar notch depth = ", fin_solar_notch_depth, " mm");
-echo("Actual fin back edge X = ", fin_width, " mm");
-echo("Red slot X start = ", fin_solar_notch_x0, " mm");
-echo("Material behind red slot = ", fin_width - (fin_solar_notch_x0 + fin_solar_notch_width), " mm");
-echo("Red holder bottom Z = ", solar_holder_z0, " mm");
-echo("Upper green board bottom Z = ", upper_shaft_z0, " mm");
-echo("Red holder top Z = ", solar_holder_z0 + solar_holder_height, " mm");
-echo("Yellow fin top Z = ", fin_height, " mm");
-echo("Red/yellow matching slot depth = ", solar_holder_notch_depth, " mm");
-echo("Red bottom chamfer run = ", solar_holder_bottom_chamfer, " mm");
-echo("Green shaft rear / red front X = ", shaft_rear_x, " mm");
-echo("Green slot X start = ", green_slot_inset_x, " mm");
-echo("Solar holder slot depth = ", solar_holder_notch_depth, " mm");
-echo("Fin total width = ", fin_width, " mm");
-echo("45-degree cut start height = ", fin_diagonal_rise, " mm");
-echo("Bottom flat length = ", fin_bottom_flat, " mm");
-
-// ============================================================================
-// MODULES
-// ============================================================================
+assert(t>0 && bottle_height>cap_height && cap_diameter>0);
+assert(bottle_diameter>0 && fin_board_width>2*t && fin_rear_tab_width>0);
+assert(solar_panel_width>0 && solar_panel_height>0 && solar_panel_thickness>0);
+assert(half_lap_clearance>=0 && solar_slot_clearance>=0);
+assert(shaft_front_x<0 && joint_slot_depth>half_lap_clearance/2);
+assert(shaft_width>t+half_lap_clearance);
+assert(half_lap_clearance<t && half_lap_clearance<bottle_diameter);
+assert(lower_shaft_z0-half_lap_clearance/2>=fin_diagonal_rise,
+       "Lower joint intersects the diagonal fin edge.");
+assert(fin_width>fin_diagonal_run);
+assert(solar_slot_clearance<t && fin_solar_notch_x0>solar_slot_clearance/2);
+assert(fin_width-(fin_solar_notch_x0+t+solar_slot_clearance/2)>0);
+assert(2*solar_chamfer+t+solar_slot_clearance<solar_holder_length,
+       "Panel width leaves too little red-board material beside the slot.");
+assert(shaft_hole_diameter>0 && shaft_width>shaft_hole_diameter);
+assert(shaft_hole_from_front>shaft_hole_diameter/2
+       && shaft_front_x+shaft_hole_from_front+shaft_hole_diameter/2<0,
+       "Shaft hole must remain in the forward, unjointed portion.");
+assert(exploded>=0);
 
 module rear_fin() {
-    // Side profile built in XY and extruded through wood thickness.
-    // After rotation: profile-Y becomes world-Z; extrusion becomes world-Y.
-    color([1.0, 0.72, 0.05])
-    rotate([90, 0, 0])
-    linear_extrude(height=fin_thickness, center=true)
-    difference() {
-        polygon(points=[
-            [0, fin_diagonal_rise],
-            [fin_diagonal_run, 0],
-            [fin_width, 0],
-            [fin_width, fin_height],
-            [0, fin_height]
-        ]);
-
-        // Upper green-board receiving slot:
-        // depth = joint_slot_depth; opening = one wood thickness.
-        translate([green_slot_inset_x, fin_upper_joint_z0])
-            square([joint_slot_depth,
-                    joint_slot_thickness + half_lap_clearance]);
-
-        // Lower green-board receiving slot.
-        translate([green_slot_inset_x, fin_lower_joint_z0])
-            square([joint_slot_depth,
-                    joint_slot_thickness + half_lap_clearance]);
-
-        // Vertical receiving slot for the upright red solar holder.
-        // Opens from the top by 1.5 x wood thickness, matching the red-board slot.
-        translate([fin_solar_notch_x0,
-                   fin_height - fin_solar_notch_depth])
-            square([fin_solar_notch_width + 0.02,
-                    fin_solar_notch_depth + 0.02]);
-    }
+    color([1,0.72,0.05]) rotate([90,0,0])
+        linear_extrude(height=t,center=true) difference() {
+            polygon([[0,fin_diagonal_rise],[fin_diagonal_run,0],
+                     [fin_width,0],[fin_width,fin_height],[0,fin_height]]);
+            // Open-front slots, with clearance centered about each green board.
+            for(z=[upper_shaft_z0,lower_shaft_z0])
+                translate([-eps,z-half_lap_clearance/2])
+                    square([joint_meet_x+half_lap_clearance/2+eps,
+                            t+half_lap_clearance]);
+            // Open-top solar joint. Symmetric width and root clearance.
+            translate([fin_solar_notch_x0-solar_slot_clearance/2,
+                       solar_meet_z-solar_slot_clearance/2])
+                square([t+solar_slot_clearance,
+                        fin_height-solar_meet_z+solar_slot_clearance/2+eps]);
+        }
 }
 
 module bottle_holder_shaft(z0=0) {
-    // Rear face of each shaft stops against the front face of the red holder.
-    x0 = shaft_rear_x - shaft_length;
-
-    color([0.20, 0.38, 0.05])
-    difference() {
-        translate([x0, -shaft_width/2, z0])
-            cube([shaft_length, shaft_width, shaft_thickness]);
-
-        // M6 hole through each green board.
-        translate([x0 + shaft_hole_from_front,
-                   0,
-                   z0 - 1])
-            cylinder(h=shaft_thickness + 2,
-                     d=shaft_hole_diameter);
-
-        // Matching slot in the green board.
-        // Its depth is EXACTLY joint_slot_depth =
-        // (fin_board_width - 2 * wood_thickness) / 2.
-        // The slot terminates at the rear end of the green board, which
-        // itself stops against the front face of the red board.
-        translate([green_slot_inset_x,
-                   -joint_slot_thickness/2,
-                   z0 - 0.01])
-            cube([joint_slot_depth + 0.02,
-                  joint_slot_thickness + half_lap_clearance,
-                  shaft_thickness + 0.02]);
+    color([0.2,0.38,0.05]) difference() {
+        translate([shaft_front_x,-shaft_width/2,z0])
+            cube([shaft_length,shaft_width,t]);
+        translate([shaft_front_x+shaft_hole_from_front,0,z0-eps])
+            cylinder(d=shaft_hole_diameter,h=t+2*eps);
+        // Open REAR slot, complementary to yellow's open FRONT slot.
+        translate([joint_meet_x-half_lap_clearance/2,
+                   -(t+half_lap_clearance)/2,z0-eps])
+            cube([shaft_rear_x-joint_meet_x+half_lap_clearance/2+eps,
+                  t+half_lap_clearance,t+2*eps]);
     }
 }
-
 
 module solar_panel_holder() {
-
-    color("red")
-    translate([solar_holder_x0, 0, solar_holder_z0])
-    rotate([90, 0, 90])
-    translate([-solar_holder_length/2, 0, 0])
-    difference() {
-
-        // Main upright red board.
-        // Local X = board length, local Y = board height,
-        // local Z = board thickness.
-        linear_extrude(height = solar_holder_thickness)
-        difference() {
-            square([solar_holder_length, solar_holder_height]);
-
-            // Left bottom 45-degree cut.
-            polygon(points=[
-                [0, 0],
-                [solar_holder_bottom_chamfer, 0],
-                [0, solar_holder_bottom_chamfer]
-            ]);
-
-            // Right bottom 45-degree cut.
-            polygon(points=[
-                [solar_holder_length, 0],
-                [solar_holder_length - solar_holder_bottom_chamfer, 0],
-                [solar_holder_length, solar_holder_bottom_chamfer]
-            ]);
-        }
-
-        // Center slot in the red board.
-        // Width = yellow-fin thickness.
-        // Depth = exactly 1.5 x wood thickness.
-        translate([
-            (solar_holder_length - solar_holder_notch_width) / 2,
-            0,
-            -0.01
-        ])
-            cube([
-                solar_holder_notch_width,
-                solar_holder_notch_depth + 0.01,
-                solar_holder_thickness + 0.02
-            ]);
-    }
+    color("red") translate([fin_solar_notch_x0,0,solar_holder_z0])
+        rotate([90,0,90]) translate([-solar_holder_length/2,0,0])
+            linear_extrude(height=t) difference() {
+                square([solar_holder_length,solar_holder_height]);
+                polygon([[0,0],[solar_chamfer,0],[0,solar_chamfer]]);
+                polygon([[solar_holder_length,0],
+                         [solar_holder_length-solar_chamfer,0],
+                         [solar_holder_length,solar_chamfer]]);
+                // Open-bottom slot, centered on the yellow fin.
+                translate([(solar_holder_length-t-solar_slot_clearance)/2,-eps])
+                    square([t+solar_slot_clearance,
+                            solar_slot_depth+solar_slot_clearance/2+eps]);
+            }
 }
 
+module solar_panel_reference() {
+    color([0.05,0.16,0.4,0.65])
+        translate([solar_panel_x0,-solar_panel_width/2,solar_panel_z0])
+            cube([solar_panel_height,solar_panel_width,solar_panel_thickness]);
+}
 module bottle_mockup() {
-    // Visual-only bottle envelope based on the foundation bottle dimensions.
-    // Body axis follows the green shafts (X direction).
-    zc = lower_shaft_z1 + shaft_gap/2;
-
-    color([0.0, 0.85, 0.95, 0.35])
-    translate([shaft_rear_x - bottle_height, 0, zc])
-    rotate([0, 90, 0])
-        cylinder(h=bottle_height,
-                 d=bottle_diameter);
-
-    // Simple cap envelope at the free end for visual checking.
-    color([0.0, 0.25, 1.0, 0.55])
-    translate([shaft_rear_x - bottle_height - cap_height, 0, zc])
-    rotate([0, 90, 0])
-        cylinder(h=cap_height,
-                 d=cap_diameter);
+    // Simplified total-length envelope: cap INCLUDED in bottle_height.
+    // Bottle rear sits at the fin's front X=0, avoiding the fin itself.
+    zc = lower_shaft_z0+t+bottle_diameter/2;
+    color([0,0.85,0.95,0.3])
+        translate([-bottle_height+cap_height,0,zc]) rotate([0,90,0])
+            cylinder(h=bottle_height-cap_height,d=bottle_diameter);
+    color([0,0.25,1,0.5])
+        translate([-bottle_height,0,zc]) rotate([0,90,0])
+            cylinder(h=cap_height,d=cap_diameter);
 }
-
-
-
-// ============================================================================
-// ASSEMBLY / EXPLODED VIEW
-// ============================================================================
-//
-// `exploded = 0`   -> fully assembled
-// `exploded = 20`  -> modest separation
-// `exploded = 60`  -> widely separated inspection view
-//
-// Every part is modeled in its true assembled position.  The translations
-// below are ONLY display offsets, multiplied by `exploded`.
-
 module assembly_view() {
-
-    // Yellow fin remains the reference part.
-    if (show_fin)
-        rear_fin();
-
-    // Upper green shaft: move left and upward as exploded increases.
-    if (show_shafts)
-        translate([-exploded, 0, exploded])
-            bottle_holder_shaft(upper_shaft_z0);
-
-    // Lower green shaft: move left and downward.
-    if (show_shafts)
-        translate([-exploded, 0, -exploded])
-            bottle_holder_shaft(lower_shaft_z0);
-
-    // Red solar holder: move right and upward.
-    if (show_solar_holder)
-        translate([exploded, 0, exploded])
-            solar_panel_holder();
-
-    // Bottle mockup follows neither exploded green piece; it is intended
-    // only as an assembled dimensional reference.
-    if (show_bottle_mockup && exploded == 0)
-        bottle_mockup();
+    rear_fin();
+    translate([-exploded,0,exploded]) bottle_holder_shaft(upper_shaft_z0);
+    translate([-exploded,0,-exploded]) bottle_holder_shaft(lower_shaft_z0);
+    translate([exploded,0,exploded]) solar_panel_holder();
+    if(show_solar_panel && exploded==0) %solar_panel_reference();
+    if(show_bottle_mockup && exploded==0) %bottle_mockup();
 }
 
-assembly_view();
-"""
+if(part=="assembly") assembly_view();
+else if(part=="fin") rear_fin();
+else if(part=="solar_holder") solar_panel_holder();
+else if(part=="shaft") bottle_holder_shaft();
+else assert(false,str("Unknown part: ",part));
+
+echo("Shaft length = ",shaft_length);
+echo("Matching green/yellow nominal slot depth = ",joint_slot_depth);
+echo("Green/yellow slot opening = ",t+half_lap_clearance);
+echo("Solar joint opening / total clearance = ",t+solar_slot_clearance,solar_slot_clearance);
+echo("Rear panel width / height / thickness = ",solar_panel_width,solar_panel_height,solar_panel_thickness);
+'''
+
+
+def finite_number(value: str) -> float:
+    try:
+        result = float(value)
+    except (ValueError, TypeError) as exc:
+        raise argparse.ArgumentTypeError("enter a number") from exc
+    if not math.isfinite(result):
+        raise argparse.ArgumentTypeError("number must be finite")
+    return result
 
 
 def positive_number(value: str) -> float:
-    number = float(value)
+    number = finite_number(value)
     if number <= 0:
         raise argparse.ArgumentTypeError("value must be greater than zero")
     return number
 
 
+def nonnegative_number(value: str) -> float:
+    number = finite_number(value)
+    if number < 0:
+        raise argparse.ArgumentTypeError("value must be zero or greater")
+    return number
+
+
 def ask(label: str, default: float) -> float:
-    raw = input(f"{label} [{default:g} mm]: ").strip()
-    return default if not raw else positive_number(raw)
+    while True:
+        raw = input(f"{label} [{default:g} mm]: ").strip()
+        if not raw:
+            return default
+        try:
+            return positive_number(raw)
+        except argparse.ArgumentTypeError as exc:
+            print(f"Invalid value: {exc}")
 
 
-def replace_scad_value(scad: str, variable: str, value: float) -> str:
-    pattern = rf"^(\s*{re.escape(variable)}\s*=\s*)[0-9.]+(\s*;)"
-    replacement = rf"\g<1>{value:g}\g<2>"
-    updated, count = re.subn(pattern, replacement, scad, count=1, flags=re.M)
-    if count != 1:
-        raise RuntimeError(f"Could not update SCAD variable: {variable}")
-    return updated
+def dimensions(p: dict[str, float]) -> dict[str, float]:
+    t = p["wood_thickness"]
+    width = p["fin_board_width"] + p["fin_rear_tab_width"]
+    rear = width-2*t
+    length = p["bottle_height"]+(2/3)*(p["fin_board_width"]-2*t)-p["cap_height"]
+    upper = 3*p["bottle_diameter"]-3*t
+    return dict(fin_width=width, shaft_rear_x=rear, shaft_length=length,
+                shaft_front_x=rear-length, joint_slot_depth=rear/2,
+                upper_shaft_z0=upper, lower_shaft_z0=upper-p["bottle_diameter"]-t,
+                fin_height=3*p["bottle_diameter"])
+
+
+def validate(p: dict[str, float]) -> None:
+    for key, value in p.items():
+        if not math.isfinite(value):
+            raise ValueError(f"{key} must be finite")
+        if key in ("half_lap_clearance", "solar_slot_clearance", "exploded"):
+            if value < 0:
+                raise ValueError(f"{key} must be nonnegative")
+        elif value <= 0:
+            raise ValueError(f"{key} must be positive")
+    t, c, s = p["wood_thickness"], p["half_lap_clearance"], p["solar_slot_clearance"]
+    d = dimensions(p)
+    checks = [
+        (p["bottle_height"]>p["cap_height"], "Bottle height must include and exceed cap height"),
+        (p["fin_board_width"]>2*t, "Fin board width must exceed twice wood thickness"),
+        (d["shaft_front_x"]<0 and d["joint_slot_depth"]>c/2, "Invalid green/yellow overlap"),
+        (p["shaft_width"]>t+c, "Green board needs material beside its slot"),
+        (c<min(t,p["bottle_diameter"]), "Half-lap clearance is too large"),
+        (d["lower_shaft_z0"]-c/2>=2*p["bottle_diameter"]/3, "Lower joint hits diagonal fin edge"),
+        (d["fin_width"]>2*p["bottle_diameter"]/3, "Fin diagonal consumes bottom edge"),
+        (s<t and d["shaft_rear_x"]>s/2, "Solar clearance consumes fin material"),
+        (p["solar_panel_width"]>4*t+s, "Solar holder too narrow for slot and chamfers"),
+        (p["shaft_width"]>p["shaft_hole_diameter"], "Shaft hole too wide"),
+        (p["shaft_hole_from_front"]>p["shaft_hole_diameter"]/2 and
+         d["shaft_front_x"]+p["shaft_hole_from_front"]+p["shaft_hole_diameter"]/2<0,
+         "Shaft hole must lie inside the forward, unjointed shaft"),
+    ]
+    for ok, message in checks:
+        if not ok:
+            raise ValueError(message)
+
+
+def build_scad(overrides: dict[str, float] | None = None) -> str:
+    p = {**DEFAULTS, **TUNING, "exploded": 0.0}
+    if overrides:
+        unknown = set(overrides)-set(p)
+        if unknown:
+            raise ValueError(f"Unknown parameters: {sorted(unknown)}")
+        p.update(overrides)
+    validate(p)
+    lines = ["/* Hope Turtle rear-fin v2. Units: mm. Generated by generate_turtle_rear_fin_v2.py.",
+             "   Bottle/stock and panel defaults follow Full_Turtle_v11.scad.",
+             "   Four wooden pieces. Panel/bottle are reference geometry only. */",
+             "", "/* [Foundation dimensions] */"]
+    lines.extend(f"{k} = {p[k]:.12g};" for k in DEFAULTS)
+    lines.extend(["", "/* [Fit and tuning] */",
+                  "// Clearance means TOTAL extra slot width, centered on the mating board."])
+    lines.extend(f"{k} = {p[k]:.12g};" for k in TUNING)
+    lines.append(f"exploded = {p['exploded']:.12g};")
+    return "\n".join(lines)+"\n"+SCAD_BODY
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(
-        description="Generate a Hope Turtle rear-fin OpenSCAD model."
-    )
-    p.add_argument("--cap-diameter", type=positive_number)
-    p.add_argument("--wood-thickness", type=positive_number)
-    p.add_argument("--bottle-height", type=positive_number)
-    p.add_argument("--cap-height", type=positive_number)
-    p.add_argument("--bottle-diameter", type=positive_number)
-    p.add_argument("--solar-panel-width", type=positive_number)
-    p.add_argument("--fin-board-width", type=positive_number)
-    p.add_argument(
-        "--output",
-        default="turtle_rear_fin_generated.scad",
-        help="Output SCAD filename (default: %(default)s)",
-    )
-    p.add_argument(
-        "--exploded",
-        type=float,
-        default=0,
-        help="Initial exploded-view distance written into the SCAD file.",
-    )
-    return p
+    parser = argparse.ArgumentParser(description=__doc__)
+    for key in DEFAULTS:
+        parser.add_argument("--"+key.replace("_", "-"), type=positive_number)
+    for key, default in TUNING.items():
+        parser.add_argument("--"+key.replace("_", "-"),
+                            type=nonnegative_number if "clearance" in key else positive_number,
+                            default=default)
+    parser.add_argument("--exploded", type=nonnegative_number, default=0)
+    parser.add_argument("--defaults", action="store_true", help="Use defaults for omitted dimensions")
+    parser.add_argument("--output", default="turtle_rear_fin_v2.scad")
+    parser.add_argument("--force", action="store_true", help="Replace an existing output file")
+    return parser
 
 
 def main() -> None:
-    args = build_parser().parse_args()
-
-    mapping = {
-        "cap_diameter": args.cap_diameter,
-        "wood_thickness": args.wood_thickness,
-        "bottle_height": args.bottle_height,
-        "cap_height": args.cap_height,
-        "bottle_diameter": args.bottle_diameter,
-        "solar_panel_width": args.solar_panel_width,
-        "fin_board_width": args.fin_board_width,
-    }
-
-    labels = {
-        "cap_diameter": "Cap diameter",
-        "wood_thickness": "Wood thickness",
-        "bottle_height": "Bottle height",
-        "cap_height": "Cap height",
-        "bottle_diameter": "Bottle diameter",
-        "solar_panel_width": "Solar panel width",
-        "fin_board_width": "Fin board width",
-    }
-
-    # Prompt only for values not supplied on the command line.
-    for variable, supplied in list(mapping.items()):
-        if supplied is None:
-            mapping[variable] = ask(labels[variable], DEFAULTS[variable])
-
-    # Basic input sanity checks before generating.
-    t = mapping["wood_thickness"]
-    fw = mapping["fin_board_width"]
-    if fw <= 2 * t:
-        raise SystemExit(
-            "Fin board width must be greater than 2 × wood thickness "
-            "so the green/yellow slot depth remains positive."
-        )
-
-    scad = SCAD_TEMPLATE
-    for variable, value in mapping.items():
-        scad = replace_scad_value(scad, variable, value)
-
-    scad = re.sub(
-        r"^(\s*exploded\s*=\s*)[-0-9.]+(\s*;)",
-        rf"\g<1>{args.exploded:g}\g<2>",
-        scad,
-        count=1,
-        flags=re.M,
-    )
-
-    output = Path(args.output).expanduser()
-    output.write_text(scad)
-
-    joint_depth = (fw - 2 * t) / 2
-    shaft_length = (
-        mapping["bottle_height"]
-        + (2/3) * (fw - 2 * t)
-        - mapping["cap_height"]
-    )
-
+    parser = build_parser()
+    args = parser.parse_args()
+    p = {}
+    try:
+        for key, default in DEFAULTS.items():
+            supplied = getattr(args, key)
+            p[key] = supplied if supplied is not None else (
+                default if args.defaults else ask(key.replace("_", " ").capitalize(), default))
+        p.update({key: getattr(args, key) for key in TUNING})
+        p["exploded"] = args.exploded
+        scad = build_scad(p)
+        output = Path(args.output).expanduser()
+        # UTF-8 is explicit, and accidental overwrites are prevented by default.
+        with output.open("w" if args.force else "x", encoding="utf-8") as handle:
+            handle.write(scad)
+    except EOFError:
+        parser.error("No interactive input available; supply dimensions or use --defaults")
+    except (ValueError, OSError) as exc:
+        parser.error(str(exc))
+    d = dimensions(p)
     print(f"Wrote: {output.resolve()}")
-    print(f"Green/yellow slot depth: {joint_depth:g} mm")
-    print(f"Green shaft length: {shaft_length:g} mm")
-    print(f"Yellow fin height: {3 * mapping['bottle_diameter']:g} mm")
-    print(f"Red holder height: {3 * t:g} mm")
-    print(f"Red/yellow slot depth: {1.5 * t:g} mm")
+    print(f"Shaft length: {d['shaft_length']:g} mm")
+    print(f"Complementary joint slot depth: {d['joint_slot_depth']:g} mm")
+    print(f"Solar slot width: {p['wood_thickness']+p['solar_slot_clearance']:g} mm")
+    print(f"Panel W x H x T: {p['solar_panel_width']:g} x {p['solar_panel_height']:g} x {p['solar_panel_thickness']:g} mm")
 
 
 if __name__ == "__main__":

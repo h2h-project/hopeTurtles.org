@@ -38,8 +38,6 @@
       gen_fb_fabrication_ok: "Fabrication selected.",
       gen_alert_type_dev:
         "This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).",
-      gen_fin_coming_soon:
-        "Fin Attachment generation is still in development. You can enter and save its measurements, but file generation isn't available yet — please choose the Normal Ecojoiner (6FC) to generate files today.",
       gen_alert_save_dev:
         "Saving ecojoiners is still in development. Hold tight!",
       gen_res_title: "Your ecojoiner, worked out",
@@ -548,20 +546,33 @@
 
   const renderPreview = (data) => {
     const d = data.derived || {};
-    const rows = [
-      [s("gen_dim_port_length"), mm(d.port_length)],
-      [s("gen_dim_john_length"), mm(d.john_length)],
-      [s("gen_dim_john_height"), mm(d.john_height)],
-      [s("gen_dim_slot_width"), mm(d.slot_width)],
-      [s("gen_dim_slot_depth_std"), mm(d.standard_slot_depth)],
-      [s("gen_dim_slot_depth_master"), mm(d.master_slot_depth)],
-      [
-        s("gen_dim_final_key"),
-        `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`,
-      ],
-      [s("gen_dim_presser"), mm(d.presser_diameter)],
-      [s("gen_dim_screw"), mm(d.presser_through_hole_diameter)],
-    ];
+    const i = data.inputs || {};
+    const rows =
+      data.object_type === "fin"
+        ? [
+            [s("gen_dim_fin_width"), `${mm(d.fin_width)} × ${mm(d.fin_height)}`],
+            [s("gen_dim_fin_shaft_length"), mm(d.shaft_length)],
+            [s("gen_dim_fin_joint_slot"), mm(d.joint_slot_opening)],
+            [s("gen_dim_fin_solar_slot"), mm(d.solar_slot_width)],
+            [
+              s("gen_dim_fin_panel_dims"),
+              `${mm(i.solar_panel_width)} × ${mm(i.solar_panel_height)} × ${mm(i.solar_panel_thickness)}`,
+            ],
+          ]
+        : [
+            [s("gen_dim_port_length"), mm(d.port_length)],
+            [s("gen_dim_john_length"), mm(d.john_length)],
+            [s("gen_dim_john_height"), mm(d.john_height)],
+            [s("gen_dim_slot_width"), mm(d.slot_width)],
+            [s("gen_dim_slot_depth_std"), mm(d.standard_slot_depth)],
+            [s("gen_dim_slot_depth_master"), mm(d.master_slot_depth)],
+            [
+              s("gen_dim_final_key"),
+              `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`,
+            ],
+            [s("gen_dim_presser"), mm(d.presser_diameter)],
+            [s("gen_dim_screw"), mm(d.presser_through_hole_diameter)],
+          ];
 
     const lede = s("gen_res_lede").replace(
       "{version}",
@@ -690,34 +701,45 @@
     return panel;
   };
 
+  // Field validation order at submit time — different per ecojoiner type,
+  // since Fin Attachment needs bottle height/cap height/board width/solar
+  // panel dims (irrelevant to 6FC) but not collar/top-tapper/bottom-tapper
+  // (6FC-only port-fit fields).
+  const ORDER_6FC = [
+    "eco-brand",
+    "eco-volume",
+    "eco-diameter",
+    "eco-cap",
+    "eco-collar",
+    "eco-height",
+    "eco-top-tapper",
+    "eco-bottom-tapper",
+    "eco-cap-height",
+    "eco-material",
+    "eco-thickness",
+    "eco-board-max-width",
+    "eco-type",
+    "eco-fabrication",
+  ];
+  const ORDER_FIN = [
+    "eco-brand",
+    "eco-diameter",
+    "eco-cap",
+    "eco-height",
+    "eco-cap-height",
+    "eco-thickness",
+    "eco-board-max-width",
+    "eco-solar-panel-width",
+    "eco-solar-panel-thickness",
+    "eco-solar-panel-height",
+    "eco-type",
+    "eco-fabrication",
+  ];
+
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    // Fin Attachment can be selected and its fields saved, but real fin
-    // geometry generation is a follow-up project — block before hitting the
-    // network with a request the Python generator can't yet fulfil.
-    if (el("eco-type").value === "fin") {
-      hideResults();
-      window.alert(s("gen_fin_coming_soon"));
-      return;
-    }
-
-    const order = [
-      "eco-brand",
-      "eco-volume",
-      "eco-diameter",
-      "eco-cap",
-      "eco-collar",
-      "eco-height",
-      "eco-top-tapper",
-      "eco-bottom-tapper",
-      "eco-cap-height",
-      "eco-material",
-      "eco-thickness",
-      "eco-board-max-width",
-      "eco-type",
-      "eco-fabrication",
-    ];
+    const order = el("eco-type").value === "fin" ? ORDER_FIN : ORDER_6FC;
 
     let firstInvalid = null;
     order.forEach((key) => {

@@ -18,17 +18,26 @@ const { ecojoiner } = config;
 // Formats the Python generator can currently write.
 const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg', 'dxf'];
 
-// v3.2 part list, kept alongside PART_QUANTITIES in generate_exports.py so the
-// confirmation screen can show what the user is about to cut.
-// `key` lets the page show a translated part name (locale key `gen_part_<key>`)
-// and fall back to the English `part` when a language has not been filled in.
-export const PART_QUANTITIES = [
-  { key: 'long_john', part: 'Long John', quantity: 6 },
-  { key: 'little_john', part: 'Little John', quantity: 5 },
-  { key: 'master_john', part: 'Master John', quantity: 1 },
-  { key: 'final_key', part: 'Final Key', quantity: 4 },
-  { key: 'presser', part: 'Presser', quantity: 12 }
-];
+// One part list per object type, kept alongside each object's own
+// PART_QUANTITIES in ecojoiner/objects/<type>.py so the confirmation screen
+// can show what the user is about to cut (picked by manifest.object_type in
+// runGenerator() below). `key` lets the page show a translated part name
+// (locale key `gen_part_<key>`) and fall back to the English `part` when a
+// language has not been filled in.
+export const PART_QUANTITIES_BY_TYPE = {
+  '6fc': [
+    { key: 'long_john', part: 'Long John', quantity: 6 },
+    { key: 'little_john', part: 'Little John', quantity: 5 },
+    { key: 'master_john', part: 'Master John', quantity: 1 },
+    { key: 'final_key', part: 'Final Key', quantity: 4 },
+    { key: 'presser', part: 'Presser', quantity: 12 }
+  ],
+  fin: [
+    { key: 'rear_fin', part: 'Rear Fin', quantity: 1 },
+    { key: 'bottle_holder_shaft', part: 'Bottle Holder Shaft', quantity: 2 },
+    { key: 'solar_panel_holder', part: 'Solar Panel Holder', quantity: 1 }
+  ]
+};
 
 // Same idea for the download labels, which the Python script writes in English.
 const FILE_LABEL_KEYS = [
@@ -69,8 +78,16 @@ const toNumber = (value) => {
  * generator expects. Throws EcojoinerRequestError for malformed requests only —
  * every dimensional rule (ranges, geometry, material margins) belongs to
  * validate_inputs() in the Python script, which stays the single source of truth.
+ *
+ * Dispatches on ecojoinerType: the "Fin Attachment" object has a completely
+ * different set of required fields and Python inputs from the default 6FC
+ * ecojoiner, so it gets its own mapper (mapBackFinFields) rather than one
+ * function trying to branch throughout.
  */
-export const mapFormFields = (body = {}) => {
+export const mapFormFields = (body = {}) =>
+  body.ecojoinerType === 'fin' ? mapBackFinFields(body) : mapSixFcFields(body);
+
+const mapSixFcFields = (body = {}) => {
   const errors = [];
 
   const required = {
@@ -131,6 +148,7 @@ export const mapFormFields = (body = {}) => {
 
   return {
     inputs: {
+      object_type: '6fc',
       bottle_brand: brand,
       // The form collects millilitres; the generator works in litres.
       bottle_volume_l: numbers.volume / 1000,
@@ -154,6 +172,90 @@ export const mapFormFields = (body = {}) => {
       solarPanelWidth: toNumber(body.solarPanelWidth),
       solarPanelThickness: toNumber(body.solarPanelThickness),
       solarPanelHeight: toNumber(body.solarPanelHeight)
+    },
+    notices: []
+  };
+};
+
+// Fin Attachment: a different set of required bottle/board/solar-panel
+// fields from the 6FC ecojoiner (no collar/top-tapper/bottom-tapper — those
+// are port-fit specific to the 6FC's John boards). Only "present and
+// numeric" is checked here; ecojoiner/objects/back_fin.py::validate_inputs()
+// stays the single source of dimensional/geometric truth, same as 6FC.
+const mapBackFinFields = (body = {}) => {
+  const errors = [];
+
+  const required = {
+    brand: body.brand,
+    diameter: body.diameter,
+    cap: body.cap,
+    thickness: body.thickness,
+    height: body.height,
+    capHeight: body.capHeight,
+    boardMaxWidth: body.boardMaxWidth,
+    solarPanelWidth: body.solarPanelWidth,
+    solarPanelThickness: body.solarPanelThickness,
+    solarPanelHeight: body.solarPanelHeight
+  };
+
+  const brand = String(required.brand ?? '').trim();
+  if (!brand) errors.push('Please tell us the bottle brand.');
+  if (brand.length > 60) errors.push('Bottle brand must be 60 characters or fewer.');
+
+  const numbers = {};
+  for (const key of [
+    'diameter',
+    'cap',
+    'thickness',
+    'height',
+    'capHeight',
+    'boardMaxWidth',
+    'solarPanelWidth',
+    'solarPanelThickness',
+    'solarPanelHeight'
+  ]) {
+    const parsed = toNumber(required[key]);
+    if (parsed === null) {
+      errors.push(`Missing value: ${key}.`);
+    } else if (Number.isNaN(parsed)) {
+      errors.push(`${key} must be a number.`);
+    } else {
+      numbers[key] = parsed;
+    }
+  }
+
+  // Fabrication checkboxes → generator formats.
+  const formats = new Set();
+  if (isTruthy(body.fabCarpentry)) formats.add('pdf');
+  if (isTruthy(body.fab3d)) formats.add('scad');
+  if (isTruthy(body.fabSvg)) formats.add('svg');
+  if (isTruthy(body.fabDxf)) formats.add('dxf');
+  if (!formats.size) errors.push('Choose at least one fabrication format.');
+
+  if (errors.length) {
+    throw new EcojoinerRequestError('Please check the form values.', errors);
+  }
+
+  return {
+    inputs: {
+      object_type: 'fin',
+      bottle_brand: brand,
+      bottle_diameter: numbers.diameter,
+      cap_diameter: numbers.cap,
+      wood_thickness: numbers.thickness,
+      bottle_height: numbers.height,
+      cap_height: numbers.capHeight,
+      fin_board_width: numbers.boardMaxWidth,
+      solar_panel_width: numbers.solarPanelWidth,
+      solar_panel_thickness: numbers.solarPanelThickness,
+      solar_panel_height: numbers.solarPanelHeight,
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format))
+    },
+    // Not generator inputs, but worth echoing back so the page can show the
+    // full picture on the confirmation screen.
+    context: {
+      material: body.material ? String(body.material) : null,
+      ecojoinerType: 'fin'
     },
     notices: []
   };
@@ -276,7 +378,7 @@ export const runGenerator = async (body, { dryRun = false, lang = 'en' } = {}) =
       ...file,
       label_key: labelKeyFor(file.url)
     })),
-    parts: PART_QUANTITIES,
+    parts: PART_QUANTITIES_BY_TYPE[manifest.object_type] || PART_QUANTITIES_BY_TYPE['6fc'],
     context,
     notices
   };
@@ -324,6 +426,6 @@ export default {
   runGenerator,
   mapFormFields,
   checkGeneratorHealth,
-  PART_QUANTITIES,
+  PART_QUANTITIES_BY_TYPE,
   EcojoinerRequestError
 };

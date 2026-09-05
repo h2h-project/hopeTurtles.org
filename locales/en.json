@@ -477,7 +477,6 @@
   "gen_fb_fabrication_ok": "Fabrication selected.",
   "gen_alert_type_dev": "This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).",
   "gen_alert_save_dev": "Saving ecojoiners is still in development. Hold tight!",
-  "gen_fin_coming_soon": "Fin Attachment generation is still in development. You can enter and save its measurements, but file generation isn't available yet — please choose the Normal Ecojoiner (6FC) to generate files today.",
   "gen_res_title": "Your ecojoiner, worked out",
   "gen_res_lede": "Ecojoiner v{version} — check these against your bottle and your board before you cut anything.",
   "gen_res_parts_title": "Parts to cut",
@@ -499,9 +498,17 @@
   "gen_dim_final_key": "Final Key",
   "gen_dim_presser": "Presser diameter",
   "gen_dim_screw": "Screw pilot hole",
+  "gen_dim_fin_width": "Fin width × height",
+  "gen_dim_fin_shaft_length": "Shaft length",
+  "gen_dim_fin_joint_slot": "Joint slot opening",
+  "gen_dim_fin_solar_slot": "Solar slot width",
+  "gen_dim_fin_panel_dims": "Panel width × height × thickness",
   "gen_part_long_john": "Long John",
   "gen_part_little_john": "Little John",
   "gen_part_master_john": "Master John",
   "gen_part_final_key": "Final Key",
-  "gen_part_presser": "Presser"
+  "gen_part_presser": "Presser",
+  "gen_part_rear_fin": "Rear Fin",
+  "gen_part_bottle_holder_shaft": "Bottle Holder Shaft",
+  "gen_part_solar_panel_holder": "Solar Panel Holder"
 }
