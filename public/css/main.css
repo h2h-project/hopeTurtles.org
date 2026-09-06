@@ -5446,13 +5446,16 @@ body.ocean-bg {
   box-shadow: var(--shadow-elevated);
 }
 
-/* The actual content sits in a column matching .layout's own resolved
-   width exactly (rather than approximating it with padding), so this lines
-   up pixel-for-pixel with the panels below instead of drifting off it. */
+/* The actual content sits in a column matching .layout's own resolved box
+   exactly - same width formula *and* the same border-box + 1rem horizontal
+   padding .layout itself uses - so this lines up pixel-for-pixel with the
+   panels below instead of drifting wider than them. */
 .generate-banner__inner {
+  position: relative;
+  box-sizing: border-box;
   width: min(1200px, calc(100vw - 2rem));
   margin: 0 auto;
-  padding: 1.75rem 0 2rem;
+  padding: 1.75rem 1rem 2rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -5461,26 +5464,33 @@ body.ocean-bg {
 .generate-banner__content {
   display: flex;
   align-items: stretch;
-  gap: 2rem;
   min-height: 320px;
 }
 
 .generate-banner__intro {
-  flex: 1 1 60%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 1.5rem;
   min-width: 0;
+  /* Reserves visual room for .generate-banner__media, which is positioned
+     out of flow (so the image can bleed above this row) rather than a flex
+     sibling - the percentage here matches the image's own width exactly. */
+  padding-right: calc(35% + 2rem);
 }
 
-/* Image column: fixed 35% of the content width, on the right, stretched to
-   the row's full height, image anchored top-left within it (cover +
-   top-left keeps the subject in frame while filling the column edge to
-   edge, rather than leaving green letterboxing around a contained image). */
+/* Image column: 35% of the content width, on the right. Positioned against
+   .generate-banner__inner (not .generate-banner__content, its immediate
+   parent - left un-positioned so this skips up the ancestor chain) so
+   top/bottom:0 land at .generate-banner__inner's own edges, bleeding past
+   this row's top into the space the dev notice occupies - the notice's
+   higher z-index is what keeps it floating above the image there. */
 .generate-banner__media {
-  flex: 0 0 35%;
-  max-width: 35%;
+  position: absolute;
+  top: 0;
+  right: 1rem;
+  bottom: 0;
+  width: 35%;
   margin: 0;
 }
 
@@ -5494,6 +5504,8 @@ body.ocean-bg {
 }
 
 .generate-banner .eco-dev-notice {
+  position: relative;
+  z-index: 2;
   width: 100%;
   margin: 0;
   background: rgba(255, 255, 255, 0.14);
@@ -5533,23 +5545,23 @@ body.ocean-bg {
 }
 
 /* The saved-design picker is the natural first move on this page - the
-   pulsing bright-green border lives on the select itself (not a wrapper
-   around it) so there's exactly one border, not a field-in-a-field look. */
+   pulsing yellow border lives on the select itself (not a wrapper around
+   it) so there's exactly one border, not a field-in-a-field look. */
 .generate-banner__fields .eco-field--start select {
   font-size: 1.05rem;
   padding: 0.75rem 0.9rem;
-  border: 2px solid var(--color-accent);
+  border: 2px solid #facc15;
 }
 
 @keyframes eco-start-pulse {
   0%,
   100% {
-    border-color: var(--color-accent);
-    box-shadow: 0 0 0 0 rgba(35, 176, 83, 0.45);
+    border-color: #facc15;
+    box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.45);
   }
   50% {
-    border-color: #4ade80;
-    box-shadow: 0 0 0 6px rgba(35, 176, 83, 0);
+    border-color: #fde68a;
+    box-shadow: 0 0 0 6px rgba(250, 204, 21, 0);
   }
 }
 
@@ -5573,12 +5585,19 @@ body.ocean-bg {
     min-height: 0;
   }
 
+  /* Below the breakpoint the image drops back into normal flow, full width,
+     above the text - the bleed-and-overlay treatment only makes sense in
+     the side-by-side desktop layout. */
+  .generate-banner__intro {
+    padding-right: 0;
+  }
+
   .generate-banner__media {
-    flex: 0 0 auto;
-    max-width: 100%;
+    position: static;
     width: 100%;
     height: 220px;
     order: -1;
+    margin-bottom: 1.5rem;
   }
 }
 
