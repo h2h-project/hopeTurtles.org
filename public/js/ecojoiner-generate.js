@@ -1224,6 +1224,12 @@
       });
     });
     designPicker.addEventListener("change", () => {
+      // The picker's placeholder option is disabled (unselectable), so any
+      // change event here - "New design" or a saved design - is a real
+      // choice: stop nudging the user toward it.
+      const startField = document.querySelector("[data-eco-start-field]");
+      if (startField) startField.classList.remove("is-pulsing");
+
       if (!designPicker.value) {
         loadedDesign = null;
         return;

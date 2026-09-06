@@ -5432,44 +5432,72 @@ body.ocean-bg {
    against the busy ocean-texture background, instead of three separate
    pieces of text competing with it. */
 .generate-banner {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
   margin: 30px 0 0;
   /* Full-bleed: break out of the centered .layout column to the viewport
-     edges (same technique as .hero), then re-pad so the inner content still
-     lines up with the page's 1200px column. */
+     edges (same technique as .hero). Horizontal padding lives on
+     .generate-banner__intro instead of here, since .generate-banner__media
+     needs to reach the banner's own left/top/bottom edges untouched. */
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
-  padding: 1.75rem max(1rem, calc(50vw - 600px)) 2rem;
   background: var(--color-primary);
   box-shadow: var(--shadow-elevated);
-}
-
-.generate-banner .eco-dev-notice {
-  width: 100%;
-  margin: 0;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #fff;
-}
-
-.generate-banner .eco-dev-notice i {
-  color: #fde68a;
+  overflow: hidden;
 }
 
 .generate-banner__content {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-  gap: 2rem;
-  align-items: center;
+  display: flex;
+  align-items: stretch;
+  min-height: 380px;
+}
+
+/* Image column: fixed 35% of the banner, stretched to the banner's full
+   height by the flex row above, image anchored top-left within it (cover +
+   top-left keeps the subject in frame while filling the column edge to
+   edge, rather than leaving green letterboxing around a contained image). */
+.generate-banner__media {
+  position: relative;
+  flex: 0 0 35%;
+  max-width: 35%;
+  margin: 0;
+}
+
+.generate-banner__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+
+/* The dev notice floats over the top of the image rather than sitting in
+   normal flow above the whole banner - constraining it to the image
+   column's own width (not the full banner) is what keeps it from
+   overflowing the banner's right edge. A solid-ish dark scrim keeps the
+   text readable regardless of what's under it in the image. */
+.generate-banner__media .eco-dev-notice {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 2;
+  margin: 0;
+  background: rgba(4, 46, 15, 0.82);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.generate-banner__media .eco-dev-notice i {
+  color: #fde68a;
 }
 
 .generate-banner__intro {
+  flex: 1 1 65%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1.5rem;
   min-width: 0;
+  padding: 2rem max(1rem, calc(50vw - 600px)) 2rem clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .generate-banner .generate-intro h1,
@@ -5495,23 +5523,44 @@ body.ocean-bg {
   color: #fff;
 }
 
-/* The saved-design picker is the natural first move on this page, so it
-   gets its own raised card rather than sitting flush with the other fields
-   — a visual "start here" rather than one dropdown among several. A tinted
-   mist background reads as a card without the jarring contrast of pure
-   white against the solid green banner. */
+/* The saved-design picker is the natural first move on this page. Rather
+   than a white card, a light-green border on an otherwise transparent
+   field marks it as "start here" without competing with the image for
+   attention - and pulses gently until a real selection is made. */
 .generate-banner__fields .eco-field--start {
   flex: 1 1 260px;
-  background: var(--color-background, #f2f9f3);
+  background: transparent;
   padding: 0.9rem 1.15rem;
   border-radius: 1rem;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  border: 2px solid var(--color-light, #c0e3cb);
 }
 
 .generate-banner__fields .eco-field--start select {
   font-size: 1.05rem;
   padding: 0.75rem 0.9rem;
   border-color: rgba(1, 121, 25, 0.3);
+}
+
+@keyframes eco-start-pulse {
+  0%,
+  100% {
+    border-color: rgba(192, 227, 203, 0.55);
+    box-shadow: 0 0 0 0 rgba(192, 227, 203, 0.35);
+  }
+  50% {
+    border-color: rgba(192, 227, 203, 1);
+    box-shadow: 0 0 0 6px rgba(192, 227, 203, 0);
+  }
+}
+
+.generate-banner__fields .eco-field--start.is-pulsing {
+  animation: eco-start-pulse 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .generate-banner__fields .eco-field--start.is-pulsing {
+    animation: none;
+  }
 }
 
 .generate-banner__fields .eco-field__badge {
@@ -5532,32 +5581,21 @@ body.ocean-bg {
   flex: 0 1 200px;
 }
 
-.generate-banner__media {
-  margin: 0;
-  display: flex;
-  justify-content: center;
-}
-
-.generate-banner__media img {
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  border-radius: 1rem;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-}
-
 @media (max-width: 860px) {
   .generate-banner__content {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    min-height: 0;
   }
 
   .generate-banner__media {
-    order: -1;
+    flex: 0 0 auto;
+    max-width: 100%;
+    width: 100%;
+    height: 220px;
   }
 
-  .generate-banner__media img {
-    max-width: 220px;
+  .generate-banner__intro {
+    padding: 1.5rem max(1rem, calc(50vw - 600px)) 1.75rem;
   }
 }
 

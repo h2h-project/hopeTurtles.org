@@ -31,15 +31,18 @@
 <% } else { %>
 <main id="main" class="layout generate-page">
   <div class="generate-banner">
-    <div class="eco-dev-notice eco-dev-notice--top" role="status">
-      <i class="fa-solid fa-flask" aria-hidden="true"></i>
-      <span>
-        <strong><%= t.gen_notice_title %></strong>
-        <%= t.gen_notice_body %>
-      </span>
-    </div>
-
     <div class="generate-banner__content">
+      <figure class="generate-banner__media">
+        <img src="/images/turtle-banner-background.webp" alt="" loading="lazy" />
+        <div class="eco-dev-notice eco-dev-notice--top" role="status">
+          <i class="fa-solid fa-flask" aria-hidden="true"></i>
+          <span>
+            <strong><%= t.gen_notice_title %></strong>
+            <%= t.gen_notice_body %>
+          </span>
+        </div>
+      </figure>
+
       <div class="generate-banner__intro">
         <div class="generate-intro">
           <h1><%= t.gen_hero_title %></h1>
@@ -47,7 +50,7 @@
         </div>
 
         <div class="eco-fields eco-profile-picker-row generate-banner__fields">
-          <label class="eco-field eco-field--start">
+          <label class="eco-field eco-field--start is-pulsing" data-eco-start-field>
             <span class="eco-field__badge">Start here</span>
             <select id="eco-design-picker" data-eco-design-picker>
               <option value="" disabled selected>Start Your Design...</option>
@@ -66,10 +69,6 @@
           </label>
         </div>
       </div>
-
-      <figure class="generate-banner__media">
-        <img src="/images/full_turtle-preview-777px.webp" alt="Full Hope Turtle assembly preview" loading="lazy" />
-      </figure>
     </div>
   </div>
 
