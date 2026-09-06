@@ -591,6 +591,93 @@ def _yellow_fin_edges_and_notches(d: BallastDerived):
     return edges, [lower_wall, upper_wall]
 
 
+# ---------------------------------------------------------------------------
+# PDF dimension callouts for slot depths, widths, and positions
+#
+# The width/height dimension lines already drawn for each part only cover
+# the part's own outer footprint - a carpenter still needs each slot's own
+# depth/width to actually cut the joints. Each function below returns
+# (dims, labels) in the part's own local (pre-rotation) coordinates: `dims`
+# are (p1, p2, text, kwargs) fed to _draw_dimension_line() (kwargs may
+# include ext1/ext2 witness points, rotate_label), `labels` are (point,
+# text) pairs drawn as plain centered text inside a cut-away void (e.g. a
+# slot's width, written inside the slot itself). See
+# back_fin.py's _shaft_annotations()/_fin_annotations()/_solar_annotations()
+# for the same pattern.
+# ---------------------------------------------------------------------------
+
+def _slat_annotations(d: BallastDerived):
+    dims = [
+        (
+            (0, d.slot_z0 - 10), (d.slot_depth, d.slot_z0 - 10),
+            f"{_ceil_mm(d.slot_depth)} x {_ceil_mm(d.slot_height)}mm",
+            {"ext1": (0, d.slot_z0), "ext2": (d.slot_depth, d.slot_z0)},
+        ),
+    ]
+    return dims, []
+
+
+def _board_annotations(d: BallastDerived):
+    notches = _board_notches(d)
+    sides = ["bottom", "bottom", "bottom", "top", "top"]
+    dims = []
+    for (nx, ny, nw, nh), side in zip(notches, sides):
+        if side == "bottom":
+            dims.append((
+                (nx + nw + 3, 0), (nx + nw + 3, nh),
+                f"{_ceil_mm(nh)}mm", {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh)},
+            ))
+        else:
+            top = d.ballast_bottom_width
+            dims.append((
+                (nx - 3, top), (nx - 3, top - nh),
+                f"{_ceil_mm(nh)}mm", {"ext1": (nx, top), "ext2": (nx, top - nh)},
+            ))
+    _, center_ny, center_nw, center_nh = notches[1]
+    labels = [
+        ((d.center_slot_center, center_ny + min(center_nh, 14) / 2), f"{_ceil_mm(d.ballast_slot_width)}mm wide"),
+    ]
+    return dims, labels
+
+
+def _yellow_fin_annotations(d: BallastDerived):
+    lower_slot, upper_relief = _yellow_fin_notches(d)
+    lx, ly, lw, lh = lower_slot
+    ux, uy, uw, uh = upper_relief
+    dims = [
+        # These end up as vertical lines once rotated into the page (fin
+        # rotates for this reference sheet), with the label pushed to the
+        # "left" side specifically so it lands in open space rather than
+        # under the front chamfer's diagonal edge.
+        (
+            (lx, ly - 4), (lx + lw, ly - 4),
+            f"{_ceil_mm(lw)} x {_ceil_mm(lh)}mm",
+            {"ext1": (lx, ly), "ext2": (lx + lw, ly), "label_side": "left"},
+        ),
+        (
+            (ux, uy - 14), (ux + uw, uy - 14),
+            f"{_ceil_mm(uw)}mm",
+            {"ext1": (ux, uy), "ext2": (ux + uw, uy), "label_side": "left"},
+        ),
+    ]
+    return dims, []
+
+
+def _lock_annotations(d: BallastDerived):
+    slot_y0 = (d.red_piece_height - d.red_slot_height) / 2
+    dims = [
+        (
+            (0, slot_y0 - 10), (d.red_slot_depth, slot_y0 - 10),
+            f"{_ceil_mm(d.red_slot_depth)} x {_ceil_mm(d.red_slot_height)}mm",
+            {"ext1": (0, slot_y0), "ext2": (d.red_slot_depth, slot_y0)},
+        ),
+    ]
+    labels = [
+        ((d.red_chamfer * 0.32, d.red_chamfer * 0.32), f"{_ceil_mm(d.red_chamfer)}mm"),
+    ]
+    return dims, labels
+
+
 def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir: Optional[Path] = None) -> None:
     """One-page Letter portrait carpenter reference for the assembly's 4
     part shapes.
@@ -609,13 +696,13 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle(f"Flatpack Ecojoiner Bottom Ballast v{DESIGN_VERSION}")
+    c.setTitle("Flatpack Bottom Ballast Fin v2.0")
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Ecojoiner - Bottom Ballast v{DESIGN_VERSION}")
+    c.drawString(margin, title_y, "Flatpack Bottom Ballast Fin v2.0")
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
@@ -641,9 +728,13 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     # string - freeing up horizontal space for a bigger shared scale.
     col_left_pad = 20
     col_right_pad = 10
-    col_gap = 14
+    col_gap = 10
 
     yellow_edges, yellow_notches = _yellow_fin_edges_and_notches(d)
+    slat_dims, slat_labels = _slat_annotations(d)
+    board_dims, board_labels = _board_annotations(d)
+    fin_dims, fin_labels = _yellow_fin_annotations(d)
+    lock_dims, lock_labels = _lock_annotations(d)
 
     parts_raw = [
         {
@@ -654,6 +745,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "edges": _closed_edges(_slat_outline(d)),
             "notches": [],
             "circles": [],
+            "dims": slat_dims,
+            "labels": slat_labels,
         },
         {
             "name": "Ballast Bottom Board",
@@ -669,6 +762,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
                 for notch, side in zip(_board_notches(d), ["bottom", "bottom", "bottom", "top", "top"])
             ],
             "circles": [],
+            "dims": board_dims,
+            "labels": board_labels,
         },
         {
             "name": "Bottom Ballast Fin",
@@ -678,6 +773,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "edges": yellow_edges,
             "notches": yellow_notches,
             "circles": [],
+            "dims": fin_dims,
+            "labels": fin_labels,
         },
         {
             "name": "Ballast Lock Foot (x2)",
@@ -687,6 +784,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "edges": _closed_edges(_lock_outline(d)),
             "notches": [],
             "circles": [],
+            "dims": lock_dims,
+            "labels": lock_labels,
         },
     ]
 
@@ -697,6 +796,14 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         def r(p):
             return _rot_point(p[0], p[1], h_mm) if rotate else p
 
+        def r_dim(p1, p2, text, kwargs):
+            kwargs = {**kwargs}
+            if "ext1" in kwargs:
+                kwargs["ext1"] = r(kwargs["ext1"])
+            if "ext2" in kwargs:
+                kwargs["ext2"] = r(kwargs["ext2"])
+            return (r(p1), r(p2), text, kwargs)
+
         return {
             **part,
             "eff_w": h_mm if rotate else w_mm,
@@ -704,6 +811,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "edges": [(r(p1), r(p2), [(r(g1), r(g2)) for g1, g2 in gaps]) for p1, p2, gaps in part["edges"]],
             "notches": [[r(p) for p in wall] for wall in part["notches"]],
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
+            "dims": [r_dim(p1, p2, text, kwargs) for p1, p2, text, kwargs in part["dims"]],
+            "labels": [(r(p), text) for p, text in part["labels"]],
         }
 
     parts = [prepare(p) for p in parts_raw]
@@ -753,6 +862,25 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
             f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, rotate_label=True,
         )
+
+        # Slot depth/width/position callouts - see _slat_annotations()/
+        # _board_annotations()/_yellow_fin_annotations()/_lock_annotations().
+        for p1, p2, text, kwargs in part["dims"]:
+            line_kwargs = {**kwargs}
+            if "ext1" in line_kwargs:
+                ex, ey = line_kwargs["ext1"]
+                line_kwargs["ext1"] = (ox + ex * scale, oy + ey * scale)
+            if "ext2" in line_kwargs:
+                ex, ey = line_kwargs["ext2"]
+                line_kwargs["ext2"] = (ox + ex * scale, oy + ey * scale)
+            _draw_dimension_line(
+                c, ox + p1[0] * scale, oy + p1[1] * scale, ox + p2[0] * scale, oy + p2[1] * scale,
+                text, font=body_font, size=5.5, **line_kwargs,
+            )
+        for p, text in part["labels"]:
+            c.setFont(body_font, 5.5)
+            c.setFillColor(colors.HexColor("#333333"))
+            c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 
         if part["name"] == "Ballast Lock Foot (x2)":
             lock_col_w = col_w

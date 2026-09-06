@@ -537,13 +537,13 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle(f"Flatpack Ecojoiner Back Fin v{DESIGN_VERSION}")
+    c.setTitle("Flatpack Back Fin v2.0")
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Ecojoiner - Back Fin v{DESIGN_VERSION}")
+    c.drawString(margin, title_y, "Flatpack Back Fin v2.0")
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")

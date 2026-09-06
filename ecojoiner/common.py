@@ -265,10 +265,13 @@ def _draw_dimension_line(c, x1, y1, x2, y2, text, font="Helvetica", size=7, offs
         c.line(x1, y1, x1 - ah / 2, y1 + ah)
         c.line(x2, y2, x2 + ah / 2, y2 - ah)
         c.line(x2, y2, x2 - ah / 2, y2 - ah)
+        # Offset off the line itself rather than centering on it - drawn
+        # dead-center, the line ran straight through the middle of the text.
+        gap = size * 0.75 + 5 + offset
         c.saveState()
         c.translate((x1 + x2) / 2, (y1 + y2) / 2)
         c.rotate(90)
-        c.drawCentredString(0, 0, text)
+        c.drawCentredString(0, gap, text)
         c.restoreState()
         return
     else:

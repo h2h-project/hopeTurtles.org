@@ -5436,9 +5436,13 @@ body.ocean-bg {
   flex-direction: column;
   gap: 1.5rem;
   margin: 30px 0 0;
-  padding: 1.75rem 2rem;
+  /* Full-bleed: break out of the centered .layout column to the viewport
+     edges (same technique as .hero), then re-pad so the inner content still
+     lines up with the page's 1200px column. */
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: 1.75rem max(1rem, calc(50vw - 600px)) 2rem;
   background: var(--color-primary);
-  border-radius: 1.25rem;
   box-shadow: var(--shadow-elevated);
 }
 
@@ -5477,8 +5481,14 @@ body.ocean-bg {
   color: rgba(255, 255, 255, 0.88);
 }
 
-.generate-banner__fields {
+/* .eco-fields' own `display: grid` (defined later in this file) otherwise
+   wins the cascade at equal specificity, so this pairs both classes to
+   force the flex row regardless of source order. */
+.eco-fields.generate-banner__fields {
+  display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
+  gap: 1.1rem;
 }
 
 .generate-banner__fields .eco-field--lang .eco-field__label {
@@ -5486,23 +5496,20 @@ body.ocean-bg {
 }
 
 /* The saved-design picker is the natural first move on this page, so it
-   gets its own raised white card rather than sitting flush with the other
-   fields — a visual "start here" rather than one dropdown among several. */
+   gets its own raised card rather than sitting flush with the other fields
+   — a visual "start here" rather than one dropdown among several. A tinted
+   mist background reads as a card without the jarring contrast of pure
+   white against the solid green banner. */
 .generate-banner__fields .eco-field--start {
   flex: 1 1 260px;
-  background: #fff;
+  background: var(--color-background, #f2f9f3);
   padding: 0.9rem 1.15rem;
   border-radius: 1rem;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.generate-banner__fields .eco-field--start .eco-field__label {
-  color: var(--color-forest, #1f3b22);
-  font-size: 1.05rem;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
 }
 
 .generate-banner__fields .eco-field--start select {
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   padding: 0.75rem 0.9rem;
   border-color: rgba(1, 121, 25, 0.3);
 }
