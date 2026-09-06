@@ -453,6 +453,73 @@ def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
     return [(h0, h1, []), (h1, h2, [bottom_gap]), (h2, h3, []), (h3, h4, []), (h4, h5, []), (h5, h0, [])]
 
 
+# ---------------------------------------------------------------------------
+# PDF dimension callouts for slots, cuts and hole positions
+#
+# The width/height dimension lines already drawn for each part only cover
+# the part's own outer footprint - a carpenter still needs the slot depths,
+# the hole's diameter and its position, and the chamfer size to actually cut
+# the joints. Each function below returns (dims, labels) in the part's own
+# local (pre-rotation) coordinates: `dims` are (p1, p2, text, kwargs) fed to
+# _draw_dimension_line() (kwargs may include ext1/ext2 witness points,
+# rotate_label, label_side), `labels` are (point, text) pairs drawn as plain
+# centered text (e.g. a hole's diameter, written on the hole itself).
+# ---------------------------------------------------------------------------
+
+def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
+    hole_x = inputs.shaft_hole_from_front
+    hole_y = inputs.shaft_width / 2
+    dims = [
+        (
+            (0, inputs.shaft_width + 14), (hole_x, inputs.shaft_width + 14),
+            f"{_ceil_mm(hole_x)}mm",
+            {"ext1": (0, inputs.shaft_width), "ext2": (hole_x, inputs.shaft_width), "rotate_label": True},
+        ),
+        (
+            (d.shaft_notch_u0, -6), (d.shaft_length, -6),
+            f"{_ceil_mm(d.shaft_notch_width)}mm", {"ext1": (d.shaft_notch_u0, 0), "ext2": (d.shaft_length, 0)},
+        ),
+    ]
+    labels = [
+        ((hole_x, hole_y), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
+        ((d.shaft_notch_u0 + d.shaft_notch_width / 2, d.shaft_notch_v0 + d.shaft_notch_height / 2), f"{_ceil_mm(d.shaft_notch_height)}mm"),
+    ]
+    return dims, labels
+
+
+def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
+    upper, lower, solar = _fin_notches(inputs, d)
+    dims = []
+    for nx, ny, nw, nh in (upper, lower):
+        dims.append((
+            (nx, ny - 6), (nx + nw, ny - 6),
+            f"{_ceil_mm(nw)}mm", {"ext1": (nx, ny), "ext2": (nx + nw, ny)},
+        ))
+    nx, ny, nw, nh = solar
+    dims.append((
+        (nx + nw + 6, ny), (nx + nw + 6, ny + nh),
+        f"{_ceil_mm(nh)}mm",
+        {"ext1": (nx + nw, ny), "ext2": (nx + nw, ny + nh), "rotate_label": True},
+    ))
+    return dims, []
+
+
+def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
+    nx = (d.solar_holder_length - d.solar_slot_width) / 2
+    nh = d.solar_slot_depth + inputs.solar_slot_clearance / 2
+    dims = [
+        (
+            (nx + d.solar_slot_width + 4, 0), (nx + d.solar_slot_width + 4, nh),
+            f"{_ceil_mm(nh)}mm",
+            {"ext1": (nx + d.solar_slot_width, 0), "ext2": (nx + d.solar_slot_width, nh), "rotate_label": True},
+        ),
+    ]
+    labels = [
+        ((d.solar_chamfer * 0.32, d.solar_chamfer * 0.32), f"{_ceil_mm(d.solar_chamfer)}mm"),
+    ]
+    return dims, labels
+
+
 def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir: Optional[Path] = None) -> None:
     """One-page Letter portrait carpenter reference for the fin's 4 parts.
 
@@ -503,6 +570,10 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     col_right_pad = 10
     col_gap = 16
 
+    shaft_dims, shaft_labels = _shaft_annotations(inputs, d)
+    fin_dims, fin_labels = _fin_annotations(inputs, d)
+    solar_dims, solar_labels = _solar_annotations(inputs, d)
+
     parts_raw = [
         {
             "name": "Bottle Holder Shaft (x2)",
@@ -517,6 +588,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
                 _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
             ],
             "circles": [(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
+            "dims": shaft_dims,
+            "labels": shaft_labels,
         },
         {
             "name": "Rear Fin",
@@ -529,6 +602,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
                 for i, (nx, ny, nw, nh) in enumerate(_fin_notches(inputs, d))
             ],
             "circles": [],
+            "dims": fin_dims,
+            "labels": fin_labels,
         },
         {
             "name": "Solar Panel Holder",
@@ -543,6 +618,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
                 )[0],
             ],
             "circles": [],
+            "dims": solar_dims,
+            "labels": solar_labels,
         },
     ]
 
@@ -553,6 +630,14 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         def r(p):
             return _rot_point(p[0], p[1], h_mm) if rotate else p
 
+        def r_dim(p1, p2, text, kwargs):
+            kwargs = {**kwargs}
+            if "ext1" in kwargs:
+                kwargs["ext1"] = r(kwargs["ext1"])
+            if "ext2" in kwargs:
+                kwargs["ext2"] = r(kwargs["ext2"])
+            return (r(p1), r(p2), text, kwargs)
+
         return {
             **part,
             "eff_w": h_mm if rotate else w_mm,
@@ -560,6 +645,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "edges": [(r(p1), r(p2), [(r(g1), r(g2)) for g1, g2 in gaps]) for p1, p2, gaps in part["edges"]],
             "notches": [[r(p) for p in wall] for wall in part["notches"]],
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
+            "dims": [r_dim(p1, p2, text, kwargs) for p1, p2, text, kwargs in part["dims"]],
+            "labels": [(r(p), text) for p, text in part["labels"]],
         }
 
     parts = [prepare(p) for p in parts_raw]
@@ -609,6 +696,25 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
             f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
         )
+
+        # Slot/cut/hole callouts - see _shaft_annotations()/_fin_annotations()/
+        # _solar_annotations() for what each part contributes.
+        for p1, p2, text, kwargs in part["dims"]:
+            line_kwargs = {**kwargs}
+            if "ext1" in line_kwargs:
+                ex, ey = line_kwargs["ext1"]
+                line_kwargs["ext1"] = (ox + ex * scale, oy + ey * scale)
+            if "ext2" in line_kwargs:
+                ex, ey = line_kwargs["ext2"]
+                line_kwargs["ext2"] = (ox + ex * scale, oy + ey * scale)
+            _draw_dimension_line(
+                c, ox + p1[0] * scale, oy + p1[1] * scale, ox + p2[0] * scale, oy + p2[1] * scale,
+                text, font=body_font, size=5.5, **line_kwargs,
+            )
+        for p, text in part["labels"]:
+            c.setFont(body_font, 5.5)
+            c.setFillColor(colors.HexColor("#333333"))
+            c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 
         if part["name"] == "Solar Panel Holder":
             solar_col_w = col_w

@@ -5427,6 +5427,133 @@ body.ocean-bg {
   color: var(--color-text-muted);
 }
 
+/* Banner wrapping the dev notice, hero intro, and quick-start fields — a
+   solid-green block so this "where do I start" cluster reads as one unit
+   against the busy ocean-texture background, instead of three separate
+   pieces of text competing with it. */
+.generate-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 30px 0 0;
+  padding: 1.75rem 2rem;
+  background: var(--color-primary);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-elevated);
+}
+
+.generate-banner .eco-dev-notice {
+  width: 100%;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.generate-banner .eco-dev-notice i {
+  color: #fde68a;
+}
+
+.generate-banner__content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: center;
+}
+
+.generate-banner__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+.generate-banner .generate-intro h1,
+.generate-banner .generate-intro p {
+  color: #fff;
+}
+
+.generate-banner .generate-intro p {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.generate-banner__fields {
+  align-items: flex-end;
+}
+
+.generate-banner__fields .eco-field--lang .eco-field__label {
+  color: #fff;
+}
+
+/* The saved-design picker is the natural first move on this page, so it
+   gets its own raised white card rather than sitting flush with the other
+   fields — a visual "start here" rather than one dropdown among several. */
+.generate-banner__fields .eco-field--start {
+  flex: 1 1 260px;
+  background: #fff;
+  padding: 0.9rem 1.15rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+}
+
+.generate-banner__fields .eco-field--start .eco-field__label {
+  color: var(--color-forest, #1f3b22);
+  font-size: 1.05rem;
+}
+
+.generate-banner__fields .eco-field--start select {
+  font-size: 1.02rem;
+  padding: 0.75rem 0.9rem;
+  border-color: rgba(1, 121, 25, 0.3);
+}
+
+.generate-banner__fields .eco-field__badge {
+  display: inline-block;
+  width: fit-content;
+  margin-bottom: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.generate-banner__fields .eco-field--lang {
+  flex: 0 1 200px;
+}
+
+.generate-banner__media {
+  margin: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.generate-banner__media img {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 860px) {
+  .generate-banner__content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .generate-banner__media {
+    order: -1;
+  }
+
+  .generate-banner__media img {
+    max-width: 220px;
+  }
+}
+
 /* Development notice so no one fills the form expecting a download yet. */
 .eco-dev-notice {
   display: flex;
