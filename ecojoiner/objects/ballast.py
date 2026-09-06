@@ -631,10 +631,17 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     draw_right = page_w - margin
     draw_top = title_y - 44
     draw_bottom = 40
-    col_w = (draw_right - draw_left) / 4
-    avail_w = col_w - 24
     diagram_top = draw_top - 20
-    avail_h = diagram_top - draw_bottom - 20
+    dim_line_reserve = 26  # room below each shape for its width dimension line
+    avail_h = diagram_top - draw_bottom - dim_line_reserve
+
+    # Column padding: the height dimension label is drawn rotated, running
+    # along its own line rather than written left-to-right beside it, so it
+    # needs only a little clearance rather than room for a whole sideways
+    # string - freeing up horizontal space for a bigger shared scale.
+    col_left_pad = 20
+    col_right_pad = 10
+    col_gap = 14
 
     yellow_edges, yellow_notches = _yellow_fin_edges_and_notches(d)
 
@@ -700,17 +707,29 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         }
 
     parts = [prepare(p) for p in parts_raw]
-    # One shared scale so the 4 parts stay size-comparable to each other,
-    # rather than each independently maximizing its own column (which would
-    # make the physically-smaller lock foot misleadingly large).
-    scale = min(min(avail_w / p["eff_w"], avail_h / p["eff_h"]) for p in parts)
+    # Scale is chosen so the tallest part (by how much of avail_h its own
+    # height would need) fills the full available height - the core slat, in
+    # practice - rather than being capped by whichever part is widest, which
+    # left every part far short of the page's full vertical space. Columns
+    # are then sized to each part's actual drawn width at that scale (see
+    # the layout loop below) instead of fixed equal quarters, since the 4
+    # parts are no longer assumed to fit the same column width. A
+    # proportional-shrink fallback guards the (unusual) case where that
+    # would overflow the page's total width.
+    scale = min(avail_h / p["eff_h"] for p in parts)
+    total_w = sum(p["eff_w"] for p in parts) * scale + 4 * (col_left_pad + col_right_pad) + 3 * col_gap
+    avail_total_w = draw_right - draw_left
+    if total_w > avail_total_w:
+        fixed_overhead = 4 * (col_left_pad + col_right_pad) + 3 * col_gap
+        scale = (avail_total_w - fixed_overhead) / sum(p["eff_w"] for p in parts)
 
-    lock_bottom = None
-    lock_col_x = None
-    for i, part in enumerate(parts):
-        cx0 = draw_left + i * col_w
-        ox = cx0 + 12
+    lock_col_w = None
+    cursor = draw_left
+    for part in parts:
+        cx0 = cursor
+        ox = cx0 + col_left_pad
         oy = diagram_top - part["eff_h"] * scale
+        col_w = part["eff_w"] * scale + col_left_pad + col_right_pad
 
         c.setFont(title_font, 9)
         c.setFillColor(colors.HexColor("#222222"))
@@ -727,23 +746,25 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
 
         _draw_dimension_line(
-            c, ox, oy - 10, ox + part["eff_w"] * scale, oy - 10,
+            c, ox, oy - 16, ox + part["eff_w"] * scale, oy - 16,
             f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5,
         )
         _draw_dimension_line(
             c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
-            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
+            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, rotate_label=True,
         )
 
         if part["name"] == "Ballast Lock Foot (x2)":
-            lock_bottom = oy - 24
-            lock_col_x = cx0
+            lock_col_w = col_w
+
+        cursor += col_w + col_gap
 
     # The lock foot is always the smallest of the 4 parts (a 5x wood
     # thickness square, vs. the other three which scale with bottle
     # diameter/height), so its column has open space below its diagram -
     # that's where the input and derived-dimension boxes live, stacked
-    # instead of side-by-side.
+    # instead of side-by-side, anchored to the page's bottom-right corner
+    # rather than trailing the diagram.
     input_lines = [
         f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
         f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
@@ -761,10 +782,10 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     ]
     box_gap = 10
     box_h = 92
-    box_x = lock_col_x + 6
-    box_w = col_w - 12
-    input_box_y = lock_bottom - box_h
-    derived_box_y = input_box_y - box_gap - box_h
+    box_w = lock_col_w - col_right_pad
+    box_x = draw_right - box_w
+    derived_box_y = draw_bottom
+    input_box_y = derived_box_y + box_h + box_gap
     _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
     _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
