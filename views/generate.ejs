@@ -32,16 +32,16 @@
 <main id="main" class="layout generate-page">
   <div class="generate-banner">
     <div class="generate-banner__inner">
-      <div class="eco-dev-notice eco-dev-notice--top" role="status">
-        <i class="fa-solid fa-flask" aria-hidden="true"></i>
-        <span>
-          <strong><%= t.gen_notice_title %></strong>
-          <%= t.gen_notice_body %>
-        </span>
-      </div>
-
       <div class="generate-banner__content">
         <div class="generate-banner__intro">
+          <div class="eco-dev-notice eco-dev-notice--top" role="status">
+            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+            <span>
+              <strong><%= t.gen_notice_title %></strong>
+              <%= t.gen_notice_body %>
+            </span>
+          </div>
+
           <div class="generate-intro">
             <h1><%= t.gen_hero_title %></h1>
             <p><%= t.gen_hero_blurb %></p>
@@ -49,6 +49,7 @@
 
           <div class="eco-fields eco-profile-picker-row generate-banner__fields">
             <label class="eco-field eco-field--start">
+              <i class="fa-solid fa-arrow-right eco-field__start-icon" aria-hidden="true"></i>
               <select id="eco-design-picker" class="is-pulsing" data-eco-design-picker data-eco-start-field>
                 <option value="" disabled selected>Start Your Design...</option>
                 <option value="">New design</option>

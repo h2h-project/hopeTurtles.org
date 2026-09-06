@@ -5483,8 +5483,8 @@ body.ocean-bg {
    .generate-banner__inner (not .generate-banner__content, its immediate
    parent - left un-positioned so this skips up the ancestor chain) so
    top/bottom:0 land at .generate-banner__inner's own edges, bleeding past
-   this row's top into the space the dev notice occupies - the notice's
-   higher z-index is what keeps it floating above the image there. */
+   this row's top - the dev notice lives in the text column now, so nothing
+   overlaps it there. */
 .generate-banner__media {
   position: absolute;
   top: 0;
@@ -5503,9 +5503,10 @@ body.ocean-bg {
   border-radius: 1rem;
 }
 
+/* Lives inside .generate-banner__intro now (not spanning the full banner),
+   so it's naturally confined to the text column's width and never reaches
+   the image. */
 .generate-banner .eco-dev-notice {
-  position: relative;
-  z-index: 2;
   width: 100%;
   margin: 0;
   background: rgba(255, 255, 255, 0.14);
@@ -5541,6 +5542,7 @@ body.ocean-bg {
 }
 
 .generate-banner__fields .eco-field--start {
+  position: relative;
   flex: 1 1 260px;
 }
 
@@ -5549,8 +5551,19 @@ body.ocean-bg {
    it) so there's exactly one border, not a field-in-a-field look. */
 .generate-banner__fields .eco-field--start select {
   font-size: 1.05rem;
-  padding: 0.75rem 0.9rem;
+  padding: 0.75rem 0.9rem 0.75rem 2.25rem;
+  background: #bbf7d0;
   border: 2px solid #facc15;
+}
+
+.generate-banner__fields .eco-field__start-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  color: var(--color-forest, #1f3b22);
+  pointer-events: none;
 }
 
 @keyframes eco-start-pulse {
@@ -5575,8 +5588,23 @@ body.ocean-bg {
   }
 }
 
+/* Sized to match .eco-field--start's select-only height: a smaller label
+   with a tight gap, and the same vertical padding on the select, so the
+   two fields read as the same height side by side. */
 .generate-banner__fields .eco-field--lang {
   flex: 0 1 200px;
+  gap: 0.3rem;
+}
+
+.generate-banner__fields .eco-field--lang .eco-field__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.generate-banner__fields .eco-field--lang select {
+  padding: 0.4rem 0.7rem;
+  background: #bbf7d0;
 }
 
 @media (max-width: 860px) {
