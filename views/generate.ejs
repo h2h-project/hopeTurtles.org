@@ -259,6 +259,12 @@
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_fin %></span>
                 </button>
+                <button type="button" class="eco-type-card" data-type="ballast" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/bottom_fin.webp" alt="<%= t.gen_type_ballast %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_ballast %></span>
+                </button>
                 <% devTypes.forEach(function (option) { %>
                   <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
                     <span class="eco-type-card__thumb">
@@ -267,12 +273,6 @@
                     <span class="eco-type-card__title"><%= option.label %></span>
                   </button>
                 <% }) %>
-                <button type="button" class="eco-type-card eco-type-card--dev" data-type="ballast" data-available="false">
-                  <span class="eco-type-card__thumb">
-                    <img src="/images/ecojoiners/bottom_fin.webp" alt="<%= t.gen_type_ballast %> — <%= t.gen_type_dev_suffix %>" loading="lazy" />
-                  </span>
-                  <span class="eco-type-card__title"><%= t.gen_type_ballast %></span>
-                </button>
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
               <span class="eco-feedback" data-for="eco-type"></span>

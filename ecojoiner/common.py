@@ -47,6 +47,7 @@ except Exception:  # pragma: no cover - useful in backend deployments
 
 DESIGN_VERSION = "3.2"
 LICENSE_ID = "CERN-OHL-S-2.0"
+DEFAULT_PORT_ALLOWANCE_MM = 20.0
 
 
 @dataclass(frozen=True)
@@ -310,3 +311,96 @@ def _rounded_rect_text(c, x, y, w, h, title, lines, title_font, body_font):
     for line in lines:
         c.drawString(x + 8, yy, line)
         yy -= 9
+
+
+# ---------------------------------------------------------------------------
+# PDF "open slot" geometry helpers
+#
+# A slot cut into a carpenter-reference part is open where it breaks through
+# the part's own edge - drawing a full closed rectangle there would show a
+# wall where there's actually no material. These helpers build outlines and
+# notches with the entrance edge omitted, shared by every object module's
+# write_pdf() (see ecojoiner/objects/back_fin.py for the original use case).
+# ---------------------------------------------------------------------------
+
+def _rot_point(x: float, y: float, h_mm: float) -> Tuple[float, float]:
+    """Rotate a point 90 degrees CW within a h_mm-tall bounding box."""
+    return h_mm - y, x
+
+
+def _rect_open(nx: float, ny: float, nw: float, nh: float, open_side: str):
+    """A slot cut into a board isn't a closed pocket - one side of it is
+    open to the board's own edge, with no material (and so no line) there.
+
+    Returns (wall_path, gap_endpoints): wall_path is the 3-sided polyline
+    of the slot's actual walls (skipping open_side), and gap_endpoints are
+    the two corners of the open side, used to punch a matching gap in the
+    board's outline at the point the slot breaks through it.
+    """
+    bl, br, tr, tl = (nx, ny), (nx + nw, ny), (nx + nw, ny + nh), (nx, ny + nh)
+    cycle = [bl, br, tr, tl]
+    edge_index = {"bottom": 0, "right": 1, "top": 2, "left": 3}[open_side]
+    gap = (cycle[edge_index], cycle[(edge_index + 1) % 4])
+    start = (edge_index + 1) % 4
+    wall = [cycle[(start + i) % 4] for i in range(4)]
+    return wall, gap
+
+
+def _draw_edge_with_gaps(c, p1, p2, gaps):
+    """Draw a straight line from p1 to p2, skipping over `gaps` - each a
+    (point, point) pair lying on the segment - so a slot that breaks through
+    this edge reads as open board material, not a closed line across it."""
+    x1, y1 = p1
+    x2, y2 = p2
+    dx, dy = x2 - x1, y2 - y1
+    length_sq = dx * dx + dy * dy
+    if length_sq == 0:
+        return
+
+    def t_of(p):
+        return ((p[0] - x1) * dx + (p[1] - y1) * dy) / length_sq
+
+    intervals = sorted((min(t_of(a), t_of(b)), max(t_of(a), t_of(b))) for a, b in gaps)
+    cursor = 0.0
+    for t0, t1 in intervals:
+        if t0 > cursor:
+            c.line(x1 + dx * cursor, y1 + dy * cursor, x1 + dx * t0, y1 + dy * t0)
+        cursor = max(cursor, t1)
+    if cursor < 1.0:
+        c.line(x1 + dx * cursor, y1 + dy * cursor, x1 + dx * 1.0, y1 + dy * 1.0)
+
+
+def _draw_edges(c, edges, ox, oy, scale, *, stroke_color, line_width):
+    c.setStrokeColor(stroke_color)
+    c.setLineWidth(line_width)
+    for p1, p2, gaps in edges:
+        a = (ox + p1[0] * scale, oy + p1[1] * scale)
+        b = (ox + p2[0] * scale, oy + p2[1] * scale)
+        gap_pts = [
+            ((ox + g1[0] * scale, oy + g1[1] * scale), (ox + g2[0] * scale, oy + g2[1] * scale))
+            for g1, g2 in gaps
+        ]
+        _draw_edge_with_gaps(c, a, b, gap_pts)
+
+
+def _draw_open_path(c, points, ox, oy, scale, *, stroke_color, line_width):
+    c.setStrokeColor(stroke_color)
+    c.setLineWidth(line_width)
+    path_obj = c.beginPath()
+    path_obj.moveTo(ox + points[0][0] * scale, oy + points[0][1] * scale)
+    for px, py in points[1:]:
+        path_obj.lineTo(ox + px * scale, oy + py * scale)
+    c.drawPath(path_obj, stroke=1, fill=0)
+
+
+def _rect_edges_with_gaps(x: float, y: float, w: float, h: float, gaps_by_side: Optional[dict] = None):
+    """The 4 edges of an axis-aligned rectangle, as (p1, p2, gaps) triples
+    for _draw_edges(), with a gap punched into whichever side each notch in
+    `gaps_by_side` (side -> list of (nx,ny,nw,nh) notch rects) opens onto."""
+    gaps_by_side = gaps_by_side or {}
+    bl, br, tr, tl = (x, y), (x + w, y), (x + w, y + h), (x, y + h)
+    sides = [("bottom", bl, br), ("right", br, tr), ("top", tr, tl), ("left", tl, bl)]
+    return [
+        (p1, p2, [_rect_open(nx, ny, nw, nh, side)[1] for nx, ny, nw, nh in gaps_by_side.get(side, [])])
+        for side, p1, p2 in sides
+    ]

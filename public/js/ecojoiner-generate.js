@@ -562,6 +562,14 @@
               `${mm(i.solar_panel_width)} × ${mm(i.solar_panel_height)} × ${mm(i.solar_panel_thickness)}`,
             ],
           ]
+        : data.object_type === "ballast"
+        ? [
+            [s("gen_dim_ballast_board"), `${mm(d.ballast_bottom_length)} × ${mm(d.ballast_bottom_width)}`],
+            [s("gen_dim_ballast_slat"), `${mm(d.slat_width)} × ${mm(d.slat_height)}`],
+            [s("gen_dim_ballast_lock_foot"), `${mm(d.red_piece_width)} × ${mm(d.red_piece_height)}`],
+            [s("gen_dim_ballast_fin"), `${mm(d.ballast_fin_length)} × ${mm(d.ballast_fin_height)}`],
+            [s("gen_dim_ballast_port_length"), mm(d.port_length)],
+          ]
         : [
             [s("gen_dim_port_length"), mm(d.port_length)],
             [s("gen_dim_john_length"), mm(d.john_length)],
@@ -738,11 +746,24 @@
     "eco-type",
     "eco-fabrication",
   ];
+  const ORDER_BALLAST = [
+    "eco-brand",
+    "eco-diameter",
+    "eco-cap",
+    "eco-height",
+    "eco-top-tapper",
+    "eco-cap-height",
+    "eco-thickness",
+    "eco-board-max-width",
+    "eco-type",
+    "eco-fabrication",
+  ];
+  const ORDER_BY_TYPE = { fin: ORDER_FIN, ballast: ORDER_BALLAST };
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    const order = el("eco-type").value === "fin" ? ORDER_FIN : ORDER_6FC;
+    const order = ORDER_BY_TYPE[el("eco-type").value] || ORDER_6FC;
 
     let firstInvalid = null;
     order.forEach((key) => {

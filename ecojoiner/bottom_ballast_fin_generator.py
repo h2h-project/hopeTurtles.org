@@ -14,15 +14,19 @@ Example:
         --bottle-diameter 82 \
         --cap-height 17 \
         --cap-diameter 35 \
-        --port-height 80 \
+        --port-length 80 \
         --fin-board-width 93 \
         --output turtle_ballast_generated.scad
+
+`port_length` is not one of the foundation dimensions below - it's the same
+kind of derived value as the 6FC ecojoiner's port_length (taper_height +
+port_allowance, or a direct override), not a raw board/bottle measurement,
+so build_scad() takes it as its own argument rather than through `overrides`.
 """
 
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
 
 DEFAULTS = {
@@ -31,30 +35,20 @@ DEFAULTS = {
     "bottle_diameter": 82,
     "cap_height": 17,
     "cap_diameter": 35,
-    "port_height": 80,
     "fin_board_width": 93,
 }
 
-SCAD_TEMPLATE = r"""/*
+# Everything after the foundation-variable assignments, which build_scad()
+# generates dynamically from DEFAULTS/overrides (plus the derived
+# port_length) instead of duplicating them here - see back_fin_generator.py
+# for the same SCAD_BODY / build_scad() split.
+SCAD_BODY = r"""/*
     Hope Turtle — Bottom Ballast Assembly Study v1
     Green bottle-cover slat + orange ballast-bottom board
     Units: millimetres
 */
 
 $fn = 64;
-
-
-// ============================================================================
-// FOUNDATION VARIABLES
-// ============================================================================
-
-wood_thickness  = 15;
-bottle_height   = 320;
-bottle_diameter = 82;
-cap_height      = 17;
-cap_diameter    = 35;
-port_height     = 80;
-fin_board_width = 93;
 
 
 // ============================================================================
@@ -84,7 +78,7 @@ shoulder_step =
     slat_width - neck_width;
 
 upper_neck_start_z =
-    slat_height - port_height;
+    slat_height - port_length;
 
 upper_diagonal_start_z =
     upper_neck_start_z + shoulder_step;
@@ -667,13 +661,18 @@ def ask(label: str, default: float) -> float:
     return default if not raw else positive_number(raw)
 
 
-def replace_scad_value(scad: str, variable: str, value: float) -> str:
-    pattern = rf"^(\s*{re.escape(variable)}\s*=\s*)[0-9.]+(\s*;)"
-    replacement = rf"\g<1>{value:g}\g<2>"
-    updated, count = re.subn(pattern, replacement, scad, count=1, flags=re.M)
-    if count != 1:
-        raise RuntimeError(f"Could not update SCAD variable: {variable}")
-    return updated
+def build_scad(overrides: dict[str, float], port_length: float) -> str:
+    """Build the full SCAD source: a foundation-dimensions header generated
+    from DEFAULTS/overrides, plus the derived `port_length` (not a raw
+    dimension - see the module docstring), followed by SCAD_BODY."""
+    p = {**DEFAULTS, **overrides}
+    unknown = set(overrides) - set(DEFAULTS)
+    if unknown:
+        raise ValueError(f"Unknown parameters: {sorted(unknown)}")
+    lines = ["/* [Foundation dimensions] */"]
+    lines.extend(f"{k} = {p[k]:.12g};" for k in DEFAULTS)
+    lines.append(f"port_length = {port_length:.12g};")
+    return "\n".join(lines) + "\n" + SCAD_BODY
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -685,7 +684,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--bottle-diameter", type=positive_number)
     p.add_argument("--cap-height", type=positive_number)
     p.add_argument("--cap-diameter", type=positive_number)
-    p.add_argument("--port-height", type=positive_number)
+    p.add_argument("--port-length", type=positive_number)
     p.add_argument("--fin-board-width", type=positive_number)
     p.add_argument(
         "--output",
@@ -695,11 +694,10 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def validate(values: dict[str, float]) -> None:
+def validate(values: dict[str, float], port_length: float) -> None:
     t = values["wood_thickness"]
     bd = values["bottle_diameter"]
     fw = values["fin_board_width"]
-    ph = values["port_height"]
     bh = values["bottle_height"]
     ch = values["cap_height"]
 
@@ -715,9 +713,9 @@ def validate(values: dict[str, float]) -> None:
     slat_height = bh - ch + 4.5 * t
     shoulder_step = (bd - 2*t) - (bd - 3*t)  # simplifies to t
 
-    if ph <= shoulder_step:
+    if port_length <= shoulder_step:
         raise SystemExit(
-            "Port height must be greater than the 45-degree shoulder rise "
+            "Port length must be greater than the 45-degree shoulder rise "
             f"({shoulder_step:g} mm for these inputs)."
         )
 
@@ -737,7 +735,6 @@ def main() -> None:
         "bottle_diameter": args.bottle_diameter,
         "cap_height": args.cap_height,
         "cap_diameter": args.cap_diameter,
-        "port_height": args.port_height,
         "fin_board_width": args.fin_board_width,
     }
 
@@ -747,7 +744,6 @@ def main() -> None:
         "bottle_diameter": "Bottle diameter",
         "cap_height": "Cap height",
         "cap_diameter": "Cap diameter",
-        "port_height": "Port height",
         "fin_board_width": "Fin board width",
     }
 
@@ -755,11 +751,13 @@ def main() -> None:
         if supplied is None:
             mapping[variable] = ask(labels[variable], DEFAULTS[variable])
 
-    validate(mapping)
+    port_length = args.port_length
+    if port_length is None:
+        port_length = ask("Port length", 80.0)
 
-    scad = SCAD_TEMPLATE
-    for variable, value in mapping.items():
-        scad = replace_scad_value(scad, variable, value)
+    validate(mapping, port_length)
+
+    scad = build_scad(mapping, port_length)
 
     output = Path(args.output).expanduser()
     output.write_text(scad)

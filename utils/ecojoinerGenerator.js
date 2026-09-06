@@ -36,6 +36,12 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'rear_fin', part: 'Rear Fin', quantity: 1 },
     { key: 'bottle_holder_shaft', part: 'Bottle Holder Shaft', quantity: 2 },
     { key: 'solar_panel_holder', part: 'Solar Panel Holder', quantity: 1 }
+  ],
+  ballast: [
+    { key: 'ballast_bottom_board', part: 'Ballast Bottom Board', quantity: 1 },
+    { key: 'core_slat', part: 'Core Slat', quantity: 2 },
+    { key: 'ballast_lock_foot', part: 'Ballast Lock Foot', quantity: 2 },
+    { key: 'bottom_ballast_fin', part: 'Bottom Ballast Fin', quantity: 1 }
   ]
 };
 
@@ -79,13 +85,18 @@ const toNumber = (value) => {
  * every dimensional rule (ranges, geometry, material margins) belongs to
  * validate_inputs() in the Python script, which stays the single source of truth.
  *
- * Dispatches on ecojoinerType: the "Fin Attachment" object has a completely
- * different set of required fields and Python inputs from the default 6FC
- * ecojoiner, so it gets its own mapper (mapBackFinFields) rather than one
- * function trying to branch throughout.
+ * Dispatches on ecojoinerType: the "Fin Attachment" and "Ballast Attachment"
+ * objects each have a different set of required fields and Python inputs
+ * from the default 6FC ecojoiner, so they get their own mappers rather than
+ * one function trying to branch throughout.
  */
+const FIELD_MAPPERS = {
+  fin: (body) => mapBackFinFields(body),
+  ballast: (body) => mapBallastFields(body)
+};
+
 export const mapFormFields = (body = {}) =>
-  body.ecojoinerType === 'fin' ? mapBackFinFields(body) : mapSixFcFields(body);
+  (FIELD_MAPPERS[body.ecojoinerType] || mapSixFcFields)(body);
 
 const mapSixFcFields = (body = {}) => {
   const errors = [];
@@ -256,6 +267,94 @@ const mapBackFinFields = (body = {}) => {
     context: {
       material: body.material ? String(body.material) : null,
       ecojoinerType: 'fin'
+    },
+    notices: []
+  };
+};
+
+// Ballast Attachment: reuses the exact same bottle/board fields as the Fin
+// Attachment (no collar/top-tapper/bottom-tapper, no solar panel dims), plus
+// the top-tapper height (already collected for the 6FC ecojoiner) since the
+// ballast core slat's neck shoulder is derived from it - see
+// ecojoiner/objects/ballast.py::derive_dimensions()'s port_length, which is
+// computed the same way the 6FC ecojoiner derives its own port_length.
+const mapBallastFields = (body = {}) => {
+  const errors = [];
+
+  const required = {
+    brand: body.brand,
+    diameter: body.diameter,
+    cap: body.cap,
+    thickness: body.thickness,
+    height: body.height,
+    capHeight: body.capHeight,
+    boardMaxWidth: body.boardMaxWidth,
+    topTapper: body.topTapper
+  };
+
+  const brand = String(required.brand ?? '').trim();
+  if (!brand) errors.push('Please tell us the bottle brand.');
+  if (brand.length > 60) errors.push('Bottle brand must be 60 characters or fewer.');
+
+  const numbers = {};
+  for (const key of ['diameter', 'cap', 'thickness', 'height', 'capHeight', 'boardMaxWidth', 'topTapper']) {
+    const parsed = toNumber(required[key]);
+    if (parsed === null) {
+      errors.push(`Missing value: ${key}.`);
+    } else if (Number.isNaN(parsed)) {
+      errors.push(`${key} must be a number.`);
+    } else {
+      numbers[key] = parsed;
+    }
+  }
+
+  // Optional advanced overrides, same tier as 6FC's own (not exposed on the
+  // form). The Python default applies when absent.
+  const optional = {};
+  for (const [field, target] of [
+    ['portAllowance', 'port_allowance'],
+    ['portLength', 'port_length']
+  ]) {
+    const parsed = toNumber(body[field]);
+    if (parsed === null) continue;
+    if (Number.isNaN(parsed)) {
+      errors.push(`${field} must be a number.`);
+    } else {
+      optional[target] = parsed;
+    }
+  }
+
+  // Fabrication checkboxes → generator formats.
+  const formats = new Set();
+  if (isTruthy(body.fabCarpentry)) formats.add('pdf');
+  if (isTruthy(body.fab3d)) formats.add('scad');
+  if (isTruthy(body.fabSvg)) formats.add('svg');
+  if (isTruthy(body.fabDxf)) formats.add('dxf');
+  if (!formats.size) errors.push('Choose at least one fabrication format.');
+
+  if (errors.length) {
+    throw new EcojoinerRequestError('Please check the form values.', errors);
+  }
+
+  return {
+    inputs: {
+      object_type: 'ballast',
+      bottle_brand: brand,
+      bottle_diameter: numbers.diameter,
+      cap_diameter: numbers.cap,
+      wood_thickness: numbers.thickness,
+      bottle_height: numbers.height,
+      cap_height: numbers.capHeight,
+      fin_board_width: numbers.boardMaxWidth,
+      taper_height: numbers.topTapper,
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format)),
+      ...optional
+    },
+    // Not generator inputs, but worth echoing back so the page can show the
+    // full picture on the confirmation screen.
+    context: {
+      material: body.material ? String(body.material) : null,
+      ecojoinerType: 'ballast'
     },
     notices: []
   };

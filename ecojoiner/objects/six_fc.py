@@ -11,15 +11,13 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
-    DESIGN_VERSION, LICENSE_ID, GeneratedFile,
+    DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
     _to_float, _slugify, _ceil_mm,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
     _register_fonts, _draw_dimension_line, _draw_top_edge_with_gaps, _rounded_rect_text,
     colors, landscape, letter, mm, canvas, Paragraph, ParagraphStyle, pdfmetrics, TTFont, ezdxf,
 )
-
-DEFAULT_PORT_ALLOWANCE_MM = 20.0
 
 VISION_STATEMENT = (
     "The ecojoiner is shared freely with the world to help people everywhere "

@@ -12,9 +12,9 @@ ecojoiner/common.py. See ecojoiner/objects/six_fc.py and
 ecojoiner/objects/back_fin.py for the actual generators.
 
 Object selection: the JSON payload passed via --json may include an
-"object_type" key ("6fc" or "fin"); it defaults to "6fc" for back-compat
-with any caller that omits it (including this script's own manual CLI
-flags below, which only ever build 6FC inputs).
+"object_type" key ("6fc", "fin", or "ballast"); it defaults to "6fc" for
+back-compat with any caller that omits it (including this script's own
+manual CLI flags below, which only ever build 6FC inputs).
 
 Expected backend usage:
   1. Receive POST fields from /ecojoiners/generate.
@@ -32,7 +32,13 @@ import json
 from pathlib import Path
 from typing import Optional, Sequence
 
-from objects import six_fc, back_fin
+from objects import six_fc, back_fin, ballast
+
+OBJECT_MODULES = {
+    "fin": back_fin,
+    "back_fin": back_fin,
+    "ballast": ballast,
+}
 
 
 def build_arg_parser() -> argparse.ArgumentParser:
@@ -67,7 +73,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.json:
         data = json.loads(args.json.read_text(encoding="utf-8"))
         object_type = str(data.get("object_type") or "6fc")
-        module = back_fin if object_type in ("fin", "back_fin") else six_fc
+        module = OBJECT_MODULES.get(object_type, six_fc)
         inputs = module.parse_inputs_from_dict(data)
     else:
         module = six_fc
