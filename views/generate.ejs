@@ -31,43 +31,45 @@
 <% } else { %>
 <main id="main" class="layout generate-page">
   <div class="generate-banner">
-    <div class="generate-banner__content">
-      <figure class="generate-banner__media">
-        <img src="/images/turtle-banner-background.webp" alt="" loading="lazy" />
-        <div class="eco-dev-notice eco-dev-notice--top" role="status">
-          <i class="fa-solid fa-flask" aria-hidden="true"></i>
-          <span>
-            <strong><%= t.gen_notice_title %></strong>
-            <%= t.gen_notice_body %>
-          </span>
-        </div>
-      </figure>
+    <div class="generate-banner__inner">
+      <div class="eco-dev-notice eco-dev-notice--top" role="status">
+        <i class="fa-solid fa-flask" aria-hidden="true"></i>
+        <span>
+          <strong><%= t.gen_notice_title %></strong>
+          <%= t.gen_notice_body %>
+        </span>
+      </div>
 
-      <div class="generate-banner__intro">
-        <div class="generate-intro">
-          <h1><%= t.gen_hero_title %></h1>
-          <p><%= t.gen_hero_blurb %></p>
+      <div class="generate-banner__content">
+        <div class="generate-banner__intro">
+          <div class="generate-intro">
+            <h1><%= t.gen_hero_title %></h1>
+            <p><%= t.gen_hero_blurb %></p>
+          </div>
+
+          <div class="eco-fields eco-profile-picker-row generate-banner__fields">
+            <label class="eco-field eco-field--start">
+              <select id="eco-design-picker" class="is-pulsing" data-eco-design-picker data-eco-start-field>
+                <option value="" disabled selected>Start Your Design...</option>
+                <option value="">New design</option>
+              </select>
+            </label>
+            <input type="hidden" id="eco-profile-picker" data-eco-profile-picker value="" />
+            <label class="eco-field eco-field--lang">
+              <span class="eco-field__label">Export language</span>
+              <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
+              <select id="eco-pdf-lang" name="pdfLang">
+                <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>
+                <option value="tr" <%= pdfLangDefault === 'tr' ? 'selected' : '' %>>Türkçe</option>
+                <option value="id" <%= pdfLangDefault === 'id' ? 'selected' : '' %>>Bahasa Indonesia</option>
+              </select>
+            </label>
+          </div>
         </div>
 
-        <div class="eco-fields eco-profile-picker-row generate-banner__fields">
-          <label class="eco-field eco-field--start is-pulsing" data-eco-start-field>
-            <span class="eco-field__badge">Start here</span>
-            <select id="eco-design-picker" data-eco-design-picker>
-              <option value="" disabled selected>Start Your Design...</option>
-              <option value="">New design</option>
-            </select>
-          </label>
-          <input type="hidden" id="eco-profile-picker" data-eco-profile-picker value="" />
-          <label class="eco-field eco-field--lang">
-            <span class="eco-field__label">Export language</span>
-            <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
-            <select id="eco-pdf-lang" name="pdfLang">
-              <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>
-              <option value="tr" <%= pdfLangDefault === 'tr' ? 'selected' : '' %>>Türkçe</option>
-              <option value="id" <%= pdfLangDefault === 'id' ? 'selected' : '' %>>Bahasa Indonesia</option>
-            </select>
-          </label>
-        </div>
+        <figure class="generate-banner__media">
+          <img src="/images/turtle-banner-background.webp" alt="" loading="lazy" />
+        </figure>
       </div>
     </div>
   </div>

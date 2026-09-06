@@ -5404,6 +5404,10 @@ body.ocean-bg {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  /* .layout's own top padding would otherwise leave a gap above the
+     full-bleed banner, which needs to sit flush against the nav bar -
+     same fix as .layout--home for the homepage hero. */
+  padding-top: 0;
 }
 
 .generate-intro {
@@ -5432,30 +5436,49 @@ body.ocean-bg {
    against the busy ocean-texture background, instead of three separate
    pieces of text competing with it. */
 .generate-banner {
-  margin: 30px 0 0;
-  /* Full-bleed: break out of the centered .layout column to the viewport
-     edges (same technique as .hero). Horizontal padding lives on
-     .generate-banner__intro instead of here, since .generate-banner__media
-     needs to reach the banner's own left/top/bottom edges untouched. */
+  margin: 0;
+  /* Full-bleed background: break out of the centered .layout column to the
+     viewport edges (same technique as .hero), flush against the nav bar
+     above (.generate-page cancels .layout's own top padding for this). */
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
   background: var(--color-primary);
   box-shadow: var(--shadow-elevated);
-  overflow: hidden;
+}
+
+/* The actual content sits in a column matching .layout's own resolved
+   width exactly (rather than approximating it with padding), so this lines
+   up pixel-for-pixel with the panels below instead of drifting off it. */
+.generate-banner__inner {
+  width: min(1200px, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 1.75rem 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .generate-banner__content {
   display: flex;
   align-items: stretch;
-  min-height: 380px;
+  gap: 2rem;
+  min-height: 320px;
 }
 
-/* Image column: fixed 35% of the banner, stretched to the banner's full
-   height by the flex row above, image anchored top-left within it (cover +
+.generate-banner__intro {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+/* Image column: fixed 35% of the content width, on the right, stretched to
+   the row's full height, image anchored top-left within it (cover +
    top-left keeps the subject in frame while filling the column edge to
    edge, rather than leaving green letterboxing around a contained image). */
 .generate-banner__media {
-  position: relative;
   flex: 0 0 35%;
   max-width: 35%;
   margin: 0;
@@ -5467,37 +5490,19 @@ body.ocean-bg {
   height: 100%;
   object-fit: cover;
   object-position: top left;
+  border-radius: 1rem;
 }
 
-/* The dev notice floats over the top of the image rather than sitting in
-   normal flow above the whole banner - constraining it to the image
-   column's own width (not the full banner) is what keeps it from
-   overflowing the banner's right edge. A solid-ish dark scrim keeps the
-   text readable regardless of what's under it in the image. */
-.generate-banner__media .eco-dev-notice {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  right: 1rem;
-  z-index: 2;
+.generate-banner .eco-dev-notice {
+  width: 100%;
   margin: 0;
-  background: rgba(4, 46, 15, 0.82);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
   color: #fff;
 }
 
-.generate-banner__media .eco-dev-notice i {
+.generate-banner .eco-dev-notice i {
   color: #fde68a;
-}
-
-.generate-banner__intro {
-  flex: 1 1 65%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 1.5rem;
-  min-width: 0;
-  padding: 2rem max(1rem, calc(50vw - 600px)) 2rem clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .generate-banner .generate-intro h1,
@@ -5523,58 +5528,39 @@ body.ocean-bg {
   color: #fff;
 }
 
-/* The saved-design picker is the natural first move on this page. Rather
-   than a white card, a light-green border on an otherwise transparent
-   field marks it as "start here" without competing with the image for
-   attention - and pulses gently until a real selection is made. */
 .generate-banner__fields .eco-field--start {
   flex: 1 1 260px;
-  background: transparent;
-  padding: 0.9rem 1.15rem;
-  border-radius: 1rem;
-  border: 2px solid var(--color-light, #c0e3cb);
 }
 
+/* The saved-design picker is the natural first move on this page - the
+   pulsing bright-green border lives on the select itself (not a wrapper
+   around it) so there's exactly one border, not a field-in-a-field look. */
 .generate-banner__fields .eco-field--start select {
   font-size: 1.05rem;
   padding: 0.75rem 0.9rem;
-  border-color: rgba(1, 121, 25, 0.3);
+  border: 2px solid var(--color-accent);
 }
 
 @keyframes eco-start-pulse {
   0%,
   100% {
-    border-color: rgba(192, 227, 203, 0.55);
-    box-shadow: 0 0 0 0 rgba(192, 227, 203, 0.35);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 0 rgba(35, 176, 83, 0.45);
   }
   50% {
-    border-color: rgba(192, 227, 203, 1);
-    box-shadow: 0 0 0 6px rgba(192, 227, 203, 0);
+    border-color: #4ade80;
+    box-shadow: 0 0 0 6px rgba(35, 176, 83, 0);
   }
 }
 
-.generate-banner__fields .eco-field--start.is-pulsing {
-  animation: eco-start-pulse 2.2s ease-in-out infinite;
+.generate-banner__fields .eco-field--start select.is-pulsing {
+  animation: eco-start-pulse 1.8s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .generate-banner__fields .eco-field--start.is-pulsing {
+  .generate-banner__fields .eco-field--start select.is-pulsing {
     animation: none;
   }
-}
-
-.generate-banner__fields .eco-field__badge {
-  display: inline-block;
-  width: fit-content;
-  margin-bottom: 0.3rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: var(--color-accent);
-  color: #fff;
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .generate-banner__fields .eco-field--lang {
@@ -5592,10 +5578,7 @@ body.ocean-bg {
     max-width: 100%;
     width: 100%;
     height: 220px;
-  }
-
-  .generate-banner__intro {
-    padding: 1.5rem max(1rem, calc(50vw - 600px)) 1.75rem;
+    order: -1;
   }
 }
 
