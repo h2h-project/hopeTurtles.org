@@ -356,6 +356,12 @@ export const postTelemetryBatch = async (req, res) => {
 //
 // `?compact=1` is sent by the firmware and deliberately ignored — with the
 // airOS fields gone there is nothing left worth trimming.
+//
+// `mission_target_lat` / `mission_target_lng` carry the assigned mission's
+// destination (missions_tb.target_*). The firmware writes them into its
+// config as `mission_destination` so nav has a target even before an
+// operator sets a test-project one. Null when the turtle has no mission or
+// the mission has no target.
 // ------------------------------------------------------------
 export const getDevice = async (req, res) => {
   const turtleId = req.turtle.turtle_id;
@@ -380,6 +386,8 @@ export const getDevice = async (req, res) => {
       hub_name: info.hub_name ?? null,
       mission_short_name: info.mission_short_name ?? null,
       mission_full_name: info.mission_full_name ?? null,
+      mission_target_lat: finiteOrNull(info.mission_target_lat),
+      mission_target_lng: finiteOrNull(info.mission_target_lng),
       bottle_count: Number(info.bottle_count ?? 0),
       time_zone: timeZone,
       tz_offset_min: tzOffsetMin,
@@ -392,4 +400,50 @@ export const getDevice = async (req, res) => {
   }
 };
 
-export default { postTelemetry, postTelemetryBatch, getDevice };
+// ------------------------------------------------------------
+// PATCH /api/v1/device — operator-set test-project nav fields.
+//
+// The device owns set_destination / set_departure / set_arrival (each a
+// [lat, lon] pair), set_waypoints (list of [lat, lon]), and
+// set_short_name / set_full_name in its config.json, set by hand on the
+// Destination screen. It PATCHes them here so the dashboard can show them;
+// the local config stays authoritative for navigation.
+//
+// Lenient like the telemetry path: every key is optional, unknown keys are
+// ignored, and a malformed value for one field is skipped rather than
+// failing the whole request. `null` for a field clears it. The heavy
+// lifting (range checks, JSON encoding) is in turtlesModel.updateSetFields.
+// ------------------------------------------------------------
+export const patchDevice = async (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ ok: false, error: 'bad_payload', message: 'Body must be a JSON object' });
+  }
+
+  const turtleId = req.turtle.turtle_id;
+
+  // Map the wire names (set_destination, …) to updateSetFields' camelCase
+  // args. `undefined` (key absent) is passed through untouched so the
+  // model leaves that column alone; `null` reaches the model as a clear.
+  const pick = (key) => (key in body ? body[key] : undefined);
+
+  try {
+    const changed = await turtlesModel.updateSetFields(turtleId, {
+      setDestination: pick('set_destination'),
+      setDeparture: pick('set_departure'),
+      setArrival: pick('set_arrival'),
+      setWaypoints: pick('set_waypoints'),
+      setShortName: pick('set_short_name'),
+      setFullName: pick('set_full_name')
+    });
+
+    await turtlesModel.touchLiveness(turtleId, {});
+
+    return res.status(200).json({ ok: true, changed, server_now: serverNow() });
+  } catch (error) {
+    console.error('PATCH /api/v1/device error:', error?.stack || error?.message || error);
+    return res.status(500).json({ ok: false, error: 'server_error' });
+  }
+};
+
+export default { postTelemetry, postTelemetryBatch, getDevice, patchDevice };

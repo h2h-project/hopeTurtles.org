@@ -118,7 +118,18 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
       t.control_battery_capacity_ah,
       t.servo_battery_capacity_ah,
       t.battery_soc_pct,
+      t.set_destination_lat,
+      t.set_destination_lng,
+      t.set_departure_lat,
+      t.set_departure_lng,
+      t.set_arrival_lat,
+      t.set_arrival_lng,
+      t.set_waypoints,
+      t.set_short_name,
+      t.set_full_name,
       m.full_name AS mission_name,
+      m.target_lat AS mission_target_lat,
+      m.target_lng AS mission_target_lng,
       h.name AS hub_name,
       b.name AS boat_name,
       COALESCE(bottle_counts.bottle_count, 0) AS bottle_count,
@@ -179,6 +190,8 @@ turtlesModel.getWithRelationsById = async (turtleId) => {
     SELECT
       t.*,
       m.full_name AS mission_name,
+      m.target_lat AS mission_target_lat,
+      m.target_lng AS mission_target_lng,
       h.name AS hub_name,
       b.name AS boat_name,
       profile_photo.url AS profile_photo_url,
@@ -241,6 +254,87 @@ turtlesModel.touchLiveness = async (
   await query(`UPDATE turtles_tb SET ${assignments.join(', ')} WHERE turtle_id = ?`, params);
 };
 
+// Operator-set test-project nav fields, written by the device via
+// PATCH /api/v1/device (deviceApiController.patchDevice). Same dynamic
+// assignment pattern as touchLiveness: only a field that validates is
+// written, so a partial payload leaves the other columns untouched. A
+// point passed as `null` (operator cleared it) is written as SQL NULL;
+// an absent / malformed point is skipped.
+turtlesModel.updateSetFields = async (
+  turtleId,
+  {
+    setDestination,
+    setDeparture,
+    setArrival,
+    setWaypoints,
+    setShortName,
+    setFullName
+  } = {}
+) => {
+  const assignments = [];
+  const params = [];
+
+  // A point is [lat, lon]: both finite and in range -> write the pair;
+  // explicit null -> clear both columns; anything else -> leave as-is.
+  const applyPoint = (value, latCol, lngCol) => {
+    if (value === null) {
+      assignments.push(`${latCol} = NULL`, `${lngCol} = NULL`);
+      return;
+    }
+    if (!Array.isArray(value) || value.length !== 2) return;
+    const lat = Number(value[0]);
+    const lng = Number(value[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return;
+    assignments.push(`${latCol} = ?`, `${lngCol} = ?`);
+    params.push(lat, lng);
+  };
+
+  applyPoint(setDestination, 'set_destination_lat', 'set_destination_lng');
+  applyPoint(setDeparture, 'set_departure_lat', 'set_departure_lng');
+  applyPoint(setArrival, 'set_arrival_lat', 'set_arrival_lng');
+
+  if (setWaypoints === null) {
+    assignments.push('set_waypoints = NULL');
+  } else if (Array.isArray(setWaypoints)) {
+    const clean = setWaypoints
+      .filter((wp) => Array.isArray(wp) && wp.length === 2)
+      .map((wp) => [Number(wp[0]), Number(wp[1])])
+      .filter(
+        ([lat, lng]) =>
+          Number.isFinite(lat) &&
+          Number.isFinite(lng) &&
+          lat >= -90 &&
+          lat <= 90 &&
+          lng >= -180 &&
+          lng <= 180
+      );
+    assignments.push('set_waypoints = ?');
+    params.push(JSON.stringify(clean));
+  }
+
+  const applyName = (value, col, maxLen) => {
+    if (value === null) {
+      assignments.push(`${col} = NULL`);
+      return;
+    }
+    if (typeof value !== 'string') return;
+    assignments.push(`${col} = ?`);
+    params.push(value.trim().slice(0, maxLen));
+  };
+
+  applyName(setShortName, 'set_short_name', 50);
+  applyName(setFullName, 'set_full_name', 100);
+
+  if (!assignments.length) {
+    return false;
+  }
+
+  params.push(turtleId);
+  await query(`UPDATE turtles_tb SET ${assignments.join(', ')} WHERE turtle_id = ?`, params);
+  return true;
+};
+
 // Manager's IANA time zone, used to reset daily energy rollups at local
 // midnight. Falls back to UTC when the turtle has no manager or the
 // manager hasn't set one.
@@ -264,6 +358,8 @@ turtlesModel.getDeviceInfo = async (turtleId) => {
       t.name,
       m.short_name AS mission_short_name,
       m.full_name  AS mission_full_name,
+      m.target_lat AS mission_target_lat,
+      m.target_lng AS mission_target_lng,
       h.name AS hub_name,
       u.time_zone,
       -- Bottles currently assigned to this turtle. Not "aboard": bottles_tb has

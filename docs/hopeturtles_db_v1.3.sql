@@ -149,6 +149,18 @@ CREATE TABLE `turtles_tb` (
   `solar_charge` DECIMAL(5,2),
   `last_lat` DECIMAL(10,7),
   `last_lng` DECIMAL(10,7),
+  -- Operator-set test-project nav target, pushed from the device via
+  -- PATCH /api/v1/device. Independent of mission_id / missions_tb.target_*.
+  -- See 20260907_turtle_set_fields.sql.
+  `set_destination_lat` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_destination_lng` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_departure_lat` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_departure_lng` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_arrival_lat` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_arrival_lng` DECIMAL(10,7) NULL DEFAULT NULL,
+  `set_waypoints` JSON NULL DEFAULT NULL,
+  `set_short_name` VARCHAR(50) NULL DEFAULT NULL,
+  `set_full_name` VARCHAR(100) NULL DEFAULT NULL,
   `last_update` DATETIME,
   `description` TEXT,
   `secret_hash` VARCHAR(64) DEFAULT NULL,

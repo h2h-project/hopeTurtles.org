@@ -69,7 +69,15 @@ const TREND_VALUE_FIELDS = [
   'bme_humidity',
   'ina_batt_pct',
   'ina_bus_v',
-  'ina_current_ma'
+  'ina_current_ma',
+  // Barometers: BME280 (airOS boards) and the GY-87's BMP180 (turtleOS 2.4+)
+  'bme_pressure',
+  'bmp_pressure',
+  'bmp_temp',
+  // GY-87 attitude — heading has compass_offset_deg applied on the device
+  'imu_heading',
+  'imu_pitch',
+  'imu_roll'
 ];
 
 // `hours: 'all'` returns every reading regardless of age (used by the

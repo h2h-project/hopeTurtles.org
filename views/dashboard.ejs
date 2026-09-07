@@ -254,10 +254,27 @@
                   <div class="turtle-live">
                     <div class="turtle-live__map" data-live-map></div>
                     <div class="turtle-live__details">
+                      <%
+                        // Format a lat/lng pair (DECIMAL columns arrive as strings) or '—'.
+                        const fmtPair = (lat, lng) =>
+                          (lat != null && lng != null)
+                            ? `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`
+                            : '—';
+                        const setWpCount = Array.isArray(turtle.set_waypoints)
+                          ? turtle.set_waypoints.length
+                          : 0;
+                      %>
                       <dl class="turtle-live__meta">
                         <div class="turtle-live__metric"><dt>Mission</dt><dd><%= turtle.mission_name || '—' %></dd></div>
                         <div class="turtle-live__metric"><dt>Hub</dt><dd><%= turtle.hub_name || '—' %></dd></div>
                         <div class="turtle-live__metric"><dt>Boat</dt><dd><%= turtle.boat_name || '—' %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set name</dt><dd><%= turtle.set_full_name || '—' %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set short</dt><dd><%= turtle.set_short_name || '—' %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set destination</dt><dd><%= fmtPair(turtle.set_destination_lat, turtle.set_destination_lng) %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set departure</dt><dd><%= fmtPair(turtle.set_departure_lat, turtle.set_departure_lng) %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set arrival</dt><dd><%= fmtPair(turtle.set_arrival_lat, turtle.set_arrival_lng) %></dd></div>
+                        <div class="turtle-live__metric"><dt>Set waypoints</dt><dd><%= setWpCount %></dd></div>
+                        <div class="turtle-live__metric"><dt>Mission target</dt><dd><%= fmtPair(turtle.mission_target_lat, turtle.mission_target_lng) %></dd></div>
                       </dl>
                       <dl class="turtle-live__readout" data-live-readout></dl>
                       <p class="muted turtle-live__status" data-live-status>Loading…</p>

@@ -133,6 +133,8 @@
   "myturtle_co2": "CO₂",
   "myturtle_collapse": "Collapse",
   "myturtle_current": "Current (+ charging / − discharging)",
+  "myturtle_pressure": "Barometric pressure",
+  "myturtle_heading": "Heading, pitch & roll",
   "myturtle_danger_zone": "Danger Zone",
   "myturtle_deficit_streak": "Consecutive Deficit Days",
   "myturtle_delete_selected": "Delete selected",

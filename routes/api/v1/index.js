@@ -3,7 +3,8 @@ import deviceAuth from '../../../middleware/deviceAuth.js';
 import {
   postTelemetry,
   postTelemetryBatch,
-  getDevice
+  getDevice,
+  patchDevice
 } from '../../../controllers/deviceApiController.js';
 
 // Device-facing v1 API consumed by turtleOS firmware. Mounted at both
@@ -16,5 +17,6 @@ router.use(deviceAuth);
 router.post('/telemetry', postTelemetry);
 router.post('/telemetry/batch', postTelemetryBatch);
 router.get('/device', getDevice);
+router.patch('/device', patchDevice);
 
 export default router;

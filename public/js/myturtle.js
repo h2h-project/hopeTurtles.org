@@ -93,7 +93,13 @@
     battPct: '#f59e0b',
     battBusV: '#fbbf24',
     battCurrent: '#3b82f6',
-    socPct: '#23B053'
+    socPct: '#23B053',
+    bmePressure: '#5d4037',
+    bmpPressure: '#8d6e63',
+    bmpTemp: '#8d6e63',
+    imuHeading: '#0d47a1',
+    imuPitch: '#c62828',
+    imuRoll: '#2e7d32'
   };
 
   const scaleBusV = (v) =>
@@ -439,8 +445,8 @@
 
   // ── Chart definitions & series mapping ───────────────────────────────────
 
-  const COLLAPSED_HEIGHT = { eco2: 200, temp: 220, humidity: 200, tvoc: 200, soc: 220, battery: 200, current: 200 };
-  const EXPANDED_HEIGHT = { eco2: 400, temp: 440, humidity: 400, tvoc: 400, soc: 440, battery: 400, current: 400 };
+  const COLLAPSED_HEIGHT = { eco2: 200, temp: 220, humidity: 200, tvoc: 200, soc: 220, battery: 200, current: 200, pressure: 200, heading: 220 };
+  const EXPANDED_HEIGHT = { eco2: 400, temp: 440, humidity: 400, tvoc: 400, soc: 440, battery: 400, current: 400, pressure: 400, heading: 440 };
 
   const CHART_CONFIGS = {
     eco2: { unit: 'ppm', decimals: 0, yMin: 350, thresholdBands: ECO2_BANDS },
@@ -453,7 +459,14 @@
       showLegend: true
     },
     battery: { unit: '%', decimals: 0, yMin: 0, yMax: 100, thresholdBands: BATT_BANDS, showLegend: true },
-    current: { unit: 'mA', decimals: 0, yPad: 50 }
+    current: { unit: 'mA', decimals: 0, yPad: 50 },
+    // GY-87 (turtleOS 2.4+): BMP180 barometer, MPU6050 + mag attitude
+    pressure: { unit: 'hPa', decimals: 1, yPad: 2 },
+    heading: {
+      unit: '°', decimals: 0, yMin: 0, yMax: 360,
+      secondaryAxis: { unit: '°', decimals: 1 },
+      showLegend: true
+    }
   };
 
   function seriesFor(key, trends) {
@@ -470,6 +483,7 @@
         push('AHT Temp', 'ahtTemp', trends.ahtTemps);
         push('RTC Temp', 'rtcTemp', trends.rtcTemps);
         push('BME Temp', 'bmeTemp', trends.bmeTemps);
+        push('BMP Temp', 'bmpTemp', trends.bmpTemps);
         break;
       case 'humidity':
         push('AHT RH', 'ahtHumidity', trends.ahtHumidities);
@@ -490,6 +504,15 @@
         break;
       case 'current':
         push('Current (mA)', 'battCurrent', trends.inaCurrentMas);
+        break;
+      case 'pressure':
+        push('BMP180', 'bmpPressure', trends.bmpPressures);
+        push('BME280', 'bmePressure', trends.bmePressures);
+        break;
+      case 'heading':
+        push('Heading', 'imuHeading', trends.imuHeadings, 0);
+        push('Pitch', 'imuPitch', trends.imuPitches, 1);
+        push('Roll', 'imuRoll', trends.imuRolls, 1);
         break;
     }
     return series;
@@ -1057,7 +1080,13 @@
     ina_bus_v: { label: 'Bus Voltage', unit: 'V', decimals: 2 },
     ina_batt_pct: { label: 'Battery', unit: '%', decimals: 0 },
     ina_current_ma: { label: 'Current', unit: 'mA', decimals: 1 },
-    ina_power_mw: { label: 'Power', unit: 'mW', decimals: 1 }
+    ina_power_mw: { label: 'Power', unit: 'mW', decimals: 1 },
+    bmp_pressure: { label: 'BMP Pressure', unit: 'hPa', decimals: 1 },
+    bmp_temp: { label: 'BMP Temp', unit: '°C', decimals: 1 },
+    bmp_alt_m: { label: 'Baro Altitude', unit: 'm', decimals: 1 },
+    imu_heading: { label: 'Heading', unit: '°', decimals: 0 },
+    imu_pitch: { label: 'Pitch', unit: '°', decimals: 1 },
+    imu_roll: { label: 'Roll', unit: '°', decimals: 1 }
   };
 
   function openPacketModal(pkt) {
@@ -1148,6 +1177,10 @@
         battPct: trends.inaBattPcts && trends.inaBattPcts[i],
         currentMa: trends.inaCurrentMas && trends.inaCurrentMas[i],
         busV: trends.inaBusVs && trends.inaBusVs[i],
+        pressure: trends.bmpPressures && trends.bmpPressures[i] != null
+          ? trends.bmpPressures[i]
+          : trends.bmePressures && trends.bmePressures[i],
+        heading: trends.imuHeadings && trends.imuHeadings[i],
         lat: trends.lats && trends.lats[i],
         lon: trends.lons && trends.lons[i],
         rawData: trends.rawDatas ? trends.rawDatas[i] : null

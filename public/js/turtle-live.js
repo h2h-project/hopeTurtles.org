@@ -99,13 +99,17 @@
     { label: 'Battery %', keys: ['ina_batt_pct'], unit: '%' },
     { label: 'Current', keys: ['ina_current_ma'], unit: ' mA' },
     { label: 'Power', keys: ['ina_power_mw'], unit: ' mW' },
-    { label: 'Temp', keys: ['aht_temp', 'scd_temp', 'bme_temp'], unit: ' °C', decimals: 1 },
+    { label: 'Temp', keys: ['aht_temp', 'scd_temp', 'bme_temp', 'bmp_temp'], unit: ' °C', decimals: 1 },
     { label: 'RTC temp', keys: ['rtc_temp'], unit: ' °C', decimals: 1 },
     { label: 'Humidity', keys: ['aht_humidity', 'scd_humidity', 'bme_humidity'], unit: '%', decimals: 1 },
     { label: 'eCO₂', keys: ['ens_eco2', 'scd_co2'], unit: ' ppm' },
     { label: 'TVOC', keys: ['ens_tvoc'], unit: ' ppb' },
     { label: 'AQI', keys: ['ens_aqi'], unit: '' },
-    { label: 'Pressure', keys: ['bme_pressure'], unit: ' hPa' }
+    { label: 'Pressure', keys: ['bmp_pressure', 'bme_pressure'], unit: ' hPa', decimals: 1 },
+    { label: 'Altitude', keys: ['bmp_alt_m'], unit: ' m', decimals: 1 },
+    { label: 'Heading', keys: ['imu_heading'], unit: '°', decimals: 0 },
+    { label: 'Pitch', keys: ['imu_pitch'], unit: '°', decimals: 1 },
+    { label: 'Roll', keys: ['imu_roll'], unit: '°', decimals: 1 }
   ];
 
   const renderReadout = (readoutEl, data) => {

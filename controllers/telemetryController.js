@@ -97,6 +97,12 @@ export const getTurtleTrends = async (req, res, next) => {
         inaBattPcts: pick('ina_batt_pct'),
         inaBusVs: pick('ina_bus_v'),
         inaCurrentMas: pick('ina_current_ma'),
+        bmePressures: pick('bme_pressure'),
+        bmpPressures: pick('bmp_pressure'),
+        bmpTemps: pick('bmp_temp'),
+        imuHeadings: pick('imu_heading'),
+        imuPitches: pick('imu_pitch'),
+        imuRolls: pick('imu_roll'),
         batterySocPcts: pick('battery_soc_pct')
       }
     });

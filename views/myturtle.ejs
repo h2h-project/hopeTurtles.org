@@ -218,6 +218,24 @@
         <div class="chart-empty muted" data-chart-empty="current" hidden></div>
         <div class="chart-el" data-chart="current"></div>
       </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_pressure || 'Barometric pressure' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="pressure" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="pressure" hidden></div>
+        <div class="chart-el" data-chart="pressure"></div>
+      </div>
+
+      <div class="chart-sub-card">
+        <div class="chart-card-head">
+          <span class="chart-card-title"><%= t.myturtle_heading || 'Heading, pitch & roll' %></span>
+          <button class="range-btn expand-btn" type="button" data-expand="heading" aria-pressed="false" title="<%= t.myturtle_expand || 'Expand chart' %>">⊞</button>
+        </div>
+        <div class="chart-empty muted" data-chart-empty="heading" hidden></div>
+        <div class="chart-el" data-chart="heading"></div>
+      </div>
     </div>
   </section>
 
