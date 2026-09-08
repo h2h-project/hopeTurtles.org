@@ -1,0 +1,83 @@
+<% const pageScripts = [
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js',
+  '/js/about.js'
+]; %>
+<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
+<%- include('partials/nav') %>
+<main id="main" class="ecojoiners-page turtles-page">
+  <section class="page-banner">
+    <img class="page-banner__bg" src="/images/turtles-sailing.webp" alt="" aria-hidden="true" />
+    <div class="page-banner__inner">
+      <div class="page-banner__heading">
+        <h1 class="page-banner__title"><%= t.turtles_banner_title || 'The Turtles' %></h1>
+        <p class="page-banner__lead"><%= t.turtles_banner_lead %></p>
+      </div>
+      <div class="page-banner__actions">
+        <a class="button" href="/ecojoiners/generate">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.turtles_banner_cta || 'Generate Your Turtle' %>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="layout">
+    <section class="page-split">
+      <div class="page-split__main">
+        <%# These paragraphs carry inline links and emphasis, so they render unescaped. %>
+        <p><%- t.eco_intro_p1 %></p>
+        <p><%- t.eco_intro_p2 %></p>
+        <p><%- t.eco_intro_p3 %></p>
+        <p><%- t.eco_intro_p4 %></p>
+        <p><%- t.eco_intro_p5 %></p>
+        <p><%- t.eco_intro_p6 %></p>
+
+        <aside class="ecojoiners-note">
+          <h2><%= t.eco_note_title %></h2>
+          <p><%= t.eco_note_body %></p>
+        </aside>
+
+        <h2><%= t.eco_build_title %></h2>
+        <p><%= t.eco_build_body %></p>
+        <div class="ecojoiners-actions">
+          <a class="button" href="/ecojoiners/generate">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.turtles_banner_cta || 'Generate Your Turtle' %>
+          </a>
+        </div>
+      </div>
+
+      <aside class="page-split__aside">
+        <div class="turtles-repos">
+          <h2><%= t.turtles_repos_title || 'Open source repositories' %></h2>
+          <div class="turtles-repos__links">
+            <a class="button ghost" href="https://github.com/h2h-project/turtleOS" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtleos || 'TurtleOS' %>
+            </a>
+            <a class="button ghost" href="https://github.com/h2h-project/turtle_shells" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtle_shells || 'Turtle_Shells' %>
+            </a>
+            <a class="button ghost" href="https://github.com/h2h-project/turtle_body" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtle_body || 'Turtle_body' %>
+            </a>
+          </div>
+        </div>
+
+        <div class="about-materials-card">
+          <h2><%= t.about_materials_title %></h2>
+          <canvas id="about-materials-chart" role="img" aria-label="<%= t.about_materials_title %>"></canvas>
+          <p class="about-materials-card__caption"><%= t.about_materials_caption %></p>
+        </div>
+        <% const materialsBreakdown = [
+          { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },
+          { key: 'wood', pct: 9, label: t.about_material_wood, examples: t.about_material_wood_examples },
+          { key: 'metal', pct: 2, label: t.about_material_metal, examples: t.about_material_metal_examples },
+          { key: 'lithium', pct: 3, label: t.about_material_lithium, examples: t.about_material_lithium_examples },
+          { key: 'plastic', pct: 2, label: t.about_material_plastic, examples: t.about_material_plastic_examples },
+          { key: 'misc', pct: 1, label: t.about_material_misc, examples: t.about_material_misc_examples }
+        ]; %>
+        <%# `<` is escaped so a string containing markup cannot close this tag early. %>
+        <script id="about-materials-data" type="application/json"><%- JSON.stringify(materialsBreakdown).replace(/</g, '\\u003c') %></script>
+      </aside>
+    </section>
+  </div>
+</main>
+<%- include('partials/footer', { pageScripts }) %>
