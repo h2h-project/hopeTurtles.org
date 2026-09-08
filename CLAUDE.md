@@ -15,7 +15,8 @@ npm install          # install dependencies
 npm run dev          # development server (nodemon, auto-restart on file change)
 npm start            # production start
 npm run generator:setup  # one-time: python venv + reportlab/ezdxf for the turtle generator
-npm run lint         # ESLint
+npm run generator:sync   # vendor turtle_body's params.json + bundles, then check for drift
+npm run lint         # ESLint + generator param-sync check
 npm run format       # Prettier --write
 ```
 
@@ -256,16 +257,27 @@ Rules:
   upstream `p_*()` / `rf_*` / `bl_*` / `eco_*` definition first and cite its name in a comment next
   to the generator constant (see `generator/objects/sails.py` for the pattern).
 - **When `../turtle_body/VERSION.json` changes**, read its `changelog` entry and turtle_body's
-  `CLAUDE.md` §19 (the mapping table + propagation rule), update the affected generator, and add
-  or close an entry in `generator/SYNC_LOG.md`. A minor or major upstream bump almost always
-  touches a generator; a patch bump to a PLA part (cap, cage, axle, mold) never does.
-- **The drift table below and `generator/SYNC_PLAN.md` are the backlog.** Work items S-1…S-6
-  there are ordered; S-5 (a `params.json` export from turtle_body + a vendored-bundle sync script
-  here) is the mechanism that stops this drifting again.
+  `CLAUDE.md` §19 (the mapping table + propagation rule), then run the sync (below), update any
+  generator the checker flags or the formula review turns up, and add/close an entry in
+  `generator/SYNC_LOG.md`. A minor or major upstream bump almost always touches a generator; a
+  patch bump to a PLA part (cap, cage, axle, mold) never does.
+- **Syncing (S-5, built 2026-09-08).** `../turtle_body`'s `build/build.py` writes
+  `build/params.json` (every `p_*()` value + version). Here:
+  - `python3 generator/sync_from_turtle_body.py` vendors that + the four wooden bundles into
+    `generator/turtle_body/` (`params.json`, `scad/*.scad`, `VERSION`) — a pure copy.
+  - `python3 generator/check_params_sync.py` asserts every generator's shared-**input** default
+    (39 rows: `slat_thickness`/`wood_thickness`↔`p_wood_t`, `cap_diameter`↔`p_bottle_cap_d`,
+    `screw_diameter`↔`p_m6_clearance_d`, …) still matches the snapshot. Exit 1 + a diff table on
+    drift. Runs in `npm run lint`; `npm run generator:sync` does both.
+  - The **formula layer** (`derive_dimensions()` in each object module) is *not* covered — after
+    a sync, still eyeball it against the matching `generator/turtle_body/scad/*.scad` bundle.
+- **The drift table below and `generator/SYNC_PLAN.md` are the backlog.** S-1…S-5 are done;
+  S-5b (generators *load* defaults from the snapshot rather than carry checked literals) and
+  S-6 (hygiene) are deferred.
 
-All recorded drift (rear fin, ballast, sails and 6FC) was fixed 2026-09-08 — see
-`generator/SYNC_LOG.md` for the full history. No open drift remains; only S-5 (the automatic
-sync mechanism) and S-6 (hygiene) are deferred, per `generator/SYNC_PLAN.md`.
+All recorded drift (rear fin, ballast, sails, 6FC) was fixed 2026-09-08 and the sync mechanism
+(S-5) built the same day — see `generator/SYNC_LOG.md` for the full history. No open drift
+remains.
 
 **Resolved 2026-09-08:** rear fin's `shaft_hole_diameter` (6.0 → 6.4) and fixed
 `shaft_hole_from_front` (now derived via TB-07, not a constant); ballast's defaults
@@ -310,6 +322,9 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 | `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
 | `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. Full SCAD/SVG/DXF/PDF, same as the other objects. |
+| `generator/sync_from_turtle_body.py` | Vendors `../turtle_body/build/params.json` + the 4 wooden bundles into `generator/turtle_body/`. Pure copy; `--check` reports staleness. |
+| `generator/check_params_sync.py` | Asserts 39 shared-input defaults across all 4 generators against `generator/turtle_body/params.json`. Runs in `npm run lint`. Input layer only — not `derive_dimensions()`. |
+| `generator/turtle_body/` | Vendored, do not hand-edit: `params.json` (upstream `p_*()` snapshot), `scad/*.scad` (the 4 bundles), `VERSION`. See its `README.md`. |
 | `generator/SYNC_PLAN.md` / `generator/SYNC_LOG.md` | The upstream-sync assessment and its running log. |
 | `generator/claude_code_ecojoiner_backend_prompt_v3_2.md` | Historical: the original brief for the 6FC backend. Not current documentation. |
 

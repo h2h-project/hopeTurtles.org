@@ -269,13 +269,13 @@ class EcojoinerInputs:
     (or looser) port_height.
     """
 
-    slat_thickness: float = 12.0
-    cap_diameter: float = 31.0
-    collar_diameter: float = 34.0
-    taper_height: Optional[float] = 60.0
+    slat_thickness: float = 12.0        # turtle_body p_wood_t()
+    cap_diameter: float = 31.0          # turtle_body p_bottle_cap_d()
+    collar_diameter: float = 34.0       # turtle_body p_collar_d()
+    taper_height: Optional[float] = 62.0  # turtle_body p_top_dome_h() (form's "top tapper")
     port_length: Optional[float] = None
-    port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM
-    port_height: float = 82.0  # bottle body diameter
+    port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM  # turtle_body p_port_allowance()
+    port_height: float = 82.0  # bottle body diameter -- turtle_body p_bottle_d() / p_port_height()
     bottle_volume_l: float = 1.5
     bottle_brand: str = "generic"
     screw_diameter: float = 6.4  # M6 clearance hole (through-bolt, not a self-tapping pilot hole)

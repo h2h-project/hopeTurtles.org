@@ -24,10 +24,10 @@ Nothing links them. turtle_body already ships what copy 2 needs: self-contained 
 
 ## Current drift (lib wins)
 
-**S-1, S-2, S-3 and S-4 are all done (2026-09-08) — see the "Resolved" entries below and
-`SYNC_LOG.md`.** Only S-5 (the automatic sync mechanism) and S-6 (hygiene) remain, both
-deliberately deferred. Cap, cage, axle and mold are printed PLA parts with no generator; they
-never need syncing.
+**S-1…S-5 are all done (2026-09-08) — see the "Resolved" entries below, "The mechanism (S-5)",
+and `SYNC_LOG.md`.** S-5's sub-item S-5b (generators load defaults from the snapshot instead of
+carrying checked literals) and S-6 (hygiene) remain, deliberately deferred. Cap, cage, axle and
+mold are printed PLA parts with no generator; they never need syncing.
 
 ### Resolved: rear fin, ballast, sails (2026-09-08)
 
@@ -92,21 +92,38 @@ generator to a lib number, check whether the generator's formula is the rule lib
 had. Candidates to inspect the same way: the ballast `port_length`-dependent neck shoulder
 (same rule, now consistent) and the 6FC `port_length` override path.
 
-## Proposed mechanism (recommended before doing S-1…S-4 by hand)
+## The mechanism (S-5) — built 2026-09-08
 
-1. **turtle_body: `build/export_params.py`.** Generate a throwaway `.scad` that `echo()`s every
-   `p_*()` function, run it headless (`openscad -o /dev/null`), parse the `ECHO:` lines, and
-   write `build/params.json` as `{ "p_bottle_d": 82, ... , "version": "1.7.1" }`. Hook it into
-   `build/build.py` so it is regenerated with the bundles and committed.
-2. **hopeTurtles.org: `generator/sync_from_turtle_body.py`.** Copy
-   `../turtle_body/build/params.json` → `generator/turtle_params.json` and the four wooden
-   bundles (`Turtle_Core_Ecojoiner_v1.scad`, `Turtle_Rear_Fin_v1.scad`,
+Three pieces, all in place:
+
+1. **turtle_body: `build/export_params.py`.** Emits a throwaway `.scad` that `echo()`s every
+   `p_*()` function, renders it headless, parses the `ECHO:` lines, and writes
+   `build/params.json` (`{ "p_bottle_d": 82, ..., "version": "1.8.1" }`, source order). Hooked
+   into `build/build.py` (full build only) and therefore into `build/lint.py`'s `--check`, so a
+   stale snapshot fails CI. Self-skips when OpenSCAD is unavailable.
+2. **hopeTurtles.org: `generator/sync_from_turtle_body.py`.** Pure copy: `../turtle_body`'s
+   `build/params.json` → `generator/turtle_body/params.json`, the four wooden bundles
+   (`Turtle_Core_Ecojoiner_v1.scad`, `Turtle_Rear_Fin_v1.scad`,
    `Turtle_Bottom_Ballast_Fin_v1.scad`, `Turtle_Sail_Apparatus_v1.scad`) →
-   `generator/scad/`; write `generator/TURTLE_BODY_VERSION`. Generators then load their
-   DEFAULTS/TUNING from `turtle_params.json` instead of literals, and `build_scad()` does
-   customizer-line replacement on the vendored bundle instead of an embedded template.
-3. After that, a turtle_body release is synced by running one script and reviewing the diff;
-   only `derive_dimensions()` (the 2D outlines) still needs a human check against `lib/`.
+   `generator/turtle_body/scad/`, plus `generator/turtle_body/VERSION`. `--check` reports
+   staleness. Upstream path: `--turtle-body`, then `$TURTLE_BODY_DIR`, then `../turtle_body`.
+3. **hopeTurtles.org: `generator/check_params_sync.py`.** Loads the vendored `params.json` and
+   asserts every generator's shared-**input** default (39 rows across all four objects —
+   `slat_thickness`/`wood_thickness` ↔ `p_wood_t`, `cap_diameter` ↔ `p_bottle_cap_d`,
+   `screw_diameter`/`shaft_hole_diameter`/`MOUNT_HOLE_DIAMETER` ↔ `p_m6_clearance_d`, …) still
+   equals the upstream value it mirrors. Exit 1 + a diff table on any mismatch. Runs on the
+   committed snapshot alone, so it works without the sibling checkout; wired into
+   `npm run lint` (and `npm run generator:check`). `npm run generator:sync` does copy + check;
+   `npm run generator:sync-check` is the release gate (needs `../turtle_body`).
+
+**After a turtle_body release:** `git pull && python3 build/build.py` in turtle_body, then
+`python3 generator/sync_from_turtle_body.py && python3 generator/check_params_sync.py` here,
+then review `git diff generator/turtle_body/`. The checker catches the input layer;
+`derive_dimensions()` (the 2D outline formulas) still needs a human check against the matching
+`generator/turtle_body/scad/*.scad` bundle. Deferred sub-item **S-5b**: switch the generators
+to *load* their DEFAULTS from `turtle_body/params.json` rather than carry literals the checker
+verifies — a de-duplication of authoring, not a drift-protection gap (the checker already
+enforces agreement).
 
 ## Work items, in order
 
@@ -116,15 +133,18 @@ had. Candidates to inspect the same way: the ballast `port_length`-dependent nec
 | S-2 | Ballast | medium (~½ day) | **Done 2026-09-08**, hand-fixed directly; also fixed a missing mount hole and a latent port_length/bottle_diameter conflation (see above). |
 | S-3 | Sails | medium | **Done 2026-09-08**, hand-fixed directly. Bottle-shape dimensions are real inputs, and SVG/DXF/PDF writers exist for all 7 part shapes — the form's fabrication toggles are un-restricted. |
 | S-4 | 6FC Ecojoiner | large (~2 days) | **Done 2026-09-08**, hand-fixed directly. `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py`; cap 31, collar 34, port 82 × 82, Ø6.4 clearance. **Master John restored 2026-09-08 (turtle_body v1.8.1)** — its removal in this pass was wrong; the rule was lifted upstream (`eco_master_slot_depth()`) and the generator re-based on `0cb0de8^` keeping the param changes. Part list: Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12. See the "Corrected 2026-09-08" note above. object_type ("6fc"), job-slug prefix, and every other public identifier unchanged. |
-| S-5 | Mechanism | medium | **Deferred.** S-1/S-2/S-3/S-4 were hand-fixed directly instead (2026-09-08 scope decision) — correct today, but the next turtle_body release will need the same manual comparison again since nothing here is generated from `lib/` automatically. Worth building before the next drift review. |
+| S-5 | Mechanism | medium | **Done 2026-09-08.** `turtle_body/build/export_params.py` → `build/params.json` (hooked into `build/build.py` + `lint.py`); `generator/sync_from_turtle_body.py` vendors it + the 4 bundles into `generator/turtle_body/`; `generator/check_params_sync.py` (39 shared-input assertions) runs in `npm run lint`. See "The mechanism (S-5)" above. Negative-tested: injecting `cap 31→32` / `M6 6.4→4.5` into the snapshot makes the checker exit 1. Sub-item **S-5b** (generators *load* defaults from the snapshot instead of carrying checked literals) is deferred — authoring de-dup, not a protection gap. |
 | S-6 | Hygiene | small | **Partly done.** `bottom_fin_raw.py` deleted (folded into the S-2 fix). `common.DESIGN_VERSION` ("3.2") turned out to be the 6FC object's own revision marker, not a whole-suite version — left alone pending S-4, not tied to anything here. `claude_code_ecojoiner_backend_prompt_v3_2.md` still holds unique implementation detail (validation ranges, job-slug format) not fully folded into CLAUDE.md yet — not deleted. |
 
 ## Verification for any sync item
 
+- `python3 generator/sync_from_turtle_body.py && python3 generator/check_params_sync.py`
+  (or `npm run generator:sync`) — the input layer, checked automatically.
 - `generator/.venv/bin/python3 generator/generate_exports.py --json <payload> --dry-run` for
   every `object_type` (`6fc`, `fin`, `ballast`, `sails`) → `"ok": true`.
-- Compare the generated `.scad` against the matching `turtle_body/v1.0 SCADs/*.scad` bundle at
-  default inputs (the customizer values must be identical; ideally the geometry too).
-- Compare `derived` in the manifest against the `p_*()` values / `rf_*`, `bl_*`, `eco_*`
-  functions in the lib module.
+- Compare the generated `.scad` against the matching `generator/turtle_body/scad/*.scad` bundle
+  at default inputs (the customizer values must be identical; ideally the geometry too).
+- Compare `derived` in the manifest against the `p_*()` values in `generator/turtle_body/params.json`
+  and the `rf_*` / `bl_*` / `eco_*` functions in the matching lib module — the `derive_dimensions()`
+  formula layer the checker does not cover.
 - Record the turtle_body version synced against in `SYNC_LOG.md`.
