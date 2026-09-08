@@ -96,6 +96,12 @@ router.get("/turtleos", (req, res) => {
   });
 });
 
+router.get("/turtles", (req, res) => {
+  res.render("turtles", {
+    pageTitle: res.locals.t.turtles_page_title || "The Turtles",
+  });
+});
+
 router.get("/ecojoiners", (req, res) => {
   res.render("ecojoiners", {
     pageTitle: res.locals.t.eco_page_title,

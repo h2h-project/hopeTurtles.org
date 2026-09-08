@@ -262,12 +262,9 @@ Rules:
   there are ordered; S-5 (a `params.json` export from turtle_body + a vendored-bundle sync script
   here) is the mechanism that stops this drifting again.
 
-Current drift (recorded 2026-09-08 against turtle_body v1.7.1; rear fin, ballast, 6FC and the
-sails dimensions were fixed the same day — see `generator/SYNC_LOG.md`):
-
-| Component | Generator | Drift vs `lib/params.scad` |
-|---|---|---|
-| Sails (2D writers) | `objects/sails.py` | SCAD only — bottle-shape dimensions are now real inputs, but there are still no SVG/DXF/PDF carpenter files for the battens, bars, strengtheners and C pieces. |
+All recorded drift (rear fin, ballast, sails and 6FC) was fixed 2026-09-08 — see
+`generator/SYNC_LOG.md` for the full history. No open drift remains; only S-5 (the automatic
+sync mechanism) and S-6 (hygiene) are deferred, per `generator/SYNC_PLAN.md`.
 
 **Resolved 2026-09-08:** rear fin's `shaft_hole_diameter` (6.0 → 6.4) and fixed
 `shaft_hole_from_front` (now derived via TB-07, not a constant); ballast's defaults
@@ -275,13 +272,14 @@ sails dimensions were fixed the same day — see `generator/SYNC_LOG.md`):
 (the core slat had none at all), and a latent bug where the shoulder-cut position read
 `port_length` instead of `bottle_diameter` (numerically equal only at the reference
 bottle's defaults); sails' bottle diameter and cap/collar/dome heights (the SCAD module
-already accepted them — only the Python wrapper never threaded them through); 6FC's part
-list (Master John ×1 + Little John ×5 → six Little Johns, no Master John), `cap_diameter`
-32→31, `collar_diameter` 32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6
-clearance) — `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py` in the same pass
-(internal only; `object_type`, job-slug prefix and every public identifier are unchanged).
-`bottom_fin_raw.py` deleted. Full detail in `generator/SYNC_PLAN.md`'s "Resolved" section
-and `SYNC_LOG.md`.
+already accepted them — only the Python wrapper never threaded them through) **plus**
+SVG/DXF/PDF carpenter-sheet writers for all 7 sail part shapes, added from scratch and
+verified against real OpenSCAD-rendered bounding boxes; 6FC's part list (Master John ×1 +
+Little John ×5 → six Little Johns, no Master John), `cap_diameter` 32→31, `collar_diameter`
+32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6 clearance) — `objects/six_fc.py`
+renamed `objects/ecojoiner_6fc.py` in the same pass (internal only; `object_type`, job-slug
+prefix and every public identifier are unchanged). `bottom_fin_raw.py` deleted. Full detail in
+`generator/SYNC_PLAN.md`'s "Resolved" section and `SYNC_LOG.md`.
 
 **Port length is not drift** (resolved 2026-09-08, turtle_body v1.7.2). The generators derive
 `port_length = taper_height + port_allowance` (20); lib had flattened that to a constant 82 and
@@ -299,7 +297,7 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 | `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×6, Final Key ×4, Presser ×12 — no Master John). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
 | `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
-| `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. **SCAD only**; other formats come back as `unsupported_formats`. |
+| `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. Full SCAD/SVG/DXF/PDF, same as the other objects. |
 | `generator/SYNC_PLAN.md` / `generator/SYNC_LOG.md` | The upstream-sync assessment and its running log. |
 | `generator/claude_code_ecojoiner_backend_prompt_v3_2.md` | Historical: the original brief for the 6FC backend. Not current documentation. |
 
@@ -315,7 +313,7 @@ Flow:
 
 | Piece | Role |
 |---|---|
-| `public/js/ecojoiner-generate.js` | inline field validation, type cards (a `sails` card pins the fabrication toggles to the 3D option), POST validate → preview → POST generate → downloads |
+| `public/js/ecojoiner-generate.js` | inline field validation, type cards, POST validate → preview → POST generate → downloads |
 | `routes/api/ecojoiner.js` | `POST /api/ecojoiner/validate` (dry run) and `/generate`, both rate-limited via `middleware/rateLimit.js` |
 | `controllers/ecojoinerController.js` | thin wrapper; validation failures answer `422` with `errors[]` |
 | `utils/ecojoinerGenerator.js` | one `map*Fields` per `ecojoinerType` → snake_case inputs, `execFile` invocation, path containment |

@@ -374,9 +374,9 @@ const mapBallastFields = (body = {}) => {
 // Sail Frame: reuses the same bottle/board fields as the Fin and Ballast
 // Attachments (see generator/objects/sails.py::DEFAULTS - all of these are
 // real inputs to generate_sails.build_scad(), not just wood_thickness/
-// bottle_diameter). The object exports OpenSCAD only, so the 3D format is
-// mandatory and the flat formats are dropped here rather than sent through
-// to be skipped.
+// bottle_diameter). As of 2026-09-08 the object writes SVG/DXF/PDF as well
+// as SCAD (generator/SYNC_PLAN.md item S-3, completed), so format selection
+// works the same way as fin/ballast now.
 const mapSailsFields = (body = {}) => {
   const errors = [];
 
@@ -408,9 +408,13 @@ const mapSailsFields = (body = {}) => {
     }
   }
 
-  if (!isTruthy(body.fab3d)) {
-    errors.push('The sail frame currently exports OpenSCAD only — please select the 3D model option.');
-  }
+  // Fabrication checkboxes → generator formats.
+  const formats = new Set();
+  if (isTruthy(body.fabCarpentry)) formats.add('pdf');
+  if (isTruthy(body.fab3d)) formats.add('scad');
+  if (isTruthy(body.fabSvg)) formats.add('svg');
+  if (isTruthy(body.fabDxf)) formats.add('dxf');
+  if (!formats.size) errors.push('Choose at least one fabrication format.');
 
   if (errors.length) {
     throw new EcojoinerRequestError('Please check the form values.', errors);
@@ -428,7 +432,7 @@ const mapSailsFields = (body = {}) => {
       cap_height: numbers.capHeight,
       top_dome_height: numbers.topTapper,
       bottom_dome_height: numbers.bottomTapper,
-      formats: ['scad']
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format))
     },
     context: {
       material: body.material ? String(body.material) : null,
