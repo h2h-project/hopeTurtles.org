@@ -57,6 +57,25 @@ formats (SCAD/SVG/DXF/PDF) generate without error and the SCAD parses clean in O
 type, job-slug prefix (`ecojoiner_`), and the public API contract are unchanged — only the
 Python file/module name changed, per the 2026-09-08 scope decision.
 
+**Corrected 2026-09-08 (turtle_body v1.8.1) — Master John restored.** Removing the Master
+John in S-4 was the one wrong call in that pass. The Master John is a real assembly
+feature: one of the six cross-slats is fitted *last*, into an almost-closed frame, and
+its two top slots must be cut deeper (`master_slot_depth = min(floor(port_height/2),
+floor(john_height·0.6))` — 34 vs the standard 29 at reference params) or it physically
+cannot be sprung into place. The generator had always carried this rule; `lib/ecojoiner.scad`
+simply never modelled it. Per the "lib owns the rule" precedent (port-length case below),
+the rule was **lifted upstream**: turtle_body v1.8.1 adds `eco_master_slot_depth()`,
+`eco_master_john_2d()`, `eco_master_john()`, and an `is_master`/`master_first_john` flag
+threaded from `eco_ecojoiner_only()` through one of its three rectangles (the full-turtle
+assembly is untouched). The generator was then restored from `0cb0de8^:ecojoiner/objects/six_fc.py`
+with the S-4 param changes (cap 31 / collar 34 / port 82 / Ø6.4) kept — so
+`PART_QUANTITIES` is back to Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12,
+`EcojoinerDerived.master_slot_depth` and the `master_john` SCAD/SVG/DXF/PDF paths return,
+`n_rows` is 3 again, and `PART_QUANTITIES_BY_TYPE['6fc']` + `gen_part_master_john` are
+back on the front end. Verified: dry run at defaults gives `standard_slot_depth` 29 /
+`master_slot_depth` 34, matching v1.8.1's `eco_slot_depth()` / `eco_master_slot_depth()`;
+all four formats generate clean and the Master John part renders in OpenSCAD (`part="master_john"`).
+
 ### Resolved: port length (2026-09-08, turtle_body v1.7.2)
 
 The first drift table listed `port_length` (generators: `taper_height + port_allowance`; lib:
@@ -96,7 +115,7 @@ had. Candidates to inspect the same way: the ballast `port_length`-dependent nec
 | S-1 | Rear fin | small (~1 h) | **Done 2026-09-08**, hand-fixed directly (S-5 not built first). |
 | S-2 | Ballast | medium (~½ day) | **Done 2026-09-08**, hand-fixed directly; also fixed a missing mount hole and a latent port_length/bottle_diameter conflation (see above). |
 | S-3 | Sails | medium | **Done 2026-09-08**, hand-fixed directly. Bottle-shape dimensions are real inputs, and SVG/DXF/PDF writers exist for all 7 part shapes — the form's fabrication toggles are un-restricted. |
-| S-4 | 6FC Ecojoiner | large (~2 days) | **Done 2026-09-08**, hand-fixed directly. `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py`; six Little Johns / no Master John, cap 31, collar 34, port 82 × 82, Ø6.4 clearance. `PART_QUANTITIES`, all three PDF languages, `PART_QUANTITIES_BY_TYPE['6fc']` and the `gen_part_*`/`gen_dim_slot_depth_master` locale keys updated. object_type ("6fc"), job-slug prefix, and every other public identifier deliberately unchanged. |
+| S-4 | 6FC Ecojoiner | large (~2 days) | **Done 2026-09-08**, hand-fixed directly. `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py`; cap 31, collar 34, port 82 × 82, Ø6.4 clearance. **Master John restored 2026-09-08 (turtle_body v1.8.1)** — its removal in this pass was wrong; the rule was lifted upstream (`eco_master_slot_depth()`) and the generator re-based on `0cb0de8^` keeping the param changes. Part list: Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12. See the "Corrected 2026-09-08" note above. object_type ("6fc"), job-slug prefix, and every other public identifier unchanged. |
 | S-5 | Mechanism | medium | **Deferred.** S-1/S-2/S-3/S-4 were hand-fixed directly instead (2026-09-08 scope decision) — correct today, but the next turtle_body release will need the same manual comparison again since nothing here is generated from `lib/` automatically. Worth building before the next drift review. |
 | S-6 | Hygiene | small | **Partly done.** `bottom_fin_raw.py` deleted (folded into the S-2 fix). `common.DESIGN_VERSION` ("3.2") turned out to be the 6FC object's own revision marker, not a whole-suite version — left alone pending S-4, not tied to anything here. `claude_code_ecojoiner_backend_prompt_v3_2.md` still holds unique implementation detail (validation ranges, job-slug format) not fully folded into CLAUDE.md yet — not deleted. |
 

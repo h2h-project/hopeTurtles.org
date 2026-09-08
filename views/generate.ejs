@@ -254,11 +254,6 @@
           <div class="eco-panel__content eco-panel__content--single">
             <div class="eco-panel__text">
               <p><%= t.gen_p5_body %></p>
-              <% const devTypes = [
-                { type: '3fc', label: t.gen_type_3fc },
-                { type: '4fc', label: t.gen_type_4fc },
-                { type: '2fc', label: t.gen_type_2fc }
-              ]; %>
               <div class="eco-type-grid" role="radiogroup" aria-label="<%= t.gen_type_group %>">
                 <button type="button" class="eco-type-card" data-type="6fc" data-available="true" role="radio" aria-checked="false">
                   <span class="eco-type-card__thumb">
@@ -280,18 +275,10 @@
                 </button>
                 <button type="button" class="eco-type-card" data-type="sails" data-available="true" role="radio" aria-checked="false">
                   <span class="eco-type-card__thumb">
-                    <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= t.gen_type_sails %>" loading="lazy" />
+                    <img src="/images/sails-export-preview.webp" alt="<%= t.gen_type_sails %>" loading="lazy" />
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_sails %></span>
                 </button>
-                <% devTypes.forEach(function (option) { %>
-                  <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
-                    <span class="eco-type-card__thumb">
-                      <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= option.label %> — <%= t.gen_type_dev_suffix %>" loading="lazy" />
-                    </span>
-                    <span class="eco-type-card__title"><%= option.label %></span>
-                  </button>
-                <% }) %>
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
               <span class="eco-feedback" data-for="eco-type"></span>
@@ -503,6 +490,23 @@
       <p class="form-feedback" role="status" data-eco-save-success-share hidden></p>
       <div class="mission-dialog__actions">
         <button type="button" class="button" data-close-eco-save>Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="ecoSessionDialog" class="mission-dialog" aria-labelledby="ecoSessionDialogTitle">
+    <div class="form-card eco-session-card">
+      <i class="fa-solid fa-hourglass-end eco-session-card__icon" aria-hidden="true"></i>
+      <h2 id="ecoSessionDialogTitle" class="eco-session-card__title"><%= t.gen_session_title %></h2>
+      <p class="eco-session-card__body"><%= t.gen_session_body %></p>
+      <p class="eco-session-card__tip">
+        <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_session_save_tip %>
+      </p>
+      <div class="eco-session-card__actions">
+        <button type="button" class="button" data-eco-session-login>
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> <%= t.gen_session_login %>
+        </button>
+        <button type="button" class="button ghost" data-eco-session-dismiss><%= t.gen_session_dismiss %></button>
       </div>
     </div>
   </dialog>

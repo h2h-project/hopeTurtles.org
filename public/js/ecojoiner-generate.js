@@ -40,12 +40,24 @@
         "This ecojoiner type is still in development. For now, please choose the Normal Ecojoiner (6FC).",
       gen_alert_save_dev:
         "Saving ecojoiners is still in development. Hold tight!",
-      gen_res_title: "Your ecojoiner, worked out",
+      gen_res_title: "Your {component} is worked out",
       gen_res_lede:
-        "Ecojoiner v{version} — check these against your bottle and your board before you cut anything.",
+        "The flatpack files for your {component} are ready — they've been drawn especially for your specific bottle and material dimensions.",
       gen_res_parts_title: "Parts to cut",
       gen_res_confirm: "Generate my files",
-      gen_res_ready_title: "Your ecojoiner is ready",
+      gen_res_ready_title: "Your Turtle files are ready!",
+      gen_component_6fc: "Ecojoiner",
+      gen_component_fin: "Rear Fin",
+      gen_component_ballast: "Ballast",
+      gen_component_sails: "Sail Frame",
+      gen_component_fallback: "Turtle component",
+      gen_session_title: "Your session has timed out",
+      gen_session_body:
+        "You've been signed out, so we couldn't finish that just now. Log back in to carry on generating your files.",
+      gen_session_save_tip:
+        "Tip: use Save to keep your bottle and board settings — next time you can pick up right where you left off.",
+      gen_session_login: "Login Again",
+      gen_session_dismiss: "Not now",
       gen_res_ready_lede:
         "Print the carpenter sheet at 100% scale — the SVG cutting files are 1:1 in millimetres.",
       gen_res_retention:
@@ -478,6 +490,63 @@
        </div>`,
     );
 
+  // Human name for a component type, for the results headings.
+  const componentName = (objectType) =>
+    s(`gen_component_${objectType || "6fc"}`) || s("gen_component_fallback");
+
+  // Session-expired handling. The API guards answer 401 for a dead session;
+  // instead of burying "Authentication required" in the results panel at the
+  // foot of the form, pop the modal with a Login Again button.
+  const sessionDialog = document.getElementById("ecoSessionDialog");
+  const openSessionDialog = () => {
+    if (!sessionDialog) return;
+    if (typeof sessionDialog.showModal === "function") {
+      if (!sessionDialog.open) sessionDialog.showModal();
+    } else {
+      sessionDialog.setAttribute("open", "");
+    }
+  };
+  if (sessionDialog) {
+    const loginBtn = sessionDialog.querySelector("[data-eco-session-login]");
+    const dismissBtn = sessionDialog.querySelector("[data-eco-session-dismiss]");
+    if (loginBtn) {
+      loginBtn.addEventListener("click", () => {
+        window.location.href = `/login?returnTo=${encodeURIComponent(
+          window.location.pathname + window.location.search,
+        )}`;
+      });
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener("click", () => {
+        if (typeof sessionDialog.close === "function") sessionDialog.close();
+        else sessionDialog.removeAttribute("open");
+      });
+    }
+  }
+  // Returns true (and shows the modal) when the response means "logged out".
+  const handledAuthExpiry = (status) => {
+    if (status !== 401) return false;
+    openSessionDialog();
+    return true;
+  };
+
+  // Solar-panel measurements are only ever quoted to one decimal place — snap
+  // the field to that on blur so "3.00" / "129.95" don't linger on screen.
+  ["eco-solar-panel-width", "eco-solar-panel-thickness", "eco-solar-panel-height"].forEach(
+    (id) => {
+      const node = el(id);
+      if (!node) return;
+      node.addEventListener("blur", () => {
+        const raw = node.value.trim();
+        if (raw === "") return;
+        const value = Number(raw);
+        if (!Number.isFinite(value)) return;
+        const oneDp = String(Math.round(value * 10) / 10);
+        if (oneDp !== raw) node.value = oneDp;
+      });
+    },
+  );
+
   // Gather the whole form. Checkboxes send their checked state, not "on".
   const collect = () => ({
     brand: el("eco-brand").value.trim(),
@@ -511,7 +580,7 @@
       body: JSON.stringify(payload),
     });
     const body = await response.json().catch(() => ({}));
-    return { ok: response.ok, body };
+    return { ok: response.ok, status: response.status, body };
   };
 
   // Builds the multipart body for saving/updating a bottle profile, picking
@@ -594,16 +663,19 @@
             [s("gen_dim_screw"), mm(d.presser_through_hole_diameter)],
           ];
 
-    const lede = s("gen_res_lede").replace(
-      "{version}",
-      data.design_version || "3.2",
-    );
+    const component = componentName(data.object_type);
+    const fill = (str) =>
+      str
+        .replace(/\{component\}/g, component)
+        .replace("{version}", data.design_version || "3.2");
+    const title = fill(s("gen_res_title"));
+    const lede = fill(s("gen_res_lede"));
 
     showResults(
       `<div class="eco-results__card">
          <h2 class="eco-results__title">
            <i class="fa-solid fa-ruler-combined" aria-hidden="true"></i>
-           ${esc(s("gen_res_title"))}
+           ${esc(title)}
          </h2>
          <p class="eco-results__lede">${esc(lede)}</p>
          <dl class="eco-results__dims">
@@ -683,7 +755,11 @@
       s("gen_res_generating"),
     )}`;
     try {
-      const { ok, body } = await post("/api/ecojoiner/generate", collect());
+      const { ok, status, body } = await post(
+        "/api/ecojoiner/generate",
+        collect(),
+      );
+      if (handledAuthExpiry(status)) return;
       if (!ok || !body.success) {
         renderErrors(body.message || s("gen_res_err_generate"), body.errors);
         return;
@@ -796,7 +872,11 @@
     // the user can sanity-check the geometry before committing to a download.
     busy(true, s("gen_res_working"));
     try {
-      const { ok, body } = await post("/api/ecojoiner/validate", collect());
+      const { ok, status, body } = await post(
+        "/api/ecojoiner/validate",
+        collect(),
+      );
+      if (handledAuthExpiry(status)) return;
       if (!ok || !body.success) {
         renderErrors(body.message || s("gen_res_err_derive"), body.errors);
         return;
@@ -1546,6 +1626,10 @@
           body: formData,
         });
         const body = await response.json().catch(() => ({}));
+        if (handledAuthExpiry(response.status)) {
+          if (saveDialog && typeof saveDialog.close === "function") saveDialog.close();
+          return;
+        }
         if (!response.ok || !body.success) {
           setSaveFeedback(body.message || "We could not save this design.");
           return;

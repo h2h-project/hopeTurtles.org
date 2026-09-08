@@ -5458,11 +5458,17 @@ body.ocean-bg {
   padding: 1.75rem 1rem 2rem;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1.5rem;
+  /* Banner + the sticky header together fill ~85% of the viewport (the 5rem
+     is the header's resolved height). Falls back to its natural height on
+     short viewports. */
+  min-height: calc(85vh - 5rem);
 }
 
 .generate-banner__content {
   display: flex;
+  flex: 1;
   align-items: stretch;
   min-height: 320px;
 }
@@ -5608,6 +5614,12 @@ body.ocean-bg {
 }
 
 @media (max-width: 860px) {
+  .generate-banner__inner {
+    /* The tall 85vh banner is a desktop treatment; on stacked mobile layout
+       it just leaves a big empty gap. */
+    min-height: 0;
+  }
+
   .generate-banner__content {
     flex-direction: column;
     min-height: 0;
@@ -6050,6 +6062,52 @@ body.ocean-bg {
   font-size: 0.95rem;
   color: var(--color-muted);
   max-width: 32rem;
+}
+
+/* Session-expired modal (generator page) -------------------------------- */
+.eco-session-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.75rem;
+}
+
+.eco-session-card__icon {
+  font-size: 2.75rem;
+  color: #d97706;
+}
+
+.eco-session-card__title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.eco-session-card__body {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-muted);
+  max-width: 30rem;
+}
+
+.eco-session-card__tip {
+  margin: 0;
+  font-size: 0.9rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background: rgba(1, 121, 25, 0.08);
+  border: 1px solid rgba(1, 121, 25, 0.2);
+  color: var(--color-text);
+  max-width: 30rem;
+}
+
+.eco-session-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 0.5rem;
 }
 
 /* Visual ecojoiner-type picker -------------------------------------------- */

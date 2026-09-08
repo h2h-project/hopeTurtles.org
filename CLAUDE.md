@@ -275,12 +275,23 @@ sync mechanism) and S-6 (hygiene) are deferred, per `generator/SYNC_PLAN.md`.
 bottle's defaults); sails' bottle diameter and cap/collar/dome heights (the SCAD module
 already accepted them — only the Python wrapper never threaded them through) **plus**
 SVG/DXF/PDF carpenter-sheet writers for all 7 sail part shapes, added from scratch and
-verified against real OpenSCAD-rendered bounding boxes; 6FC's part list (Master John ×1 +
-Little John ×5 → six Little Johns, no Master John), `cap_diameter` 32→31, `collar_diameter`
-32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6 clearance) — `objects/six_fc.py`
-renamed `objects/ecojoiner_6fc.py` in the same pass (internal only; `object_type`, job-slug
-prefix and every public identifier are unchanged). `bottom_fin_raw.py` deleted. Full detail in
-`generator/SYNC_PLAN.md`'s "Resolved" section and `SYNC_LOG.md`.
+verified against real OpenSCAD-rendered bounding boxes; 6FC's `cap_diameter` 32→31,
+`collar_diameter` 32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6 clearance)
+— `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py` in the same pass (internal only;
+`object_type`, job-slug prefix and every public identifier are unchanged).
+`bottom_fin_raw.py` deleted. Full detail in `generator/SYNC_PLAN.md`'s "Resolved" section
+and `SYNC_LOG.md`.
+
+**Master John — corrected 2026-09-08 (turtle_body v1.8.1).** The v1.7.1 6FC sync also
+flattened the **Master John** (Little John ×5 + Master John ×1 → six Little Johns). That
+was wrong: the Master John is the cross-slat fitted last, with deeper top slots
+(`master_slot_depth = min(floor(port_height/2), floor(john_height·0.6))`, 34 vs 29 at the
+reference bottle) so it can spring into the almost-closed frame. The generator had always
+carried the rule; lib merely lacked it. Per the "lib owns the rule" precedent, it was
+lifted upstream — turtle_body v1.8.1 adds `eco_master_slot_depth()` / `eco_master_john()`
+to `lib/ecojoiner.scad` — and `objects/ecojoiner_6fc.py` was restored (keeping the param
+changes above). Part list is back to Long John ×6, Little John ×5, Master John ×1, Final
+Key ×4, Presser ×12.
 
 **Port length is not drift** (resolved 2026-09-08, turtle_body v1.7.2). The generators derive
 `port_length = taper_height + port_allowance` (20); lib had flattened that to a constant 82 and
@@ -295,7 +306,7 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 |---|---|
 | `generator/generate_exports.py` | CLI dispatcher — the only script Node runs. `OBJECT_MODULES` maps `object_type` (`6fc`, `fin`, `ballast`, `sails`) to an object module. No geometry. |
 | `generator/common.py` | Shared SVG/DXF/PDF primitives, fonts, slugify, `GeneratedFile`, `DESIGN_VERSION`. |
-| `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×6, Final Key ×4, Presser ×12 — no Master John). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
+| `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×5, Master John ×1 — the deeper-slotted John fitted last — Final Key ×4, Presser ×12). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
 | `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
 | `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. Full SCAD/SVG/DXF/PDF, same as the other objects. |

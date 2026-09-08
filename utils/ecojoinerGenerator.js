@@ -29,7 +29,8 @@ const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg', 'dxf'];
 export const PART_QUANTITIES_BY_TYPE = {
   '6fc': [
     { key: 'long_john', part: 'Long John', quantity: 6 },
-    { key: 'little_john', part: 'Little John', quantity: 6 },
+    { key: 'little_john', part: 'Little John', quantity: 5 },
+    { key: 'master_john', part: 'Master John', quantity: 1 },
     { key: 'final_key', part: 'Final Key', quantity: 4 },
     { key: 'presser', part: 'Presser', quantity: 12 }
   ],
