@@ -28,6 +28,7 @@ try:
     from reportlab.platypus import Paragraph
 except Exception:  # pragma: no cover - useful in backend deployments
     colors = None
+    landscape = None
     letter = None
     mm = None
     canvas = None
