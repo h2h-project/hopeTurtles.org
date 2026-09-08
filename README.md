@@ -32,7 +32,7 @@ The web app enables:
 
 ## 🪵 Turtle Generator
 
-`/ecojoiners/generate` turns a visitor's bottle and board measurements into cutting files for
+`/turtles/generate` (legacy `/ecojoiners/generate` redirects here) turns a visitor's bottle and board measurements into cutting files for
 the wooden parts of a Hope Turtle: the 6FC Ecojoiner core, the rear fin attachment, the ballast
 attachment and the sail frame. The Python generators live in `generator/` (one object module per
 component under `generator/objects/`, dispatched by `generator/generate_exports.py`); Node maps

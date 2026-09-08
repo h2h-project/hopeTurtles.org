@@ -102,13 +102,7 @@ router.get("/turtles", (req, res) => {
   });
 });
 
-router.get("/ecojoiners", (req, res) => {
-  res.render("ecojoiners", {
-    pageTitle: res.locals.t.eco_page_title,
-  });
-});
-
-router.get("/ecojoiners/generate", (req, res) => {
+router.get("/turtles/generate", (req, res) => {
   res.render("generate", {
     pageTitle: res.locals.t.gen_page_title,
     bodyClass: "ocean-bg",
@@ -116,6 +110,21 @@ router.get("/ecojoiners/generate", (req, res) => {
       "Generate the engineering files to make an ecojoiner for your choice of bottle.  Build furniture, structures or just set a turtle free.",
     ogImage: "/images/ecojoiner-spec-hero.webp",
   });
+});
+
+router.get("/ecojoiners", (req, res) => {
+  res.render("ecojoiners", {
+    pageTitle: res.locals.t.eco_page_title,
+  });
+});
+
+// Legacy path — the generator moved to /turtles/generate. Preserve the query
+// string so ?design=<id> deep links keep working.
+router.get("/ecojoiners/generate", (req, res) => {
+  const qs = req.originalUrl.includes("?")
+    ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+    : "";
+  res.redirect(301, `/turtles/generate${qs}`);
 });
 
 router.get("/commission", ensureAuth, async (req, res) => {

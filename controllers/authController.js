@@ -56,7 +56,7 @@ const PROTECTED_RETURN_PREFIXES = [
   '/admin',
   '/profile',
   '/commission',
-  '/ecojoiners/generate'
+  '/turtles/generate'
 ];
 
 const isProtectedReturnPath = (path) => {

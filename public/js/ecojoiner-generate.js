@@ -1220,7 +1220,7 @@
   };
 
   // Deep link from the dashboard's design cog menu ("Open"):
-  // /ecojoiners/generate?design=123
+  // /turtles/generate?design=123
   const initialDesignId = new URLSearchParams(window.location.search).get(
     "design",
   );

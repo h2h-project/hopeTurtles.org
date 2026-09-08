@@ -234,8 +234,9 @@ The key differences for hopeTurtles.org:
 
 ## Turtle Generator (`generator/`)
 
-`/ecojoiners/generate` produces carpentry files for the **wooden parts of a full Hope Turtle**
-from a visitor's bottle, board and solar-panel measurements. The 6FC Ecojoiner is the central
+`/turtles/generate` (legacy `/ecojoiners/generate` still 301-redirects here) produces carpentry
+files for the **wooden parts of a full Hope Turtle** from a visitor's bottle, board and
+solar-panel measurements. The 6FC Ecojoiner is the central
 part of that turtle, not the whole product — the directory was renamed from `ecojoiner/` to
 `generator/` on 2026-09-08 to reflect this. Run `npm run generator:setup` once — it creates
 `generator/.venv` with reportlab + ezdxf (system python3 is PEP-668 externally-managed, so a
@@ -351,7 +352,7 @@ action sidebar, `views/dashboard.ejs`):
 1. **Make a Contribution** — a modal (`#contributeDialog`) where a user picks/enters a USD amount
    and hits Contribute. Eventually this redirects to Stripe checkout and records the pledge.
 2. **Manifest a Turtle** (`/commission`) — a from-scratch turtle "build your own" flow, styled like
-   `/ecojoiners/generate`: the user steps through component panels (hull, power, navigation,
+   `/turtles/generate`: the user steps through component panels (hull, power, navigation,
    payload, ...), each with photo/price/description/availability, and commissions a turtle built
    to spec.
 3. **Our OpenBooks** (`/openbooks`) — a public ledger page showing every transaction behind the
