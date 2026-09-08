@@ -1,10 +1,10 @@
 """Back Fin (rear-fin + bottle-holder shafts + solar-panel holder) object.
 
 Geometry and validation are ported from the standalone reference script
-ecojoiner/back_fin_generator.py, which remains the source of truth for the
+generator/back_fin_generator.py, which remains the source of truth for the
 .scad output (write_scad() below calls its build_scad() directly). This
 module adds the JSON-manifest/job-folder contract the rest of the pipeline
-expects (see ecojoiner/objects/six_fc.py for the pattern) plus new SVG/DXF/
+expects (see generator/objects/ecojoiner_6fc.py for the pattern) plus new SVG/DXF/
 PDF carpenter-file writers for the fin's four flat parts, since the
 reference script only ever produced a 3D .scad file.
 """
@@ -49,7 +49,12 @@ from common import (
     canvas,
     ezdxf,
 )
-from back_fin_generator import DEFAULTS as _BF_DEFAULTS, TUNING as _BF_TUNING, build_scad as _bf_build_scad
+from back_fin_generator import (
+    DEFAULTS as _BF_DEFAULTS,
+    TUNING as _BF_TUNING,
+    build_scad as _bf_build_scad,
+    default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
+)
 
 PART_QUANTITIES = {
     "Rear Fin": 1,
@@ -83,7 +88,11 @@ class BackFinInputs:
     solar_slot_clearance: float = _BF_TUNING["solar_slot_clearance"]
     shaft_width: float = _BF_TUNING["shaft_width"]
     shaft_hole_diameter: float = _BF_TUNING["shaft_hole_diameter"]
-    shaft_hole_from_front: float = _BF_TUNING["shaft_hole_from_front"]
+    # None (the TUNING default) means "derive via TB-07" -- see
+    # BackFinDerived.shaft_hole_from_front / default_shaft_hole_from_front()
+    # in back_fin_generator.py. Not exposed on the form; only an advanced
+    # override, same tier as the rest of TUNING.
+    shaft_hole_from_front: Optional[float] = _BF_TUNING["shaft_hole_from_front"]
     fin_rear_tab_width: float = _BF_TUNING["fin_rear_tab_width"]
 
     bottle_brand: str = "generic"
@@ -117,12 +126,13 @@ class BackFinDerived:
     shaft_notch_width: float
     shaft_notch_v0: float
     shaft_notch_height: float
+    shaft_hole_from_front: float
 
 
 def parse_inputs_from_dict(data: Dict[str, object]) -> BackFinInputs:
     """Parse the JSON payload Node sends. Node already sends ready-to-use
     snake_case keys (see utils/ecojoinerGenerator.js::mapBackFinFields), so
-    unlike six_fc.parse_inputs_from_dict() no camelCase fallback is needed.
+    unlike ecojoiner_6fc.parse_inputs_from_dict() no camelCase fallback is needed.
     """
 
     def get(name, default=None):
@@ -183,6 +193,17 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     shaft_notch_height = joint_slot_opening
     shaft_notch_v0 = inputs.shaft_width / 2 - joint_slot_opening / 2
 
+    # TB-07: not a free tuning knob. None means "derive it" -- the value
+    # must put the shaft's M6 hole exactly where the mating Ecojoiner Little
+    # John's own hole is (see back_fin_generator.default_shaft_hole_from_front()).
+    shaft_hole_from_front = (
+        inputs.shaft_hole_from_front
+        if inputs.shaft_hole_from_front is not None
+        else _bf_default_shaft_hole_from_front(
+            {"wood_thickness": t, "fin_board_width": inputs.fin_board_width, "bottle_diameter": inputs.bottle_diameter}
+        )
+    )
+
     return BackFinDerived(
         fin_width=fin_width,
         fin_height=fin_height,
@@ -207,13 +228,14 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         shaft_notch_width=shaft_notch_width,
         shaft_notch_v0=shaft_notch_v0,
         shaft_notch_height=shaft_notch_height,
+        shaft_hole_from_front=shaft_hole_from_front,
     )
 
 
 def validate_inputs(inputs: BackFinInputs) -> List[str]:
     """Real-world/geometric sanity checks. Ported from the reference script's
     validate() (back_fin_generator.py:232-260), which raised on the first
-    failure - here every failing check is collected, matching six_fc's
+    failure - here every failing check is collected, matching ecojoiner_6fc's
     validate_inputs() contract."""
 
     errors: List[str] = []
@@ -230,7 +252,6 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         ("solar_panel_thickness", inputs.solar_panel_thickness, "Solar panel thickness"),
         ("shaft_width", inputs.shaft_width, "Shaft width"),
         ("shaft_hole_diameter", inputs.shaft_hole_diameter, "Shaft hole diameter"),
-        ("shaft_hole_from_front", inputs.shaft_hole_from_front, "Shaft hole position"),
         ("fin_rear_tab_width", inputs.fin_rear_tab_width, "Fin rear tab width"),
     ]
     for _, value, label in positive_fields:
@@ -240,6 +261,8 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         errors.append("Joinery clearance must be zero or greater.")
     if inputs.solar_slot_clearance < 0:
         errors.append("Solar slot clearance must be zero or greater.")
+    if inputs.shaft_hole_from_front is not None and inputs.shaft_hole_from_front <= 0:
+        errors.append("Shaft hole position must be greater than 0.")
 
     if errors:
         # Downstream geometry (derive_dimensions) assumes every field above
@@ -264,8 +287,8 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         (inputs.solar_panel_width > 4 * t + s, "Solar panel width is too narrow for the holder's slot and chamfers."),
         (inputs.shaft_width > inputs.shaft_hole_diameter, "Shaft width must be greater than the shaft hole diameter."),
         (
-            inputs.shaft_hole_from_front > inputs.shaft_hole_diameter / 2
-            and d.shaft_front_x + inputs.shaft_hole_from_front + inputs.shaft_hole_diameter / 2 < 0,
+            d.shaft_hole_from_front > inputs.shaft_hole_diameter / 2
+            and d.shaft_front_x + d.shaft_hole_from_front + inputs.shaft_hole_diameter / 2 < 0,
             "The shaft hole must sit inside the forward, unjointed part of the shaft.",
         ),
     ]
@@ -288,6 +311,9 @@ def make_job_slug(inputs: BackFinInputs, derived: BackFinDerived) -> str:
 def write_scad(path: Path, inputs: BackFinInputs, d: BackFinDerived) -> None:
     overrides = {key: getattr(inputs, key) for key in _BF_DEFAULTS}
     overrides.update({key: getattr(inputs, key) for key in _BF_TUNING})
+    # Always pass the RESOLVED value (never None) so back_fin_generator's own
+    # TB-07 derivation isn't re-run redundantly and can't disagree with d.
+    overrides["shaft_hole_from_front"] = d.shaft_hole_from_front
     path.write_text(_bf_build_scad(overrides), encoding="utf-8")
 
 
@@ -312,7 +338,7 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
     full_set=True draws all physical quantities (Rear Fin x1, Bottle Holder
     Shaft x2, Solar Panel Holder x1). full_set=False draws one of each,
-    the shaft labeled "x2" - same convention as six_fc.write_svg().
+    the shaft labeled "x2" - same convention as ecojoiner_6fc.write_svg().
     """
     margin = 10.0
     gap = 14.0
@@ -330,7 +356,7 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
     def shaft_group(y, name):
         out = f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
         out += _rect(0, 0, d.shaft_length, inputs.shaft_width)
-        out += _circle(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)
+        out += _circle(d.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)
         out += _rect(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)
         out += _label(0, -3, name)
         out += "  </g>\n"
@@ -375,7 +401,7 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
 def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set: bool = True) -> None:
     """DXF equivalent of write_svg() - same row layout, DXF entities instead
-    of SVG element strings. See six_fc.write_dxf() for the same pattern."""
+    of SVG element strings. See ecojoiner_6fc.write_dxf() for the same pattern."""
     if ezdxf is None:
         raise RuntimeError("ezdxf is not installed. Install with: pip install ezdxf")
 
@@ -396,7 +422,7 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
     def shaft_group(y, name):
         _dxf_rect(msp, 0, y, d.shaft_length, inputs.shaft_width, DXF_CUT_LAYER)
-        _dxf_circle(msp, inputs.shaft_hole_from_front, y + inputs.shaft_width / 2, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
+        _dxf_circle(msp, d.shaft_hole_from_front, y + inputs.shaft_width / 2, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
         _dxf_rect(msp, d.shaft_notch_u0, y + d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
@@ -467,7 +493,7 @@ def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
 # ---------------------------------------------------------------------------
 
 def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
-    hole_x = inputs.shaft_hole_from_front
+    hole_x = d.shaft_hole_from_front
     hole_y = inputs.shaft_width / 2
     dims = [
         (
@@ -587,7 +613,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "notches": [
                 _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
             ],
-            "circles": [(inputs.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
+            "circles": [(d.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
             "dims": shaft_dims,
             "labels": shaft_labels,
         },
@@ -739,6 +765,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Joint slot opening: {_ceil_mm(d.joint_slot_opening)}mm",
         f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
+        f"Shaft M6 hole from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
     ]
     box_gap = 10
     box_h = 92
@@ -765,7 +792,7 @@ def generate(
     dry_run: bool = False,
 ) -> Dict[str, object]:
     """Validate inputs and write requested export files. Mirrors
-    six_fc.generate()'s contract exactly (same manifest shape, same
+    ecojoiner_6fc.generate()'s contract exactly (same manifest shape, same
     dry-run/file-writing/job-folder behavior)."""
 
     errors = validate_inputs(inputs)

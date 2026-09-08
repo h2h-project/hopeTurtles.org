@@ -395,13 +395,11 @@
   "gen_dim_john_height": "גובה ה-John",
   "gen_dim_slot_width": "רוחב החריץ",
   "gen_dim_slot_depth_std": "עומק חריץ סטנדרטי",
-  "gen_dim_slot_depth_master": "עומק חריץ ה-Master",
   "gen_dim_final_key": "Final Key",
   "gen_dim_presser": "קוטר ה-Presser",
   "gen_dim_screw": "חור הובלה לבורג",
   "gen_part_long_john": "Long John",
   "gen_part_little_john": "Little John",
-  "gen_part_master_john": "Master John",
   "gen_part_final_key": "Final Key",
   "gen_part_presser": "Presser"
 }

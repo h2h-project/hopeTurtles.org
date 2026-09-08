@@ -126,7 +126,11 @@ export const getTurtleRoute = async (req, res, next) => {
       data: {
         timestamps: rows.map((row) => toNumberOrNull(row.ts)),
         lats: rows.map((row) => toNumberOrNull(row.latitude)),
-        lons: rows.map((row) => toNumberOrNull(row.longitude))
+        lons: rows.map((row) => toNumberOrNull(row.longitude)),
+        // Per-point operator-journey tag (see turtleOS src/app/journey.py). Null
+        // for readings taken outside any journey; contiguous equal ids are one
+        // journey leg the map highlights.
+        journeyIds: rows.map((row) => toNumberOrNull(row.journey_id))
       }
     });
   } catch (error) {

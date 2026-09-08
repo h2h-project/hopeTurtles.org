@@ -30,17 +30,24 @@ The web app enables:
 
 ---
 
-## 🪵 Ecojoiner Generator
+## 🪵 Turtle Generator
 
-`/ecojoiners/generate` turns a visitor's bottle and board measurements into Ecojoiner v3.2
-cutting files. The geometry, validation and file writing all live in
-`ecojoiner/generate_exports.py` (Python + reportlab); Node maps the form fields onto it, runs it
-with `execFile`, and serves the results from `public/ecojoiner_exports/`.
+`/ecojoiners/generate` turns a visitor's bottle and board measurements into cutting files for
+the wooden parts of a Hope Turtle: the 6FC Ecojoiner core, the rear fin attachment, the ballast
+attachment and the sail frame. The Python generators live in `generator/` (one object module per
+component under `generator/objects/`, dispatched by `generator/generate_exports.py`); Node maps
+the form fields onto them, runs them with `execFile`, and serves the results from
+`public/ecojoiner_exports/`.
 
-One-time setup — creates `ecojoiner/.venv` and installs reportlab:
+The geometry is downstream of the [turtle_body](https://github.com/h2h-project/turtle_body)
+repository: its `lib/params.scad` is the authoritative dimension contract, and every generator
+default or formula here must match it. See `CLAUDE.md` → "Turtle Generator" for the sync rule
+and `generator/SYNC_PLAN.md` for the current drift and the plan to close it.
+
+One-time setup — creates `generator/.venv` and installs reportlab + ezdxf:
 
 ```bash
-npm run ecojoiner:setup
+npm run generator:setup
 ```
 
 Set `ECOJOINER_PYTHON` in `.env` if you would rather point at a different interpreter. Generated

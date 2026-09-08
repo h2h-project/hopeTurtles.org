@@ -61,7 +61,6 @@
       gen_dim_john_height: "John height",
       gen_dim_slot_width: "Slot width",
       gen_dim_slot_depth_std: "Standard slot depth",
-      gen_dim_slot_depth_master: "Master slot depth",
       gen_dim_final_key: "Final Key",
       gen_dim_presser: "Presser diameter",
       gen_dim_screw: "Screw pilot hole",
@@ -399,6 +398,24 @@
   // sizing panel.
   const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
   const finSolarPanel = form.querySelector('[data-panel="fin-solar"]');
+
+  // The sail frame exports OpenSCAD only for now (generator/objects/sails.py,
+  // SYNC_PLAN item S-3): while it is selected, pin the fabrication toggles to
+  // the 3D option and grey out the flat-cutting formats.
+  const SCAD_ONLY_TYPES = ["sails"];
+  const applyTypeFormatRules = (type) => {
+    const scadOnly = SCAD_ONLY_TYPES.includes(type);
+    ["eco-fab-carpentry", "eco-fab-svg", "eco-fab-dxf"].forEach((id) => {
+      const box = el(id);
+      if (!box) return;
+      if (scadOnly) box.checked = false;
+      box.disabled = scadOnly;
+    });
+    const scadBox = el("eco-fab-3d");
+    if (scadBox && scadOnly) scadBox.checked = true;
+    check("eco-fabrication");
+  };
+
   typeCards.forEach((card) => {
     card.addEventListener("click", () => {
       if (card.dataset.available !== "true") {
@@ -417,6 +434,7 @@
         finSolarPanel.hidden = !isFin;
         if (isFin) finSolarPanel.open = true;
       }
+      applyTypeFormatRules(card.dataset.type);
     });
   });
 
@@ -562,6 +580,16 @@
               `${mm(i.solar_panel_width)} × ${mm(i.solar_panel_height)} × ${mm(i.solar_panel_thickness)}`,
             ],
           ]
+        : data.object_type === "sails"
+        ? [
+            [s("gen_dim_sails_top_bar"), `${mm(d.top_sail_bar_length)} × ${mm(d.top_sail_bar_width)}`],
+            [s("gen_dim_sails_batten"), `${mm(d.side_batten_height)} × ${mm(d.side_batten_width)}`],
+            [s("gen_dim_sails_bottom_bar"), mm(d.bottom_sail_bar_length)],
+            [
+              s("gen_dim_sails_cage_holes"),
+              `Ø${mm(d.cage_mount_hole_diameter)} @ ${mm(d.cage_mount_upper_from_batten_top)} / ${mm(d.cage_mount_lower_from_batten_top)}`,
+            ],
+          ]
         : data.object_type === "ballast"
         ? [
             [s("gen_dim_ballast_board"), `${mm(d.ballast_bottom_length)} × ${mm(d.ballast_bottom_width)}`],
@@ -576,7 +604,6 @@
             [s("gen_dim_john_height"), mm(d.john_height)],
             [s("gen_dim_slot_width"), mm(d.slot_width)],
             [s("gen_dim_slot_depth_std"), mm(d.standard_slot_depth)],
-            [s("gen_dim_slot_depth_master"), mm(d.master_slot_depth)],
             [
               s("gen_dim_final_key"),
               `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`,
@@ -1172,7 +1199,7 @@
     el("eco-fab-3d").checked = formats.includes("scad");
     el("eco-fab-svg").checked = formats.includes("svg");
     el("eco-fab-dxf").checked = formats.includes("dxf");
-    check("eco-fabrication");
+    applyTypeFormatRules(targetType);
 
     if (profilePicker) {
       if (ownProfile) {

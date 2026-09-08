@@ -8,11 +8,11 @@ dotenv.config();
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 // The Ecojoiner generator runs on Python. Prefer an explicit interpreter, then
-// the project venv created by `npm run ecojoiner:setup`, then whatever python3
+// the project venv created by `npm run generator:setup`, then whatever python3
 // is on PATH (which only works if reportlab happens to be installed globally).
 const resolveEcojoinerPython = () => {
   if (process.env.ECOJOINER_PYTHON) return process.env.ECOJOINER_PYTHON;
-  const venvPython = path.join(rootDir, 'ecojoiner', '.venv', 'bin', 'python3');
+  const venvPython = path.join(rootDir, 'generator', '.venv', 'bin', 'python3');
   return fs.existsSync(venvPython) ? venvPython : 'python3';
 };
 
@@ -110,7 +110,7 @@ export const config = {
   ecojoiner: {
     rootDir,
     python: resolveEcojoinerPython(),
-    script: path.join(rootDir, 'ecojoiner', 'generate_exports.py'),
+    script: path.join(rootDir, 'generator', 'generate_exports.py'),
     fontDir: path.join(rootDir, 'fonts'),
     exportsDir: path.join(rootDir, 'public', 'ecojoiner_exports'),
     urlPrefix: '/ecojoiner_exports',

@@ -22,8 +22,11 @@ export const sweepEcojoinerExports = async () => {
     throw error;
   }
 
+  // One prefix per object type — see make_job_slug() in generator/objects/*.py.
+  const JOB_PREFIXES = ["ecojoiner_", "backfin_", "ballast_", "sails_"];
+
   for (const entry of entries) {
-    if (!entry.isDirectory() || !entry.name.startsWith("ecojoiner_")) continue;
+    if (!entry.isDirectory() || !JOB_PREFIXES.some((p) => entry.name.startsWith(p))) continue;
     const jobDir = path.join(exportsDir, entry.name);
     try {
       const stats = await fs.stat(jobDir);

@@ -2,17 +2,17 @@
 bottom ballast fin).
 
 Geometry and validation are ported from the standalone reference script
-ecojoiner/bottom_ballast_fin_generator.py, which remains the source of truth
+generator/bottom_ballast_fin_generator.py, which remains the source of truth
 for the .scad output (write_scad() below calls its build_scad() directly).
 This module adds the JSON-manifest/job-folder contract the rest of the
-pipeline expects (see ecojoiner/objects/six_fc.py for the pattern) plus new
+pipeline expects (see generator/objects/ecojoiner_6fc.py for the pattern) plus new
 SVG/DXF/PDF carpenter-file writers for the assembly's four flat part shapes,
 since the reference script only ever produced a 3D .scad file.
 
 Note: the reference script's `port_length` (how far down from the top of the
 core slat the neck/shoulder begins) is not a raw board/bottle measurement -
 it's derived the same way the 6FC ecojoiner derives its own port_length (see
-six_fc.EcojoinerInputs), from `taper_height + port_allowance` or a direct
+ecojoiner_6fc.EcojoinerInputs), from `taper_height + port_allowance` or a direct
 override.
 """
 from __future__ import annotations
@@ -56,7 +56,12 @@ from common import (
     canvas,
     ezdxf,
 )
-from bottom_ballast_fin_generator import DEFAULTS as _BALLAST_DEFAULTS, build_scad as _ballast_build_scad
+from bottom_ballast_fin_generator import (
+    DEFAULTS as _BALLAST_DEFAULTS,
+    build_scad as _ballast_build_scad,
+    MOUNT_HOLE_SCREW_SIDE_OFFSET as _BALLAST_SCREW_SIDE_OFFSET,
+    MOUNT_HOLE_DIAMETER as _BALLAST_MOUNT_HOLE_DIAMETER,
+)
 
 PART_QUANTITIES = {
     "Ballast Bottom Board": 1,
@@ -113,6 +118,10 @@ class BallastDerived:
     slot_z1: float
     lower_full_width_return_z: float
     lower_neck_start_z: float
+    mount_hole_diameter: float
+    mount_hole_x: float
+    mount_hole_y: float
+    mount_hole_from_top: float
 
     # Orange ballast-bottom board
     ballast_bottom_length: float
@@ -150,7 +159,7 @@ class BallastDerived:
 def parse_inputs_from_dict(data: Dict[str, object]) -> BallastInputs:
     """Parse the JSON payload Node sends. Node already sends ready-to-use
     snake_case keys (see utils/ecojoinerGenerator.js::mapBallastFields), so
-    unlike six_fc.parse_inputs_from_dict() no camelCase fallback is needed.
+    unlike ecojoiner_6fc.parse_inputs_from_dict() no camelCase fallback is needed.
     """
 
     def get(name, default=None):
@@ -192,19 +201,31 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
         port_length = (inputs.taper_height or 0.0) + inputs.port_allowance
 
     slat_width = bd - 2 * t
-    slat_height = bh - ch + 4.5 * t
+    slat_height = bh - ch + 6.0 * t
     lower_lobe_height = 2 * t
     upper_lobe_height = 2 * t
     slot_height = t
     slot_depth = slat_width / 2
     neck_width = bd - 3 * t
     shoulder_step = slat_width - neck_width
-    upper_neck_start_z = slat_height - port_length
-    upper_diagonal_start_z = upper_neck_start_z + shoulder_step
+    # The shoulder cut begins one PORT HEIGHT (== bottle diameter, the
+    # opening the slat passes through) below the slat top -- NOT one
+    # port_length (the port's axial insertion depth, which only equals
+    # bottle_diameter by coincidence at the reference bottle's defaults).
+    # port_length instead governs the M6 mount hole below.
+    upper_diagonal_start_z = slat_height - bd
+    upper_neck_start_z = upper_diagonal_start_z - shoulder_step
     slot_z0 = lower_lobe_height
     slot_z1 = slot_z0 + slot_height
     lower_full_width_return_z = slot_z1 + upper_lobe_height
     lower_neck_start_z = lower_full_width_return_z + shoulder_step
+
+    # M6 hole bolting this slat to the Ecojoiner Little John it replaces a
+    # Presser on (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*()).
+    mount_hole_diameter = _BALLAST_MOUNT_HOLE_DIAMETER
+    mount_hole_from_top = port_length + t - _BALLAST_SCREW_SIDE_OFFSET
+    mount_hole_x = slat_width / 2
+    mount_hole_y = slat_height - mount_hole_from_top
 
     ballast_bottom_length = 3.5 * bd
     ballast_bottom_width = fw
@@ -231,7 +252,9 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     ballast_fin_lower_protrusion = 2 * t
     ballast_fin_slot_height = t
     ballast_fin_slot_depth = bd / 2
-    ballast_fin_upper_cut_depth = bd
+    # +1 stock thickness beyond the bare bottle diameter so the bottle
+    # actually clears the cut (see turtle_body CLAUDE.md s12).
+    ballast_fin_upper_cut_depth = bd + t
     ballast_fin_upper_cut_z0 = ballast_fin_lower_protrusion + ballast_fin_slot_height + 1.5 * t
     ballast_fin_front_chamfer = 1.5 * t
 
@@ -251,6 +274,10 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
         slot_z1=slot_z1,
         lower_full_width_return_z=lower_full_width_return_z,
         lower_neck_start_z=lower_neck_start_z,
+        mount_hole_diameter=mount_hole_diameter,
+        mount_hole_x=mount_hole_x,
+        mount_hole_y=mount_hole_y,
+        mount_hole_from_top=mount_hole_from_top,
         ballast_bottom_length=ballast_bottom_length,
         ballast_bottom_width=ballast_bottom_width,
         ballast_slot_width=ballast_slot_width,
@@ -283,7 +310,7 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
 def validate_inputs(inputs: BallastInputs) -> List[str]:
     """Real-world/geometric sanity checks. Ported from the reference
     script's validate() (bottom_ballast_fin_generator.py), collecting every
-    failing check rather than raising on the first, matching six_fc's/
+    failing check rather than raising on the first, matching ecojoiner_6fc's/
     back_fin's validate_inputs() contract."""
 
     errors: List[str] = []
@@ -330,6 +357,10 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
         (
             d.ballast_bottom_length > inputs.bottle_diameter + t,
             "Bottle diameter is too large for the ballast-bottom board's end slots to clear the board ends.",
+        ),
+        (
+            d.mount_hole_diameter / 2 < d.mount_hole_from_top < d.slat_height - d.mount_hole_diameter / 2,
+            "The port length leaves the M6 mount hole outside the core slat - try a different top tapper height or port length.",
         ),
     ]
     for ok, message in checks:
@@ -434,7 +465,7 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
     full_set=True draws all physical quantities (Core Slat x2, Ballast-Bottom
     Board x1, Ballast Lock Foot x2, Bottom Ballast Fin x1). full_set=False
     draws one of each, the slat and lock foot labeled "x2" - same convention
-    as six_fc.write_svg()/back_fin.write_svg().
+    as ecojoiner_6fc.write_svg()/back_fin.write_svg().
     """
     margin = 10.0
     gap = 14.0
@@ -448,7 +479,9 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
         return out
 
     def slat_group(y, name):
-        return group(y, name, _polygon(_slat_outline(d)))
+        body = _polygon(_slat_outline(d))
+        body += _circle(d.mount_hole_x, d.mount_hole_y, d.mount_hole_diameter)
+        return group(y, name, body)
 
     def board_group(y, name):
         body = _rect(0, 0, d.ballast_bottom_length, d.ballast_bottom_width)
@@ -497,7 +530,7 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
 def write_dxf(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set: bool = True) -> None:
     """DXF equivalent of write_svg() - same row layout, DXF entities instead
-    of SVG element strings. See six_fc.write_dxf()/back_fin.write_dxf() for
+    of SVG element strings. See ecojoiner_6fc.write_dxf()/back_fin.write_dxf() for
     the same pattern."""
     if ezdxf is None:
         raise RuntimeError("ezdxf is not installed. Install with: pip install ezdxf")
@@ -512,6 +545,7 @@ def write_dxf(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
     def slat_group(y, name):
         _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _slat_outline(d)], DXF_CUT_LAYER)
+        _dxf_circle(msp, d.mount_hole_x, y + d.mount_hole_y, d.mount_hole_diameter, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
     def board_group(y, name):
@@ -613,8 +647,16 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.slot_depth)} x {_ceil_mm(d.slot_height)}mm",
             {"ext1": (0, d.slot_z0), "ext2": (d.slot_depth, d.slot_z0)},
         ),
+        (
+            (d.slat_width + 6, d.mount_hole_y), (d.slat_width + 6, d.slat_height),
+            f"{_ceil_mm(d.mount_hole_from_top)}mm",
+            {"ext1": (d.slat_width, d.mount_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
+        ),
     ]
-    return dims, []
+    labels = [
+        ((d.mount_hole_x, d.mount_hole_y), f"⌀{_ceil_mm(d.mount_hole_diameter)}"),
+    ]
+    return dims, labels
 
 
 def _board_annotations(d: BallastDerived):
@@ -744,7 +786,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "rotate": False,
             "edges": _closed_edges(_slat_outline(d)),
             "notches": [],
-            "circles": [],
+            "circles": [(d.mount_hole_x, d.mount_hole_y, d.mount_hole_diameter)],
             "dims": slat_dims,
             "labels": slat_labels,
         },
@@ -907,6 +949,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Board: {_ceil_mm(d.ballast_bottom_length)} x {_ceil_mm(d.ballast_bottom_width)}mm",
         f"Lock foot: {_ceil_mm(d.red_piece_width)} x {_ceil_mm(d.red_piece_height)}mm",
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
+        f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
     box_gap = 10
     box_h = 92
@@ -933,7 +976,7 @@ def generate(
     dry_run: bool = False,
 ) -> Dict[str, object]:
     """Validate inputs and write requested export files. Mirrors
-    six_fc.generate()'s/back_fin.generate()'s contract exactly (same
+    ecojoiner_6fc.generate()'s/back_fin.generate()'s contract exactly (same
     manifest shape, same dry-run/file-writing/job-folder behavior)."""
 
     errors = validate_inputs(inputs)

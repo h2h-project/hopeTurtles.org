@@ -143,6 +143,7 @@ vite.config.ts.timestamp-*
 _preview_server.mjs
 package-lock.json
 # Ecojoiner generator: Python venv and generated export jobs
-ecojoiner/.venv/
+generator/.venv/
+__pycache__/
 public/ecojoiner_exports/*
 !public/ecojoiner_exports/.gitkeep

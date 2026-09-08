@@ -395,13 +395,11 @@
   "gen_dim_john_height": "ارتفاع الـ John",
   "gen_dim_slot_width": "عرض الفتحة",
   "gen_dim_slot_depth_std": "عمق الفتحة القياسي",
-  "gen_dim_slot_depth_master": "عمق فتحة الـ Master",
   "gen_dim_final_key": "Final Key",
   "gen_dim_presser": "قطر الـ Presser",
   "gen_dim_screw": "ثقب توجيه المسمار",
   "gen_part_long_john": "Long John",
   "gen_part_little_john": "Little John",
-  "gen_part_master_john": "Master John",
   "gen_part_final_key": "Final Key",
   "gen_part_presser": "Presser"
 }

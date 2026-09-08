@@ -1,4 +1,9 @@
-"""Six-panel Flatpack Ecojoiner (6FC) object: the original/default design."""
+"""Six-panel Flatpack Ecojoiner (6FC) object.
+
+Rebased 2026-09-08 on ../turtle_body/lib/ecojoiner.scad (generator/SYNC_PLAN.md
+item S-4): six Little Johns and no Master John, cap 31/collar 34/port 82,
+Ø6.4 M6 clearance holes. See generator/SYNC_LOG.md for the change record.
+"""
 from __future__ import annotations
 
 import html
@@ -33,11 +38,11 @@ LICENSE_STATEMENT = (
     "Open Hardware Licence, Strongly Reciprocal license (CERN-OHL-S-2.0)."
 )
 
-# Part quantities for the v3.2 flatpack.
+# Part quantities, matching turtle_body lib/ecojoiner.scad: six Little Johns,
+# no Master John.
 PART_QUANTITIES = {
     "Long John": 6,
-    "Little John": 5,
-    "Master John": 1,
+    "Little John": 6,
     "Final Key": 4,
     "Presser": 12,
 }
@@ -141,11 +146,6 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "id": "Kedalaman slot standar: {value}mm",
         "tr": "Standart yuva derinliği: {value}mm",
     },
-    "master_slot_depth_line": {
-        "en": "Master slot depth: {value}mm",
-        "id": "Kedalaman slot master: {value}mm",
-        "tr": "Ana yuva derinliği: {value}mm",
-    },
     "final_key_dim": {
         "en": "Final Key: {length} x {width}mm",
         "id": "Final Key: {length} x {width}mm",
@@ -157,9 +157,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "Presser: ⌀{value}mm",
     },
     "presser_source_note": {
-        "en": "Made from the cut-out holes of the Long, Little and Master Johns.",
-        "id": "Dibuat dari lubang potongan Long John, Little John, dan Master John.",
-        "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
+        "en": "Made from the cut-out holes of the Long and Little Johns.",
+        "id": "Dibuat dari lubang potongan Long John dan Little John.",
+        "tr": "Long John ve Little John'dan kesilen deliklerden yapılır.",
     },
     "final_key_note": {
         "en": "Use board thickness {thickness}mm, but allow for sanding down for final fit.",
@@ -262,16 +262,16 @@ class EcojoinerInputs:
     """
 
     slat_thickness: float = 12.0
-    cap_diameter: float = 32.0
-    collar_diameter: float = 32.0
+    cap_diameter: float = 31.0
+    collar_diameter: float = 34.0
     taper_height: Optional[float] = 60.0
     port_length: Optional[float] = None
     port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM
-    port_height: float = 85.0  # bottle body diameter
+    port_height: float = 82.0  # bottle body diameter
     bottle_volume_l: float = 1.5
     bottle_brand: str = "generic"
-    screw_diameter: float = 4.5  # physical pilot-hole diameter
-    screw_label: str = "M6 (diameter 4.5mm)"
+    screw_diameter: float = 6.4  # M6 clearance hole (through-bolt, not a self-tapping pilot hole)
+    screw_label: str = "M6 clearance (diameter 6.4mm)"
     fit_clearance: float = 0.20
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
     job_id: str = ""
@@ -291,7 +291,6 @@ class EcojoinerDerived:
     john_height: float
     slot_width: float
     standard_slot_depth: float
-    master_slot_depth: float
     long_end_span: float
     long_center_span: float
     little_end_span: float
@@ -331,16 +330,16 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
 
     return EcojoinerInputs(
         slat_thickness=_to_float(get("slatThickness", "slat_thickness"), 12.0),
-        cap_diameter=_to_float(get("capDiameter", "cap_diameter"), 32.0),
-        collar_diameter=_to_float(get("collarDiameter", "collar_diameter"), 32.0),
+        cap_diameter=_to_float(get("capDiameter", "cap_diameter"), 31.0),
+        collar_diameter=_to_float(get("collarDiameter", "collar_diameter"), 34.0),
         taper_height=_to_float(get("taperHeight", "taper_height"), None),
         port_length=_to_float(get("portLength", "port_length"), None),
         port_allowance=_to_float(get("portAllowance", "port_allowance"), DEFAULT_PORT_ALLOWANCE_MM),
-        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 85.0)
+        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 82.0)
         + _to_float(get("portFitMm", "port_fit_mm"), 0.0),
         bottle_volume_l=_to_float(get("bottleVolumeL", "bottle_volume_l", "volume", "bottleVolume"), 1.5),
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),
-        screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 4.5),
+        screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 6.4),
         fit_clearance=_to_float(get("fitClearance", "fit_clearance"), 0.20),
         formats=formats,
         job_id=str(get("jobId", "job_id", default="") or ""),
@@ -371,7 +370,7 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
     in_range("Bottle diameter / port height", inputs.port_height, 30, 200)
     in_range("Cap diameter", inputs.cap_diameter, 10, 80)
     in_range("Collar diameter", inputs.collar_diameter, 10, 90)
-    in_range("Screw pilot-hole diameter", inputs.screw_diameter, 3, 12)
+    in_range("M6 clearance-hole diameter", inputs.screw_diameter, 3, 12)
     in_range("Fit clearance", inputs.fit_clearance, 0, 2)
 
     if inputs.bottle_volume_l <= 0 or inputs.bottle_volume_l > 5:
@@ -390,7 +389,7 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
         if inputs.collar_diameter >= john_height:
             errors.append("Collar hole is too large for the calculated John slat height.")
         if inputs.screw_diameter >= john_height:
-            errors.append("Screw pilot hole is too large for the calculated John slat height.")
+            errors.append("M6 clearance hole is too large for the calculated John slat height.")
         if (john_height - inputs.cap_diameter) / 2 < min_material_mm:
             errors.append("Cap hole leaves less than 4mm of material above/below the hole.")
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
@@ -429,19 +428,14 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
 
     # In the Johns, slots are cut downward from the top edge.
     standard_slot_depth = math.ceil(john_height / 2)
-    # The Master John's groove is normally half the port height, but that can
-    # run deeper than the slat itself is tall — capped so the cut never
-    # removes more than 60% of the John's own height, keeping enough
-    # material below the groove intact.
-    master_slot_depth = min(math.floor(port_height / 2), math.floor(john_height * 0.6))
 
-    # Internal spans for Long John vs Little/Master John.
+    # Internal spans for Long John vs Little John.
     long_end_span = port_length
     long_center_span = port_height + 2 * slat
     little_end_span = port_length + slat
     little_center_span = port_height
 
-    # M6 pilot holes: centered vertically, fixed 25mm from side edges.
+    # M6 clearance holes: centered vertically, fixed 25mm from side edges.
     screw_side_offset = 25.0
     screw_y_center = john_height / 2
 
@@ -450,7 +444,7 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
     final_key_width = 2 * slat
 
     # Presser: remnant from cap hole, allowing about 1mm saw/kerf loss.
-    # For a 32mm cap hole, this gives the familiar 31mm Presser.
+    # For a 31mm cap hole, this gives the familiar 30mm Presser.
     presser_diameter = max(1.0, inputs.cap_diameter - 1.0)
 
     return EcojoinerDerived(
@@ -459,7 +453,6 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
         john_height=john_height,
         slot_width=slot_width,
         standard_slot_depth=standard_slot_depth,
-        master_slot_depth=master_slot_depth,
         long_end_span=long_end_span,
         long_center_span=long_center_span,
         little_end_span=little_end_span,
@@ -533,7 +526,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
 
     # Estimate a simple row-based layout. This is clean, not material-optimized.
     if full_set:
-        rows = PART_QUANTITIES["Long John"] + PART_QUANTITIES["Little John"] + PART_QUANTITIES["Master John"]
+        rows = PART_QUANTITIES["Long John"] + PART_QUANTITIES["Little John"]
         width = margin * 2 + d.john_length
         height = margin * 2 + rows * row_h + 2 * row_h
     else:
@@ -560,8 +553,6 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         for i in range(PART_QUANTITIES["Little John"]):
             out += _john_svg_group(f"Little John {i+1}", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
             y += row_h
-        out += _john_svg_group("Master John", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter)
-        y += row_h
 
         # Final Keys on one row.
         x = margin
@@ -588,9 +579,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
     else:
         out += _john_svg_group("Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
         y += row_h
-        out += _john_svg_group("Little John x5", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
-        y += row_h
-        out += _john_svg_group("Master John x1", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter)
+        out += _john_svg_group("Little John x6", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
         # Final key and presser column.
         x2 = margin + d.john_length + gap
         out += f'  <g id="final_key" transform="translate({x2:.3f} {margin:.3f})">\n'
@@ -688,10 +677,6 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
                 msp, f"Little John {i+1}", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter
             )
             y += row_h
-        _john_dxf_group(
-            msp, "Master John", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter
-        )
-        y += row_h
 
         # Final Keys on one row.
         x = margin
@@ -721,11 +706,7 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         )
         y += row_h
         _john_dxf_group(
-            msp, "Little John x5", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter
-        )
-        y += row_h
-        _john_dxf_group(
-            msp, "Master John x1", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter
+            msp, "Little John x6", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter
         )
 
         # Final key and presser column.
@@ -756,8 +737,7 @@ def write_scad(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived) -> None
 
   Parts:
     Long John x 6
-    Little John x 5
-    Master John x 1
+    Little John x 6
     Final Key x 4
     Presser x 12
 
@@ -772,11 +752,11 @@ port_length = {d.port_length:.3f};
 port_height = {inputs.port_height:.3f};  // bottle diameter
 cap_diameter = {inputs.cap_diameter:.3f};
 collar_diameter = {inputs.collar_diameter:.3f};
-screw_diameter = {inputs.screw_diameter:.3f};  // M6 pilot hole cut diameter
+screw_diameter = {inputs.screw_diameter:.3f};  // M6 clearance hole diameter
 fit_clearance = {inputs.fit_clearance:.3f};
 
 // ---------- Display/export controls ----------
-part = "layout";       // layout, full_set, long_john, little_john, master_john, final_key, presser
+part = "layout";       // layout, full_set, long_john, little_john, final_key, presser
 output_mode = "solid_3d"; // solid_3d or cut_2d
 show_labels = true;
 layout_gap = 24;
@@ -788,9 +768,6 @@ john_height = port_height - 2 * slat_thickness;
 john_length = 2 * port_length + port_height + 4 * slat_thickness;
 slot_width = slat_thickness + fit_clearance;
 standard_slot_depth = ceil(john_height / 2);
-// Capped so the Master John's groove never removes more than 60% of its
-// own height.
-master_slot_depth = min(floor(port_height / 2), floor(john_height * 0.6));
 long_end_span = port_length;
 long_center_span = port_height + 2 * slat_thickness;
 little_end_span = port_length + slat_thickness;
@@ -861,16 +838,6 @@ module little_john_2d() {{
   }}
 }}
 
-module master_john_2d() {{
-  difference() {{
-    square([john_length, john_height], center=false);
-    top_slot(little_end_span + slat_thickness / 2, master_slot_depth);
-    top_slot(john_length - little_end_span - slat_thickness / 2, master_slot_depth);
-    center_hole(collar_diameter);
-    screw_holes_2d();
-  }}
-}}
-
 module final_key_2d() {{
   square([final_key_length, final_key_width], center=false);
 }}
@@ -885,8 +852,7 @@ module presser_2d() {{
 
 // ---------- 3D parts ----------
 module long_john() {{ maybe_extrude() long_john_2d(); part_label("Long John x 6", john_length, john_height); }}
-module little_john() {{ maybe_extrude() little_john_2d(); part_label("Little John x 5", john_length, john_height); }}
-module master_john() {{ maybe_extrude() master_john_2d(); part_label("Master John x 1", john_length, john_height); }}
+module little_john() {{ maybe_extrude() little_john_2d(); part_label("Little John x 6", john_length, john_height); }}
 module final_key() {{ maybe_extrude() final_key_2d(); part_label("Final Key x 4", final_key_length, final_key_width); }}
 
 module presser() {{
@@ -906,7 +872,6 @@ module presser() {{
 module one_each_layout() {{
   translate([0, 0, 0]) long_john();
   translate([0, -(john_height + layout_gap), 0]) little_john();
-  translate([0, -2 * (john_height + layout_gap), 0]) master_john();
   translate([john_length + layout_gap, 0, 0]) final_key();
   translate([john_length + layout_gap + presser_diameter / 2, -(final_key_width + layout_gap + presser_diameter / 2), 0]) presser();
 }}
@@ -914,8 +879,7 @@ module one_each_layout() {{
 module full_set_layout() {{
   row = john_height + layout_gap;
   for (i = [0:5]) translate([0, -i * row, 0]) long_john();
-  for (i = [0:4]) translate([0, -(6+i) * row, 0]) little_john();
-  translate([0, -11 * row, 0]) master_john();
+  for (i = [0:5]) translate([0, -(6+i) * row, 0]) little_john();
 
   key_y = -12 * row;
   for (i = [0:3]) translate([i * (final_key_length + layout_gap), key_y, 0]) final_key();
@@ -928,7 +892,6 @@ if (part == "layout") one_each_layout();
 else if (part == "full_set") full_set_layout();
 else if (part == "long_john") long_john();
 else if (part == "little_john") little_john();
-else if (part == "master_john") master_john();
 else if (part == "final_key") final_key();
 else if (part == "presser") presser();
 else one_each_layout();
@@ -1000,7 +963,6 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         T(lang, "john_dim", length=_ceil_mm(d.john_length), height=_ceil_mm(d.john_height)),
         T(lang, "slot_width_line", value=_ceil_mm(d.slot_width)),
         T(lang, "std_slot_depth_line", value=_ceil_mm(d.standard_slot_depth)),
-        T(lang, "master_slot_depth_line", value=_ceil_mm(d.master_slot_depth)),
         T(lang, "final_key_dim", length=_ceil_mm(d.final_key_length), width=_ceil_mm(d.final_key_width)),
         T(lang, "presser_dim", value=_ceil_mm(d.presser_diameter)),
     ]
@@ -1036,7 +998,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
 
     # Main drawing area. Scale is chosen to fill the available Letter page
     # space; the PDF is a reference, not a 1:1 tracing template. The SVG
-    # export is the 1:1 cut file. The three Johns share one scale (derived
+    # export is the 1:1 cut file. The two John types share one scale (derived
     # from the tallest constraint, vertical space) so they stay comparable,
     # and are spread evenly through the full column height instead of being
     # crammed into a small fixed-size block.
@@ -1047,7 +1009,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
 
     content_top = page_h - 130
     content_bottom = 45  # the footer notes have moved up next to the Derived dimensions box
-    n_rows = 3
+    n_rows = 2
     row_pitch = (content_top - content_bottom) / n_rows
 
     # Reserve space above each slat for the port-length/between-notch
@@ -1185,8 +1147,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     little_slots = (d.little_end_span + inputs.slat_thickness / 2, d.john_length - d.little_end_span - inputs.slat_thickness / 2)
 
     draw_john("Long John x 6", content_top, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
-    draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
-    draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
+    draw_john("Little John x 6", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
 
     # Right-side parts: Final Key and Presser. Lowered from the top of their
     # column (they used to sit right under the Derived-dimensions notes,

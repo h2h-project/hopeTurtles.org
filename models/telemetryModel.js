@@ -132,7 +132,8 @@ telemetryModel.getRouteForTurtle = async (turtleId, hours = 1) => {
       telemetry_id,
       TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
       latitude,
-      longitude
+      longitude,
+      CAST(JSON_EXTRACT(raw_data, '$.flags.journey_id') AS UNSIGNED) AS journey_id
     FROM telemetry_tb
     WHERE turtle_id = ?
       AND latitude IS NOT NULL AND longitude IS NOT NULL

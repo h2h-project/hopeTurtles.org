@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """
-Ecojoiner export generator - CLI dispatcher
-============================================
+Turtle generator - CLI dispatcher
+=================================
 
 This is the single entry point Node's utils/ecojoinerGenerator.js invokes
-(config.ecojoiner.script). It no longer contains any object-specific
-geometry itself - each flatpack object type (the six-panel "6FC" ecojoiner,
-the back fin attachment, and future additions) lives in its own module
-under ecojoiner/objects/, sharing common drawing/font/manifest helpers from
-ecojoiner/common.py. See ecojoiner/objects/six_fc.py and
-ecojoiner/objects/back_fin.py for the actual generators.
+(config.ecojoiner.script). It contains no geometry itself - each wooden
+component of the turtle (the six-panel "6FC" Ecojoiner core in
+objects/ecojoiner_6fc.py, the back fin attachment, the bottom ballast
+attachment, the sail frame) lives in its own module under generator/objects/,
+sharing common drawing/font/manifest helpers from generator/common.py.
+
+Upstream contract: every default and formula in generator/ is downstream of
+../turtle_body/lib/params.scad (see CLAUDE.md "Turtle Generator" and
+generator/SYNC_PLAN.md). Do not change a dimension here without checking it
+against that file first.
 
 Object selection: the JSON payload passed via --json may include an
-"object_type" key ("6fc", "fin", or "ballast"); it defaults to "6fc" for
-back-compat with any caller that omits it (including this script's own
-manual CLI flags below, which only ever build 6FC inputs).
+"object_type" key ("6fc", "fin", "ballast" or "sails"); it defaults to
+"6fc" for back-compat with any caller that omits it (including this
+script's own manual CLI flags below, which only ever build 6FC inputs).
 
 Expected backend usage:
   1. Receive POST fields from /ecojoiners/generate.
@@ -32,12 +36,15 @@ import json
 from pathlib import Path
 from typing import Optional, Sequence
 
-from objects import six_fc, back_fin, ballast
+from objects import ecojoiner_6fc, back_fin, ballast, sails
 
 OBJECT_MODULES = {
+    "6fc": ecojoiner_6fc,
     "fin": back_fin,
     "back_fin": back_fin,
     "ballast": ballast,
+    "sails": sails,
+    "sail": sails,
 }
 
 
@@ -73,11 +80,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.json:
         data = json.loads(args.json.read_text(encoding="utf-8"))
         object_type = str(data.get("object_type") or "6fc")
-        module = OBJECT_MODULES.get(object_type, six_fc)
+        module = OBJECT_MODULES.get(object_type, ecojoiner_6fc)
         inputs = module.parse_inputs_from_dict(data)
     else:
-        module = six_fc
-        inputs = six_fc.EcojoinerInputs(
+        module = ecojoiner_6fc
+        inputs = ecojoiner_6fc.EcojoinerInputs(
             slat_thickness=args.slat_thickness,
             cap_diameter=args.cap_diameter,
             collar_diameter=args.collar_diameter,

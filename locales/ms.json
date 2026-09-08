@@ -395,13 +395,11 @@
   "gen_dim_john_height": "Tinggi John",
   "gen_dim_slot_width": "Lebar slot",
   "gen_dim_slot_depth_std": "Kedalaman slot standard",
-  "gen_dim_slot_depth_master": "Kedalaman slot Master",
   "gen_dim_final_key": "Final Key",
   "gen_dim_presser": "Garis pusat Presser",
   "gen_dim_screw": "Lubang pandu skru",
   "gen_part_long_john": "Long John",
   "gen_part_little_john": "Little John",
-  "gen_part_master_john": "Master John",
   "gen_part_final_key": "Final Key",
   "gen_part_presser": "Presser"
 }

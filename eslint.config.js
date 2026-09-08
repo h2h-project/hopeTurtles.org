@@ -7,7 +7,7 @@ export default [
   {
     ignores: [
       'node_modules/**',
-      'ecojoiner/.venv/**',
+      'generator/.venv/**',
       'public/ecojoiner_exports/**',
       'public/uploads/**',
       'public/_harness.html',

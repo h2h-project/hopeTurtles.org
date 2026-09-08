@@ -644,6 +644,7 @@
   let locationMarker = null;
   let routeLine = null;
   let routeMarkers = [];
+  let routeJourneyLines = [];
   let lastLocation = parseLocation(main.dataset.lastLat, main.dataset.lastLng);
   let lastLocationAt = null;
   let lastRouteCoords = [];
@@ -681,6 +682,8 @@
 
   function clearRouteLayers() {
     if (routeLine) { routeLine.remove(); routeLine = null; }
+    routeJourneyLines.forEach((l) => l.remove());
+    routeJourneyLines = [];
     routeMarkers.forEach((m) => m.remove());
     routeMarkers = [];
   }
@@ -725,12 +728,15 @@
     const lats = (trends && trends.lats) || [];
     const lons = (trends && trends.lons) || [];
     const timestamps = (trends && trends.timestamps) || [];
+    const journeyIds = (trends && trends.journeyIds) || [];
     const pairs = [];
     for (let i = 0; i < Math.min(lats.length, lons.length); i++) {
       const lat = Number(lats[i]);
       const lon = Number(lons[i]);
       if (Number.isFinite(lat) && Number.isFinite(lon) && (lat !== 0 || lon !== 0)) {
-        pairs.push([lat, lon, timestamps[i] != null ? timestamps[i] : null]);
+        const rawId = journeyIds[i];
+        const jid = rawId != null && Number.isFinite(Number(rawId)) ? Number(rawId) : null;
+        pairs.push([lat, lon, timestamps[i] != null ? timestamps[i] : null, jid]);
       }
     }
     return pairs;
@@ -788,19 +794,44 @@
     const latLons = coords.map((c) => [c[0], c[1]]);
     routeLine = L.polyline(latLons, { color: '#3b82f6', weight: 3, opacity: 0.85 }).addTo(mapObj);
 
+    // Overlay each contiguous run of points sharing a journey_id in amber, so an
+    // operator-marked leg (turtleOS Journey screen — flags.journey_id) stands
+    // out from ordinary drift. A run needs 2+ points to draw a segment; lone
+    // tagged points still get the highlighted marker below.
+    let segStart = 0;
+    for (let i = 1; i <= coords.length; i++) {
+      const prevId = coords[i - 1][3];
+      const curId = i < coords.length ? coords[i][3] : null;
+      if (curId !== prevId) {
+        if (prevId != null && i - segStart >= 2) {
+          const seg = coords.slice(segStart, i).map((c) => [c[0], c[1]]);
+          routeJourneyLines.push(
+            L.polyline(seg, { color: '#f59e0b', weight: 5, opacity: 0.9 }).addTo(mapObj)
+          );
+        }
+        segStart = i;
+      }
+    }
+    const journeyPointCount = coords.filter((c) => c[3] != null).length;
+
     coords.forEach((coord, i) => {
       const lat = coord[0];
       const lon = coord[1];
       const ts = coord[2];
+      const journeyId = coord[3];
       const isFirst = i === 0 && coords.length > 1;
       const isLast = i === coords.length - 1;
+      const onJourney = journeyId != null && !isFirst && !isLast;
       const label = isFirst ? 'Start' : isLast ? 'Latest' : `Waypoint ${i + 1}`;
       const timeStr = ts != null ? fmtTimeFull.format(new Date(Number(ts) * 1000)) : '—';
-      const popup = `<div style="font-size:12px;line-height:1.6"><b>${label}</b><br>${timeStr}<br>${lat.toFixed(6)}°, ${lon.toFixed(6)}°</div>`;
+      const journeyLine = journeyId != null
+        ? `<br><span style="color:#f59e0b">● On journey ${journeyId}</span>`
+        : '';
+      const popup = `<div style="font-size:12px;line-height:1.6"><b>${label}</b><br>${timeStr}<br>${lat.toFixed(6)}°, ${lon.toFixed(6)}°${journeyLine}</div>`;
       const marker = L.circleMarker([lat, lon], {
-        radius: isFirst ? 6 : isLast ? 7 : 4,
-        fillColor: isFirst ? '#22c55e' : isLast ? '#3b82f6' : '#94a3b8',
-        fillOpacity: isFirst || isLast ? 1 : 0.75,
+        radius: isFirst ? 6 : isLast ? 7 : (onJourney ? 5 : 4),
+        fillColor: isFirst ? '#22c55e' : isLast ? '#3b82f6' : (onJourney ? '#f59e0b' : '#94a3b8'),
+        fillOpacity: isFirst || isLast || onJourney ? 1 : 0.75,
         color: '#fff',
         weight: 2
       }).addTo(mapObj).bindPopup(popup);
@@ -809,7 +840,8 @@
 
     mapObj.fitBounds(routeLine.getBounds(), { padding: [24, 24] });
     mapMetaEl.innerHTML =
-      `<strong>${coords.length}</strong> GPS point${coords.length !== 1 ? 's' : ''} · green = start, blue = latest`;
+      `<strong>${coords.length}</strong> GPS point${coords.length !== 1 ? 's' : ''} · green = start, blue = latest` +
+      (journeyPointCount ? ` · <span style="color:#f59e0b">amber = journey (${journeyPointCount})</span>` : '');
   }
 
   function renderMap() {

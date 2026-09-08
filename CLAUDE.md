@@ -14,7 +14,7 @@ The **big active project** is wiring up device telemetry ingestion so that physi
 npm install          # install dependencies
 npm run dev          # development server (nodemon, auto-restart on file change)
 npm start            # production start
-npm run ecojoiner:setup  # one-time: python venv + reportlab for the Ecojoiner generator
+npm run generator:setup  # one-time: python venv + reportlab/ezdxf for the turtle generator
 npm run lint         # ESLint
 npm run format       # Prettier --write
 ```
@@ -232,46 +232,115 @@ The key differences for hopeTurtles.org:
 
 ---
 
-## Ecojoiner Generator
+## Turtle Generator (`generator/`)
 
-`/ecojoiners/generate` produces Ecojoiner **v3.2** carpentry files from a visitor's bottle and
-board measurements. Run `npm run ecojoiner:setup` once — it creates `ecojoiner/.venv` with
-reportlab (system python3 is PEP-668 externally-managed, so a global `pip install` will not work).
+`/ecojoiners/generate` produces carpentry files for the **wooden parts of a full Hope Turtle**
+from a visitor's bottle, board and solar-panel measurements. The 6FC Ecojoiner is the central
+part of that turtle, not the whole product — the directory was renamed from `ecojoiner/` to
+`generator/` on 2026-09-08 to reflect this. Run `npm run generator:setup` once — it creates
+`generator/.venv` with reportlab + ezdxf (system python3 is PEP-668 externally-managed, so a
+global `pip install` will not work).
 
-**All geometry, ranges and file writing live in `ecojoiner/generate_exports.py`.** It is the single
-source of truth: `validate_inputs()` owns every dimensional rule, `derive_dimensions()` owns the
-formulas, `PART_QUANTITIES` owns the v3.2 part list (Long John ×6, Little John ×5, Master John ×1,
-Final Key ×4, Presser ×12 — Saddlers were removed in v3.2). Do **not** re-encode those numbers in
-JS; extend the Python script instead.
+### Upstream contract — turtle_body is the source of truth
+
+The geometry here is **downstream of the sibling repository `../turtle_body`**
+(`~/WebstormProjects/turtle_body`, [github](https://github.com/h2h-project/turtle_body)). Its
+`lib/params.scad` (every shared dimension as a `function p_*()`) and the wooden-component modules
+`lib/ecojoiner.scad`, `lib/rear_fin.scad`, `lib/ballast_fin.scad`, `lib/sail_frame.scad` are
+authoritative. When a value or formula here differs from upstream, **the generator is wrong.**
+
+Rules:
+
+- **Never change a geometry default, formula or part list in `generator/` on its own.** Check the
+  upstream `p_*()` / `rf_*` / `bl_*` / `eco_*` definition first and cite its name in a comment next
+  to the generator constant (see `generator/objects/sails.py` for the pattern).
+- **When `../turtle_body/VERSION.json` changes**, read its `changelog` entry and turtle_body's
+  `CLAUDE.md` §19 (the mapping table + propagation rule), update the affected generator, and add
+  or close an entry in `generator/SYNC_LOG.md`. A minor or major upstream bump almost always
+  touches a generator; a patch bump to a PLA part (cap, cage, axle, mold) never does.
+- **The drift table below and `generator/SYNC_PLAN.md` are the backlog.** Work items S-1…S-6
+  there are ordered; S-5 (a `params.json` export from turtle_body + a vendored-bundle sync script
+  here) is the mechanism that stops this drifting again.
+
+Current drift (recorded 2026-09-08 against turtle_body v1.7.1; rear fin, ballast, 6FC and the
+sails dimensions were fixed the same day — see `generator/SYNC_LOG.md`):
+
+| Component | Generator | Drift vs `lib/params.scad` |
+|---|---|---|
+| Sails (2D writers) | `objects/sails.py` | SCAD only — bottle-shape dimensions are now real inputs, but there are still no SVG/DXF/PDF carpenter files for the battens, bars, strengtheners and C pieces. |
+
+**Resolved 2026-09-08:** rear fin's `shaft_hole_diameter` (6.0 → 6.4) and fixed
+`shaft_hole_from_front` (now derived via TB-07, not a constant); ballast's defaults
+(15/320/35 → 12/305/31), slat-height formula (4.5·t → 6·t), a **missing M6 mount hole**
+(the core slat had none at all), and a latent bug where the shoulder-cut position read
+`port_length` instead of `bottle_diameter` (numerically equal only at the reference
+bottle's defaults); sails' bottle diameter and cap/collar/dome heights (the SCAD module
+already accepted them — only the Python wrapper never threaded them through); 6FC's part
+list (Master John ×1 + Little John ×5 → six Little Johns, no Master John), `cap_diameter`
+32→31, `collar_diameter` 32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6
+clearance) — `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py` in the same pass
+(internal only; `object_type`, job-slug prefix and every public identifier are unchanged).
+`bottom_fin_raw.py` deleted. Full detail in `generator/SYNC_PLAN.md`'s "Resolved" section
+and `SYNC_LOG.md`.
+
+**Port length is not drift** (resolved 2026-09-08, turtle_body v1.7.2). The generators derive
+`port_length = taper_height + port_allowance` (20); lib had flattened that to a constant 82 and
+was corrected to `p_port_length() = p_top_dome_h() + p_port_allowance()`. The form's **top
+tapper** field is the builder's measurement of `p_top_dome_h()`. This is the precedent for the
+sync: "lib wins" means lib owns the *rule*; when a generator carries a parametric rule that lib
+has hardcoded, lift the rule upstream instead of flattening the generator.
+
+### Layout and contract
+
+| Path | Role |
+|---|---|
+| `generator/generate_exports.py` | CLI dispatcher — the only script Node runs. `OBJECT_MODULES` maps `object_type` (`6fc`, `fin`, `ballast`, `sails`) to an object module. No geometry. |
+| `generator/common.py` | Shared SVG/DXF/PDF primitives, fonts, slugify, `GeneratedFile`, `DESIGN_VERSION`. |
+| `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×6, Final Key ×4, Presser ×12 — no Master John). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
+| `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
+| `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
+| `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. **SCAD only**; other formats come back as `unsupported_formats`. |
+| `generator/SYNC_PLAN.md` / `generator/SYNC_LOG.md` | The upstream-sync assessment and its running log. |
+| `generator/claude_code_ecojoiner_backend_prompt_v3_2.md` | Historical: the original brief for the 6FC backend. Not current documentation. |
+
+Every object module exposes the same contract: `parse_inputs_from_dict(data)`,
+`validate_inputs(inputs) -> [errors]`, `derive_dimensions(inputs)`, `make_job_slug(...)`,
+`PART_QUANTITIES`, and `generate(inputs, output_root, public_url_prefix, font_dir, dry_run)`
+returning the JSON manifest (`ok`, `object_type`, `job_slug`, `inputs`, `derived`, `files`).
+`validate_inputs()` owns every dimensional rule and `derive_dimensions()` every formula — do
+**not** re-encode those numbers in JS; `PART_QUANTITIES_BY_TYPE` in `utils/ecojoinerGenerator.js`
+is the one deliberate mirror (for the confirmation screen) and must be kept equal.
 
 Flow:
 
 | Piece | Role |
 |---|---|
-| `public/js/ecojoiner-generate.js` | inline field validation, then POST validate → preview → POST generate → downloads |
+| `public/js/ecojoiner-generate.js` | inline field validation, type cards (a `sails` card pins the fabrication toggles to the 3D option), POST validate → preview → POST generate → downloads |
 | `routes/api/ecojoiner.js` | `POST /api/ecojoiner/validate` (dry run) and `/generate`, both rate-limited via `middleware/rateLimit.js` |
 | `controllers/ecojoinerController.js` | thin wrapper; validation failures answer `422` with `errors[]` |
-| `utils/ecojoinerGenerator.js` | form→script field mapping, `execFile` invocation, path containment |
-| `utils/ecojoinerCleanup.js` | deletes job folders older than `ECOJOINER_JOB_TTL_DAYS` |
+| `utils/ecojoinerGenerator.js` | one `map*Fields` per `ecojoinerType` → snake_case inputs, `execFile` invocation, path containment |
+| `utils/ecojoinerCleanup.js` | deletes job folders (`ecojoiner_*`, `backfin_*`, `ballast_*`, `sails_*`) older than `ECOJOINER_JOB_TTL_DAYS` |
 
 Field mapping worth remembering: the form's **volume is in millilitres** and is divided by 1000;
-bottle **diameter** becomes `port_height`; the **top tapper** becomes `taper_height` (port length =
-taper + allowance); the DXF checkbox produces a real 1:1 DXF cutting file via `write_dxf()` in
-`ecojoiner/generate_exports.py` (pure Python, using the `ezdxf` pip package — no OpenSCAD CLI
-dependency).
+bottle **diameter** becomes `port_height` for 6FC and `bottle_diameter` for the others; the
+**top tapper** becomes `taper_height` (port length = taper + 20 mm allowance, the same rule as
+upstream `p_port_length()` since v1.7.2); the DXF checkbox produces a real 1:1 DXF via each object's `write_dxf()`
+(pure Python, `ezdxf` — no OpenSCAD CLI dependency).
 
-**Backlog (low priority): STL export.** Not yet implemented — there's no `fab3d`/STL option on
-the page. Harder than DXF was: DXF just serialized independent flat outlines from geometry we
-already had, but STL needs an actual watertight 3D solid — each part's outer profile with its
-holes truly subtracted (not just overlapping outlines), extruded to board thickness, and
-triangulated into a mesh. Preferred approach, consistent with the DXF decision above: pure
-Python via `shapely` (polygon-with-holes) + `trimesh` (`extrude_polygon` + `.export('.stl')`),
-not the OpenSCAD CLI (still not installed on this machine, still not worth taking on as a system
-dependency for this).
+**Legacy names that intentionally stay** (public URLs, deployed `.env`, DB columns):
+`/api/ecojoiner/*`, `public/ecojoiner_exports` + `/ecojoiner_exports`, the `ECOJOINER_*` env
+vars, `config.ecojoiner`, the `utils/ecojoiner*.js` module names, `ecojoiner_designs_tb` and
+the `ecojoiner_` job-slug prefix of the 6FC object. Only the source directory and the npm script
+were renamed.
+
+**Backlog (low priority): STL export.** Not yet implemented. Harder than DXF was: STL needs an
+actual watertight solid per part — outer profile with holes subtracted, extruded to board
+thickness, triangulated. Preferred approach: pure Python via `shapely` + `trimesh`, not the
+OpenSCAD CLI (not installed on this server, not worth a system dependency for this).
 
 Safety rules: user values are passed only inside a temp JSON file (`--json`), never as argv, and
 never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at
-`/ecojoiner_exports`); the trusted `ecojoiner/` source directory is never a write target.
+`/ecojoiner_exports`); the trusted `generator/` source directory is never a write target.
 
 ## Contributions, Commissioning & OpenBooks
 
@@ -367,7 +436,7 @@ MAPBOX_TOKEN=
 DEFAULT_THEME=light
 DEFAULT_LANG=en
 SUPPORTED_LANGS=en,ms,id,he,ar,de,zh
-ECOJOINER_PYTHON=          # optional; defaults to ecojoiner/.venv/bin/python3
+ECOJOINER_PYTHON=          # optional; defaults to generator/.venv/bin/python3
 ECOJOINER_JOB_TTL_DAYS=7
 ECOJOINER_TIMEOUT_MS=30000
 ```

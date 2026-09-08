@@ -1,7 +1,9 @@
-// Bridge between the Ecojoiner generate form and ecojoiner/generate_exports.py,
-// the Python script that owns all Ecojoiner v3.2 geometry, validation and file
-// writing. Node maps form fields onto the script's inputs, runs it, and hands
-// the resulting manifest back to the frontend.
+// Bridge between the turtle generate form and generator/generate_exports.py,
+// the Python dispatcher whose object modules (generator/objects/*.py) own all
+// geometry, validation and file writing. Node maps form fields onto each
+// object's inputs, runs the script, and hands the manifest back to the
+// frontend. Geometry itself is downstream of ../turtle_body/lib/params.scad —
+// see CLAUDE.md "Turtle Generator".
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import { constants as fsConstants } from 'fs';
@@ -19,7 +21,7 @@ const { ecojoiner } = config;
 const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg', 'dxf'];
 
 // One part list per object type, kept alongside each object's own
-// PART_QUANTITIES in ecojoiner/objects/<type>.py so the confirmation screen
+// PART_QUANTITIES in generator/objects/<type>.py so the confirmation screen
 // can show what the user is about to cut (picked by manifest.object_type in
 // runGenerator() below). `key` lets the page show a translated part name
 // (locale key `gen_part_<key>`) and fall back to the English `part` when a
@@ -27,8 +29,7 @@ const SUPPORTED_FORMATS = ['pdf', 'scad', 'svg', 'dxf'];
 export const PART_QUANTITIES_BY_TYPE = {
   '6fc': [
     { key: 'long_john', part: 'Long John', quantity: 6 },
-    { key: 'little_john', part: 'Little John', quantity: 5 },
-    { key: 'master_john', part: 'Master John', quantity: 1 },
+    { key: 'little_john', part: 'Little John', quantity: 6 },
     { key: 'final_key', part: 'Final Key', quantity: 4 },
     { key: 'presser', part: 'Presser', quantity: 12 }
   ],
@@ -42,6 +43,15 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'core_slat', part: 'Core Slat', quantity: 2 },
     { key: 'ballast_lock_foot', part: 'Ballast Lock Foot', quantity: 2 },
     { key: 'bottom_ballast_fin', part: 'Bottom Ballast Fin', quantity: 1 }
+  ],
+  sails: [
+    { key: 'top_sail_bar', part: 'Top Sail Bar', quantity: 1 },
+    { key: 'sail_batten', part: 'Sail Batten', quantity: 2 },
+    { key: 'non_sail_batten', part: 'Non-sail Batten', quantity: 2 },
+    { key: 'bottom_sail_bar', part: 'Bottom Sail Bar', quantity: 2 },
+    { key: 'joint_strengthener', part: 'Joint Strengthener', quantity: 2 },
+    { key: 'c_end_piece', part: 'C End Piece', quantity: 2 },
+    { key: 'sail', part: 'Sail', quantity: 2 }
   ]
 };
 
@@ -85,14 +95,15 @@ const toNumber = (value) => {
  * every dimensional rule (ranges, geometry, material margins) belongs to
  * validate_inputs() in the Python script, which stays the single source of truth.
  *
- * Dispatches on ecojoinerType: the "Fin Attachment" and "Ballast Attachment"
- * objects each have a different set of required fields and Python inputs
- * from the default 6FC ecojoiner, so they get their own mappers rather than
- * one function trying to branch throughout.
+ * Dispatches on ecojoinerType: the "Fin Attachment", "Ballast Attachment"
+ * and "Sail Frame" objects each have a different set of required fields and
+ * Python inputs from the default 6FC ecojoiner, so they get their own mappers
+ * rather than one function trying to branch throughout.
  */
 const FIELD_MAPPERS = {
   fin: (body) => mapBackFinFields(body),
-  ballast: (body) => mapBallastFields(body)
+  ballast: (body) => mapBallastFields(body),
+  sails: (body) => mapSailsFields(body)
 };
 
 export const mapFormFields = (body = {}) =>
@@ -191,7 +202,7 @@ const mapSixFcFields = (body = {}) => {
 // Fin Attachment: a different set of required bottle/board/solar-panel
 // fields from the 6FC ecojoiner (no collar/top-tapper/bottom-tapper — those
 // are port-fit specific to the 6FC's John boards). Only "present and
-// numeric" is checked here; ecojoiner/objects/back_fin.py::validate_inputs()
+// numeric" is checked here; generator/objects/back_fin.py::validate_inputs()
 // stays the single source of dimensional/geometric truth, same as 6FC.
 const mapBackFinFields = (body = {}) => {
   const errors = [];
@@ -276,7 +287,7 @@ const mapBackFinFields = (body = {}) => {
 // Attachment (no collar/top-tapper/bottom-tapper, no solar panel dims), plus
 // the top-tapper height (already collected for the 6FC ecojoiner) since the
 // ballast core slat's neck shoulder is derived from it - see
-// ecojoiner/objects/ballast.py::derive_dimensions()'s port_length, which is
+// generator/objects/ballast.py::derive_dimensions()'s port_length, which is
 // computed the same way the 6FC ecojoiner derives its own port_length.
 const mapBallastFields = (body = {}) => {
   const errors = [];
@@ -360,6 +371,73 @@ const mapBallastFields = (body = {}) => {
   };
 };
 
+// Sail Frame: reuses the same bottle/board fields as the Fin and Ballast
+// Attachments (see generator/objects/sails.py::DEFAULTS - all of these are
+// real inputs to generate_sails.build_scad(), not just wood_thickness/
+// bottle_diameter). The object exports OpenSCAD only, so the 3D format is
+// mandatory and the flat formats are dropped here rather than sent through
+// to be skipped.
+const mapSailsFields = (body = {}) => {
+  const errors = [];
+
+  const required = {
+    brand: body.brand,
+    diameter: body.diameter,
+    cap: body.cap,
+    collar: body.collar,
+    thickness: body.thickness,
+    height: body.height,
+    capHeight: body.capHeight,
+    topTapper: body.topTapper,
+    bottomTapper: body.bottomTapper
+  };
+
+  const brand = String(required.brand ?? '').trim();
+  if (!brand) errors.push('Please tell us the bottle brand.');
+  if (brand.length > 60) errors.push('Bottle brand must be 60 characters or fewer.');
+
+  const numbers = {};
+  for (const key of ['diameter', 'cap', 'collar', 'thickness', 'height', 'capHeight', 'topTapper', 'bottomTapper']) {
+    const parsed = toNumber(required[key]);
+    if (parsed === null) {
+      errors.push(`Missing value: ${key}.`);
+    } else if (Number.isNaN(parsed)) {
+      errors.push(`${key} must be a number.`);
+    } else {
+      numbers[key] = parsed;
+    }
+  }
+
+  if (!isTruthy(body.fab3d)) {
+    errors.push('The sail frame currently exports OpenSCAD only — please select the 3D model option.');
+  }
+
+  if (errors.length) {
+    throw new EcojoinerRequestError('Please check the form values.', errors);
+  }
+
+  return {
+    inputs: {
+      object_type: 'sails',
+      bottle_brand: brand,
+      bottle_diameter: numbers.diameter,
+      cap_diameter: numbers.cap,
+      collar_diameter: numbers.collar,
+      wood_thickness: numbers.thickness,
+      bottle_height: numbers.height,
+      cap_height: numbers.capHeight,
+      top_dome_height: numbers.topTapper,
+      bottom_dome_height: numbers.bottomTapper,
+      formats: ['scad']
+    },
+    context: {
+      material: body.material ? String(body.material) : null,
+      ecojoinerType: 'sails'
+    },
+    notices: []
+  };
+};
+
 // The Python slugifier strips brand text to [a-z0-9-], but assert containment
 // here too: nothing derived from user input may escape the exports directory.
 const assertInsideExports = (jobSlug) => {
@@ -434,12 +512,12 @@ export const runGenerator = async (body, { dryRun = false, lang = 'en' } = {}) =
       // succeeded. Name it explicitly instead of returning a generic failure.
       if (/ReportLab is not installed/i.test(detail)) {
         throw new Error(
-          'The PDF generator is not installed on this server. Run `npm run ecojoiner:setup` and restart.'
+          'The PDF generator is not installed on this server. Run `npm run generator:setup` and restart.'
         );
       }
       if (/ezdxf is not installed/i.test(detail)) {
         throw new Error(
-          'The DXF generator is not installed on this server. Run `npm run ecojoiner:setup` and restart.'
+          'The DXF generator is not installed on this server. Run `npm run generator:setup` and restart.'
         );
       }
       if (error.code === 'ENOENT') {
@@ -495,7 +573,7 @@ export const checkGeneratorHealth = async () => {
   } catch {
     console.warn(
       `⚠️  Ecojoiner PDF generation is unavailable: ${ecojoiner.python} cannot import reportlab.\n` +
-        '   Run `npm run ecojoiner:setup` (or set ECOJOINER_PYTHON) and restart.'
+        '   Run `npm run generator:setup` (or set ECOJOINER_PYTHON) and restart.'
     );
     return false;
   }
@@ -505,7 +583,7 @@ export const checkGeneratorHealth = async () => {
   } catch {
     console.warn(
       `⚠️  Ecojoiner DXF generation is unavailable: ${ecojoiner.python} cannot import ezdxf.\n` +
-        '   Run `npm run ecojoiner:setup` (or set ECOJOINER_PYTHON) and restart.'
+        '   Run `npm run generator:setup` (or set ECOJOINER_PYTHON) and restart.'
     );
     return false;
   }

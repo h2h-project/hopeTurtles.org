@@ -1,10 +1,10 @@
 """Shared helpers for every Ecojoiner flatpack object generator.
 
 Extracted from the original monolithic generate_exports.py so new object
-types (see ecojoiner/objects/) don't have to reimplement font handling, the
+types (see generator/objects/) don't have to reimplement font handling, the
 SVG/DXF/PDF drawing primitives, slugifying, or the manifest file-record
 shape. Object-specific logic (dataclasses, validation, geometry, part lists,
-per-object write_* functions) lives in ecojoiner/objects/<name>.py instead.
+per-object write_* functions) lives in generator/objects/<name>.py instead.
 """
 from __future__ import annotations
 
@@ -177,9 +177,9 @@ def _register_fonts(font_dir: Optional[Path] = None) -> Tuple[str, str, str]:
     """Register preferred fonts, falling back to DejaVu/Helvetica.
 
     Place fonts here if you want exact site typography:
-      ecojoiner/fonts/Arvo-Regular.ttf
-      ecojoiner/fonts/Mulish-Light.ttf
-      ecojoiner/fonts/Mulish-Regular.ttf
+      generator/fonts/Arvo-Regular.ttf
+      generator/fonts/Mulish-Light.ttf
+      generator/fonts/Mulish-Regular.ttf
 
     The fallback DejaVuSans is useful because it supports the diameter symbol.
     """
@@ -190,7 +190,7 @@ def _register_fonts(font_dir: Optional[Path] = None) -> Tuple[str, str, str]:
     if font_dir:
         search_dirs.append(font_dir)
     search_dirs.extend([
-        Path.cwd() / "ecojoiner" / "fonts",
+        Path.cwd() / "generator" / "fonts",
         Path.cwd() / "fonts",
         Path("/usr/share/fonts/truetype/dejavu"),
     ])
@@ -323,7 +323,7 @@ def _rounded_rect_text(c, x, y, w, h, title, lines, title_font, body_font):
 # the part's own edge - drawing a full closed rectangle there would show a
 # wall where there's actually no material. These helpers build outlines and
 # notches with the entrance edge omitted, shared by every object module's
-# write_pdf() (see ecojoiner/objects/back_fin.py for the original use case).
+# write_pdf() (see generator/objects/back_fin.py for the original use case).
 # ---------------------------------------------------------------------------
 
 def _rot_point(x: float, y: float, h_mm: float) -> Tuple[float, float]:

@@ -278,6 +278,12 @@
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_ballast %></span>
                 </button>
+                <button type="button" class="eco-type-card" data-type="sails" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/ecojoiner-under-dev.webp" alt="<%= t.gen_type_sails %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_sails %></span>
+                </button>
                 <% devTypes.forEach(function (option) { %>
                   <button type="button" class="eco-type-card eco-type-card--dev" data-type="<%= option.type %>" data-available="false">
                     <span class="eco-type-card__thumb">

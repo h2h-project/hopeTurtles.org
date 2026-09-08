@@ -5,23 +5,32 @@ Generate the Hope Turtle bottom ballast OpenSCAD assembly.
 If a dimension is omitted on the command line, the script asks for it
 interactively and shows the current design value as the default.
 
-All dimensions are millimetres.
+All dimensions are millimetres. Defaults follow turtle_body's
+lib/params.scad and lib/ballast_fin.scad (the sibling ../turtle_body
+repository's shared dimension contract) -- see generator/SYNC_PLAN.md item
+S-2.
 
 Example:
-    python3 generate_turtle_ballast.py \
-        --wood-thickness 15 \
-        --bottle-height 320 \
+    python3 bottom_ballast_fin_generator.py \
+        --wood-thickness 12 \
+        --bottle-height 305 \
         --bottle-diameter 82 \
         --cap-height 17 \
-        --cap-diameter 35 \
-        --port-length 80 \
+        --cap-diameter 31 \
+        --port-length 82 \
         --fin-board-width 93 \
-        --output turtle_ballast_generated.scad
+        --output turtle_ballast.scad
 
 `port_length` is not one of the foundation dimensions below - it's the same
 kind of derived value as the 6FC ecojoiner's port_length (taper_height +
 port_allowance, or a direct override), not a raw board/bottle measurement,
 so build_scad() takes it as its own argument rather than through `overrides`.
+It governs the M6 mounting-hole position (how far the slat is bolted to the
+Ecojoiner Little John's own hole) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET below.
+It is NOT the same thing as bottle_diameter/port_height, which separately
+governs where the slat's shoulder cut begins (see upper_diagonal_start_z);
+those two used to be conflated here because they are numerically equal at
+the reference bottle's defaults (both 82), which is coincidence, not a rule.
 """
 
 from __future__ import annotations
@@ -30,13 +39,19 @@ import argparse
 from pathlib import Path
 
 DEFAULTS = {
-    "wood_thickness": 15,
-    "bottle_height": 320,
+    "wood_thickness": 12,
+    "bottle_height": 305,
     "bottle_diameter": 82,
     "cap_height": 17,
-    "cap_diameter": 35,
+    "cap_diameter": 31,
     "fin_board_width": 93,
 }
+
+# Mirrors turtle_body lib/params.scad p_screw_side_offset() and
+# p_m6_clearance_d() -- the Ecojoiner-frame mounting-hole geometry the core
+# slat's M6 hole must align with, not board/bottle-specific tuning.
+MOUNT_HOLE_SCREW_SIDE_OFFSET = 25.0
+MOUNT_HOLE_DIAMETER = 6.4
 
 # Everything after the foundation-variable assignments, which build_scad()
 # generates dynamically from DEFAULTS/overrides (plus the derived
@@ -61,7 +76,7 @@ slat_width =
 slat_height =
     bottle_height
     - cap_height
-    + 4.5 * wood_thickness;
+    + 6.0 * wood_thickness;
 
 lower_lobe_height = 2 * wood_thickness;
 upper_lobe_height = 2 * wood_thickness;
@@ -77,11 +92,16 @@ neck_width =
 shoulder_step =
     slat_width - neck_width;
 
-upper_neck_start_z =
-    slat_height - port_length;
-
+// The shoulder cut begins one PORT_HEIGHT (== bottle_diameter, the opening
+// the slat passes through) below the slat top -- NOT one port_length (the
+// port's axial insertion depth, a different quantity that only happens to
+// equal bottle_diameter at the reference bottle's defaults). port_length
+// instead governs the M6 mount hole below.
 upper_diagonal_start_z =
-    upper_neck_start_z + shoulder_step;
+    slat_height - bottle_diameter;
+
+upper_neck_start_z =
+    upper_diagonal_start_z - shoulder_step;
 
 slot_z0 = lower_lobe_height;
 slot_z1 = slot_z0 + slot_height;
@@ -91,6 +111,17 @@ lower_full_width_return_z =
 
 lower_neck_start_z =
     lower_full_width_return_z + shoulder_step;
+
+// M6 hole bolting this slat to the Ecojoiner Little John it replaces a
+// Presser on (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*()).
+mount_hole_from_top =
+    port_length + wood_thickness - screw_side_offset;
+
+mount_hole_x =
+    slat_width / 2;
+
+mount_hole_y =
+    slat_height - mount_hole_from_top;
 
 
 // ============================================================================
@@ -202,9 +233,10 @@ ballast_fin_slot_depth =
 
 // Large upper relief in the yellow fin.
 // It begins 1.5 board thicknesses above the TOP of the existing lower slot
-// and removes material all the way to the top edge.
+// and removes material all the way to the top edge. +1 stock thickness
+// beyond the bare bottle diameter so the bottle actually clears the cut.
 ballast_fin_upper_cut_depth =
-    bottle_diameter;
+    bottle_diameter + wood_thickness;
 
 ballast_fin_upper_cut_z0 =
     ballast_fin_lower_protrusion
@@ -265,6 +297,14 @@ assert(ballast_fin_upper_cut_z0 < ballast_fin_height,
 assert(ballast_fin_front_chamfer < ballast_fin_height,
        "Yellow front chamfer is too large for the fin height.");
 
+assert(slat_height - bottle_diameter - wood_thickness > 6 * wood_thickness,
+       "Ballast: slat shoulders overlap.");
+assert(mount_hole_diameter > 0 && mount_hole_diameter < bottle_diameter - 2 * wood_thickness,
+       "Mount hole diameter must fit within the slat width.");
+assert(mount_hole_from_top > mount_hole_diameter / 2
+       && mount_hole_from_top < slat_height - mount_hole_diameter / 2,
+       "Mount hole must fall within the slat's own height.");
+
 
 // ============================================================================
 // GREEN CORE SLAT PROFILE
@@ -291,7 +331,11 @@ module ballast_core_profile_2d() {
 module ballast_core_slat() {
     color("green")
         linear_extrude(height = wood_thickness)
-            ballast_core_profile_2d();
+            difference() {
+                ballast_core_profile_2d();
+                translate([mount_hole_x, mount_hole_y])
+                    circle(d = mount_hole_diameter, $fn = 48);
+            }
 }
 
 
@@ -672,6 +716,8 @@ def build_scad(overrides: dict[str, float], port_length: float) -> str:
     lines = ["/* [Foundation dimensions] */"]
     lines.extend(f"{k} = {p[k]:.12g};" for k in DEFAULTS)
     lines.append(f"port_length = {port_length:.12g};")
+    lines.append(f"screw_side_offset = {MOUNT_HOLE_SCREW_SIDE_OFFSET:.12g};")
+    lines.append(f"mount_hole_diameter = {MOUNT_HOLE_DIAMETER:.12g};")
     return "\n".join(lines) + "\n" + SCAD_BODY
 
 
@@ -710,7 +756,7 @@ def validate(values: dict[str, float], port_length: float) -> None:
     if fw <= 0:
         raise SystemExit("Fin board width must be positive.")
 
-    slat_height = bh - ch + 4.5 * t
+    slat_height = bh - ch + 6.0 * t
     shoulder_step = (bd - 2*t) - (bd - 3*t)  # simplifies to t
 
     if port_length <= shoulder_step:
@@ -723,6 +769,13 @@ def validate(values: dict[str, float], port_length: float) -> None:
         raise SystemExit(
             "Fin board width is too small relative to wood thickness "
             "for the current ballast-fin cuts."
+        )
+
+    mount_hole_from_top = port_length + t - MOUNT_HOLE_SCREW_SIDE_OFFSET
+    if not (MOUNT_HOLE_DIAMETER / 2 < mount_hole_from_top < slat_height - MOUNT_HOLE_DIAMETER / 2):
+        raise SystemExit(
+            "Port length leaves the M6 mount hole outside the core slat "
+            f"(slat height {slat_height:g} mm, hole would sit {mount_hole_from_top:g} mm from the top)."
         )
 
 
@@ -769,15 +822,16 @@ def main() -> None:
     fw = mapping["fin_board_width"]
 
     green_width = bd - 2 * t
-    green_height = bh - ch + 4.5 * t
+    green_height = bh - ch + 6.0 * t
     green_slot_depth = green_width / 2
+    mount_hole_from_top = port_length + t - MOUNT_HOLE_SCREW_SIDE_OFFSET
     orange_length = 3.5 * bd
     orange_center_slot_depth = bd / 2
     red_piece_size = 5 * t
     red_slot_depth = red_piece_size / 2
     yellow_length = 3 * bd
     yellow_slot_depth = bd / 2
-    yellow_upper_cut_depth = bd
+    yellow_upper_cut_depth = bd + t
     yellow_chamfer = 1.5 * t
 
     print(f"Wrote: {output.resolve()}")
@@ -786,6 +840,7 @@ def main() -> None:
     print(f"  Green slat width: {green_width:g} mm")
     print(f"  Green slat height: {green_height:g} mm")
     print(f"  Green lower slot depth: {green_slot_depth:g} mm")
+    print(f"  Green M6 mount hole from top: {mount_hole_from_top:g} mm (Ø{MOUNT_HOLE_DIAMETER:g}mm)")
     print(f"  Orange board length: {orange_length:g} mm")
     print(f"  Orange center slot depth: {orange_center_slot_depth:g} mm")
     print(f"  Red foot size: {red_piece_size:g} × {red_piece_size:g} mm")
