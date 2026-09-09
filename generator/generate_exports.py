@@ -36,7 +36,7 @@ import json
 from pathlib import Path
 from typing import Optional, Sequence
 
-from objects import ecojoiner_6fc, back_fin, ballast, sails
+from objects import ecojoiner_6fc, back_fin, ballast, sails, sail_cutout
 
 OBJECT_MODULES = {
     "6fc": ecojoiner_6fc,
@@ -45,6 +45,7 @@ OBJECT_MODULES = {
     "ballast": ballast,
     "sails": sails,
     "sail": sails,
+    "sail_cutout": sail_cutout,
 }
 
 

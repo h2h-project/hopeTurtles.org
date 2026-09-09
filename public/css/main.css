@@ -4802,6 +4802,18 @@ label.ht-toggle {
   margin: 2rem 0 1rem;
 }
 
+.turtles-component {
+  margin-bottom: 1.75rem;
+}
+
+.turtles-component h3 {
+  margin: 0 0 0.6rem;
+}
+
+.turtles-component .button {
+  margin-top: 0.25rem;
+}
+
 .page-split__aside > :first-child {
   margin-top: 0;
 }

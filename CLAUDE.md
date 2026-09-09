@@ -271,9 +271,9 @@ Rules:
     drift. Runs in `npm run lint`; `npm run generator:sync` does both.
   - The **formula layer** (`derive_dimensions()` in each object module) is *not* covered — after
     a sync, still eyeball it against the matching `generator/turtle_body/scad/*.scad` bundle.
-- **The drift table below and `generator/SYNC_PLAN.md` are the backlog.** S-1…S-5 are done;
-  S-5b (generators *load* defaults from the snapshot rather than carry checked literals) and
-  S-6 (hygiene) are deferred.
+- **`generator/SYNC_PLAN.md` is the backlog** (its §5 also scopes automatic *structural*
+  propagation). S-1…S-5 are done; S-5b (generators *load* defaults from the snapshot rather
+  than carry checked literals) and S-6 (hygiene) are deferred.
 
 All recorded drift (rear fin, ballast, sails, 6FC) was fixed 2026-09-08 and the sync mechanism
 (S-5) built the same day — see `generator/SYNC_LOG.md` for the full history. No open drift
@@ -291,7 +291,7 @@ verified against real OpenSCAD-rendered bounding boxes; 6FC's `cap_diameter` 32�
 `collar_diameter` 32→34, `port_height` 85→82, `screw_diameter` 4.5 (pilot)→6.4 (M6 clearance)
 — `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py` in the same pass (internal only;
 `object_type`, job-slug prefix and every public identifier are unchanged).
-`bottom_fin_raw.py` deleted. Full detail in `generator/SYNC_PLAN.md`'s "Resolved" section
+`bottom_fin_raw.py` deleted. Full detail in `generator/SYNC_PLAN.md` §7 (History)
 and `SYNC_LOG.md`.
 
 **Master John — corrected 2026-09-08 (turtle_body v1.8.1).** The v1.7.1 6FC sync also

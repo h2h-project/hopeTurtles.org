@@ -1,12 +1,16 @@
 """Sail apparatus object (top sail bar, four battens, bottom sail bars, joint
-strengtheners, C end pieces and the two sails).
+strengtheners and C end pieces).
 
 The .scad output comes straight from the standalone reference generator
 generator/generate_sails.py (build_scad()), the same delegation pattern as
 objects/back_fin.py -> back_fin_generator.py. This module adds the
 JSON-manifest/job-folder contract the dispatcher and Node expect, plus
-SVG/DXF/PDF carpenter-file writers for the assembly's 7 flat part shapes
-(generator/SYNC_PLAN.md item S-3, completed 2026-09-08).
+SVG/DXF/PDF carpenter-file writers for the assembly's 6 flat wooden part
+shapes (generator/SYNC_PLAN.md item S-3, completed 2026-09-08).
+
+The sail itself is soft goods (mylar/fabric), not a sawn wooden part, so it
+is deliberately left off every 2D carpenter export - the .scad assembly
+still renders it for context, and a dedicated sail generator is planned.
 
 Upstream contract: every default below mirrors a ``p_*()`` function in
 ../turtle_body/lib/params.scad (named in the comments). The FIXED constants
@@ -36,13 +40,11 @@ from common import (
     _svg_header,
     _rect,
     _circle,
-    _polygon,
     _label,
     DXF_CUT_LAYER,
     _dxf_setup,
     _dxf_rect,
     _dxf_circle,
-    _dxf_polygon,
     _dxf_label,
     _register_fonts,
     _draw_dimension_line,
@@ -64,6 +66,9 @@ OBJECT_TYPE = "sails"
 SUPPORTED_FORMATS: Tuple[str, ...] = ("scad", "svg", "dxf", "pdf")
 
 # Counted from generate_sails.SCAD_TEMPLATE's *_native_assembly modules.
+# The Sail (x2) is soft goods, not a wooden cut part, so it is not listed
+# here or drawn on any 2D export - keep this equal to PART_QUANTITIES_BY_TYPE
+# ['sails'] in utils/ecojoinerGenerator.js.
 PART_QUANTITIES = {
     "Top Sail Bar": 1,
     "Sail Batten": 2,
@@ -71,7 +76,6 @@ PART_QUANTITIES = {
     "Bottom Sail Bar": 2,
     "Joint Strengthener": 2,
     "C End Piece": 2,
-    "Sail": 2,
 }
 
 # Form-driven inputs.                       upstream (turtle_body/lib/params.scad)
@@ -501,20 +505,9 @@ def _c_piece_notches(d: SailsDerived):
     return ((d.bottom_bar_inner_overhang, y0, d.c_piece_slot_width, d.c_piece_slot_depth),)
 
 
-def _sail_outline(d: SailsDerived):
-    """Trapezoid outline: inner (batten-side) edge is vertical, outer edge
-    follows the top and bottom rails outward. Normalized to start at (0, 0)
-    -- both the native SCAD Z (height) and the inner radius (width) offsets
-    are stripped so this packs tightly as a standalone 2D part."""
-    h = d.sail_height
-    w = d.sail_bottom_outer_radius - d.sail_inner_radius
-    top_w = d.sail_top_outer_radius - d.sail_inner_radius
-    return [
-        (0, 0),
-        (w, 0),
-        (top_w, h),
-        (0, h),
-    ]
+# The sail itself (a soft-goods trapezoid) is intentionally not drawn on any
+# 2D carpenter export - see the module docstring. Its dimensions still live
+# in SailsDerived / the manifest for a future dedicated sail generator.
 
 
 # ---------------------------------------------------------------------------
@@ -532,7 +525,7 @@ def write_svg(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
     gap = 14.0
     widest = max(
         d.top_bar_length, d.bottom_bar_length, d.c_piece_length,
-        d.batten_height, d.strengthener_height, d.sail_top_outer_radius,
+        d.batten_height, d.strengthener_height,
     )
     width = margin * 2 + widest
 
@@ -578,32 +571,28 @@ def write_svg(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
             body += _rect(nx, ny, nw, nh)
         return group(y, name, body)
 
-    def sail_group(y, name):
-        return group(y, name, _polygon(_sail_outline(d)))
-
+    # Bars and battens first, longest to shortest; the small joinery parts
+    # last. The sail is soft goods and is not exported.
     rows_full = [
         (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten 1", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten 2", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 1", sail_type=False)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 2", sail_type=False)),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 1")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 2")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 1")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 2")),
-        (d.sail_height, lambda y: sail_group(y, "Sail 1")),
-        (d.sail_height, lambda y: sail_group(y, "Sail 2")),
     ]
     rows_preview = [
         (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar x1")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten x2", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten x2", sail_type=False)),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener x2")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece x2")),
-        (d.sail_height, lambda y: sail_group(y, "Sail x2")),
     ]
     rows = rows_full if full_set else rows_preview
 
@@ -671,33 +660,28 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
-    def sail_group(y, name):
-        _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _sail_outline(d)], DXF_CUT_LAYER)
-        _dxf_label(msp, 0, y - 3, name)
-
+    # Bars and battens first, longest to shortest; the small joinery parts
+    # last. The sail is soft goods and is not exported.
     rows_full = [
         (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten 1", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten 2", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 1", sail_type=False)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 2", sail_type=False)),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 1")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 2")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 1")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 2")),
-        (d.sail_height, lambda y: sail_group(y, "Sail 1")),
-        (d.sail_height, lambda y: sail_group(y, "Sail 2")),
     ]
     rows_preview = [
         (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar x1")),
+        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
         (d.batten_height, lambda y: batten_group(y, "Sail Batten x2", sail_type=True)),
         (d.batten_height, lambda y: batten_group(y, "Non-sail Batten x2", sail_type=False)),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
         (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener x2")),
         (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece x2")),
-        (d.sail_height, lambda y: sail_group(y, "Sail x2")),
     ]
     rows = rows_full if full_set else rows_preview
 
@@ -714,10 +698,14 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
 # ---------------------------------------------------------------------------
 
 def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Optional[Path] = None) -> None:
-    """One-page Letter landscape carpenter reference for the assembly's 7
-    part shapes, one of each (matching quantities noted in each title).
-    Long thin parts are rotated 90deg to make use of the page's vertical
-    space; all parts share one scale so they stay size-comparable."""
+    """One-page Letter landscape carpenter reference for the assembly's 6
+    wooden part shapes (the sail is soft goods and is not drawn).
+
+    Every part is rendered at ONE shared scale so thicknesses stay directly
+    comparable across the sheet. The bars and battens run horizontally in a
+    left-hand column, longest at the top and shortest at the bottom; the two
+    small joinery parts (Joint Strengthener, C End Piece) and the derived
+    dimensions box sit stacked in the bottom-right corner."""
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
@@ -734,35 +722,14 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     c.drawString(margin, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
     c.setFont(body_font, 8)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, title_y - 13, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files. Mirrored parts (battens, bars, strengtheners, C pieces, sails) are drawn once.")
+    c.drawString(margin, title_y - 13, "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once. The sail is soft goods and is not on this sheet.")
 
     draw_left = margin
     draw_right = page_w - margin
-    draw_top = title_y - 36
-    draw_bottom = 92  # room for the input/notes strip along the bottom
-    col_left_pad = 26
-    col_right_pad = 8
-    col_gap = 24
+    draw_top = title_y - 40
+    draw_bottom = margin + 6
 
-    def notch_edges(w_mm, h_mm, notches, side="right"):
-        edges = []
-        p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
-        gaps = {"bottom": [], "top": [], "left": [], "right": []}
-        walls = []
-        for nx, ny, nw, nh in notches:
-            wall, gap = _rect_open(nx, ny, nw, nh, side)
-            walls.append(wall)
-            gaps[side].append(gap)
-        edges = [
-            (p0, p1, gaps["bottom"]),
-            (p1, p2, gaps["right"]),
-            (p2, p3, gaps["top"]),
-            (p3, p0, gaps["left"]),
-        ]
-        return edges, walls
-
-    top_bar_edges, top_bar_walls = notch_edges(d.top_bar_length, d.top_bar_width, _top_bar_notches(d), "bottom")
-    # Top bar's second notch opens from the top edge, not bottom -- rebuild precisely.
+    # ---- part outline / notch / hole geometry (mm, part-local) -------------
     tb_n1, tb_n2 = _top_bar_notches(d)
     w1, g1 = _rect_open(*tb_n1, "bottom")
     w2, g2 = _rect_open(*tb_n2, "top")
@@ -774,8 +741,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         notches = _batten_notches(d, sail_type=sail_type)
         w_mm, h_mm = d.batten_width, d.batten_height
         p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
-        gaps_right = []
-        walls = []
+        gaps_right, walls = [], []
         for n in notches:
             wall, gap = _rect_open(*n, "right")
             walls.append(wall)
@@ -787,8 +753,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         notches = _bottom_bar_notches(d)
         w_mm, h_mm = d.bottom_bar_length, d.bottom_bar_width
         p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
-        walls = []
-        gaps_top = []
+        walls, gaps_top = [], []
         for n in notches:
             wall, gap = _rect_open(*n, "top")
             walls.append(wall)
@@ -800,8 +765,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         notches = _strengthener_notches(d)
         w_mm, h_mm = d.strengthener_width, d.strengthener_height
         p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
-        walls = []
-        gaps_left = []
+        walls, gaps_left = [], []
         for n in notches:
             wall, gap = _rect_open(*n, "left")
             walls.append(wall)
@@ -813,8 +777,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         notches = _c_piece_notches(d)
         w_mm, h_mm = d.c_piece_length, d.c_piece_width
         p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
-        walls = []
-        gaps_top = []
+        walls, gaps_top = [], []
         for n in notches:
             wall, gap = _rect_open(*n, "top")
             walls.append(wall)
@@ -827,43 +790,40 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     bottom_bar_edges, bottom_bar_walls = bottom_bar_edges_walls()
     strengthener_edges, strengthener_walls = strengthener_edges_walls()
     c_piece_edges, c_piece_walls = c_piece_edges_walls()
-    sail_edges = [
-        (p1, p2, [])
-        for p1, p2 in zip(_sail_outline(d), _sail_outline(d)[1:] + _sail_outline(d)[:1])
-    ]
 
-    # Parts span a very wide size range (a 492 mm bar next to a 20 mm
-    # batten), so a single shared scale across all 7 would collapse to
-    # almost nothing (dominated by the longest part). Instead, group parts
-    # of similar size into independent rows, each stacked vertically with
-    # its own scale -- the same principle as back_fin/ballast's shared-scale
-    # columns, just applied per size-group instead of globally.
-    row_top_bar = [
-        {"name": "Top Sail Bar (x1)", "w_mm": d.top_bar_length, "h_mm": d.top_bar_width, "rotate": False,
-         "edges": top_bar_edges, "notches": top_bar_walls,
-         "circles": [(d.top_bar_length / 2, d.top_bar_width / 2, d.top_bar_axle_hole_d)]},
-    ]
-    row_long_parts = [
-        {"name": "Bottom Sail Bar (x2)", "w_mm": d.bottom_bar_length, "h_mm": d.bottom_bar_width, "rotate": False,
-         "edges": bottom_bar_edges, "notches": bottom_bar_walls, "circles": []},
-        {"name": "Sail (x2)", "w_mm": d.sail_bottom_outer_radius - d.sail_inner_radius, "h_mm": d.sail_height, "rotate": False,
-         "edges": sail_edges, "notches": [], "circles": []},
-    ]
-    row_small_parts = [
-        {"name": "Sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": False,
-         "edges": sail_batten_edges, "notches": sail_batten_walls,
-         "circles": _batten_circles(d, sail_type=True)},
-        {"name": "Non-sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": False,
-         "edges": non_sail_batten_edges, "notches": non_sail_batten_walls,
-         "circles": _batten_circles(d, sail_type=False)},
-        {"name": "Joint Strengthener (x2)", "w_mm": d.strengthener_width, "h_mm": d.strengthener_height, "rotate": False,
-         "edges": strengthener_edges, "notches": strengthener_walls, "circles": list(_strengthener_circles(d))},
-        {"name": "C End Piece (x2)", "w_mm": d.c_piece_length, "h_mm": d.c_piece_width, "rotate": True,
-         "edges": c_piece_edges, "notches": c_piece_walls, "circles": []},
-    ]
+    # The battens are drawn rotated 90deg so their length runs across the
+    # page like the bars; w_mm/h_mm below are still the part-local axes and
+    # prepare() applies the rotation.
+    top_bar = {
+        "name": "Top Sail Bar (x1)", "w_mm": d.top_bar_length, "h_mm": d.top_bar_width, "rotate": False,
+        "edges": top_bar_edges, "notches": top_bar_walls,
+        "circles": [(d.top_bar_length / 2, d.top_bar_width / 2, d.top_bar_axle_hole_d)],
+    }
+    bottom_bar = {
+        "name": "Bottom Sail Bar (x2)", "w_mm": d.bottom_bar_length, "h_mm": d.bottom_bar_width, "rotate": False,
+        "edges": bottom_bar_edges, "notches": bottom_bar_walls, "circles": [],
+    }
+    sail_batten = {
+        "name": "Sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": True,
+        "edges": sail_batten_edges, "notches": sail_batten_walls,
+        "circles": _batten_circles(d, sail_type=True),
+    }
+    non_sail_batten = {
+        "name": "Non-sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": True,
+        "edges": non_sail_batten_edges, "notches": non_sail_batten_walls,
+        "circles": _batten_circles(d, sail_type=False),
+    }
+    strengthener = {
+        "name": "Joint Strengthener (x2)", "w_mm": d.strengthener_width, "h_mm": d.strengthener_height, "rotate": False,
+        "edges": strengthener_edges, "notches": strengthener_walls, "circles": list(_strengthener_circles(d)),
+    }
+    c_piece = {
+        "name": "C End Piece (x2)", "w_mm": d.c_piece_length, "h_mm": d.c_piece_width, "rotate": False,
+        "edges": c_piece_edges, "notches": c_piece_walls, "circles": [],
+    }
 
     def prepare(part):
-        w_mm, h_mm = part["w_mm"], part["h_mm"]
+        h_mm = part["h_mm"]
         rotate = part["rotate"]
 
         def r(p):
@@ -871,87 +831,100 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
 
         return {
             **part,
-            "eff_w": h_mm if rotate else w_mm,
-            "eff_h": w_mm if rotate else h_mm,
+            "eff_w": h_mm if rotate else part["w_mm"],
+            "eff_h": part["w_mm"] if rotate else h_mm,
             "edges": [(r(p1), r(p2), [(r(g1), r(g2)) for g1, g2 in gaps]) for p1, p2, gaps in part["edges"]],
             "notches": [[r(p) for p in wall] for wall in part["notches"]],
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
         }
 
-    def draw_row(parts_raw_row, row_top, row_bottom):
-        parts = [prepare(p) for p in parts_raw_row]
-        avail_h = row_top - row_bottom
-        scale = min(avail_h / p["eff_h"] for p in parts)
-        overhead = len(parts) * (col_left_pad + col_right_pad) + (len(parts) - 1) * col_gap
-        total_w = sum(p["eff_w"] for p in parts) * scale + overhead
-        avail_total_w = draw_right - draw_left
-        if total_w > avail_total_w:
-            scale = (avail_total_w - overhead) / sum(p["eff_w"] for p in parts)
+    # Column of horizontal bars/battens, longest effective width first.
+    column = sorted(
+        (prepare(top_bar), prepare(bottom_bar), prepare(sail_batten), prepare(non_sail_batten)),
+        key=lambda p: p["eff_w"], reverse=True,
+    )
+    corner = [prepare(strengthener), prepare(c_piece)]
 
-        cursor = draw_left
-        for part in parts:
-            ox = cursor + col_left_pad
-            oy = row_top - part["eff_h"] * scale
-            col_w = part["eff_w"] * scale + col_left_pad + col_right_pad
+    label_h = 12       # part title, above the shape
+    dim_h = 15         # dimension line + label, below the shape
+    row_gap = 14       # minimum vertical gap between stacked parts
+    left_pad = 34      # clearance for the left (height) dimension line
+    box_w, box_h = 250.0, 106.0
 
-            c.setFont(title_font, 6.5)
-            c.setFillColor(colors.HexColor("#222222"))
-            c.drawString(ox, row_top + 4, part["name"])
+    # ---- one shared mm -> pt scale --------------------------------------
+    # Width-limited by the longest part (the top bar); every part is then
+    # drawn at that same scale so board thicknesses stay comparable.
+    avail_w = draw_right - draw_left - left_pad - 6
+    avail_h = draw_top - draw_bottom
+    scale = avail_w / max(p["eff_w"] for p in column)
 
-            _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.7)
-            for wall in part["notches"]:
-                _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
-            for cx, cy, dia in part["circles"]:
-                r = (dia / 2) * scale
-                c.setStrokeColor(colors.HexColor("#999999"))
-                c.setLineWidth(0.5)
-                c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
+    # Safety clamp: the bottom-right stack (Strengthener over C End Piece
+    # over the derived-dimensions box) must still fit the page height.
+    corner_fixed = box_h + 2 * row_gap + 2 * (label_h + dim_h)
+    corner_var = sum(p["eff_h"] for p in corner)
+    if corner_var * scale + corner_fixed > avail_h:
+        scale = min(scale, (avail_h - corner_fixed) / corner_var)
 
-            _draw_dimension_line(
-                c, ox, oy - 12, ox + part["eff_w"] * scale, oy - 12,
-                f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=5,
-            )
-            _draw_dimension_line(
-                c, ox - 8, oy, ox - 8, oy + part["eff_h"] * scale,
-                f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=5, label_side="left", rotate_label=True,
-            )
+    def draw_part(part, ox, oy):
+        c.setFont(title_font, 6.5)
+        c.setFillColor(colors.HexColor("#222222"))
+        c.drawString(ox, oy + part["eff_h"] * scale + 5, part["name"])
+        _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.7)
+        for wall in part["notches"]:
+            _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
+        for cx, cy, dia in part["circles"]:
+            c.setStrokeColor(colors.HexColor("#999999"))
+            c.setLineWidth(0.5)
+            c.circle(ox + cx * scale, oy + cy * scale, (dia / 2) * scale, stroke=1, fill=0)
+        _draw_dimension_line(
+            c, ox, oy - 11, ox + part["eff_w"] * scale, oy - 11,
+            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=5,
+        )
+        _draw_dimension_line(
+            c, ox - 8, oy, ox - 8, oy + part["eff_h"] * scale,
+            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=5, label_side="left", rotate_label=True,
+        )
 
-            cursor += col_w + col_gap
+    # Left-hand column of bars/battens, spread evenly down the page. The
+    # footer strip at the bottom is kept clear.
+    ox = draw_left + left_pad
+    col_bottom = draw_bottom + 22
+    natural = sum(label_h + p["eff_h"] * scale + dim_h for p in column)
+    slack = (draw_top - col_bottom) - natural
+    gap_between = max(row_gap, slack / max(1, len(column) - 1))
+    y = draw_top
+    for n, part in enumerate(column):
+        oy = y - label_h - part["eff_h"] * scale
+        draw_part(part, ox, oy)
+        y = oy - dim_h
+        if n < len(column) - 1:
+            y -= gap_between
 
-    # Row bands: top bar only needs width (it's thin), so a small band;
-    # the long parts (bottom bar, sail) and the small parts share the rest,
-    # weighted toward the small parts since that row has 4 columns and the
-    # tallest small part (a batten) benefits most from a larger scale.
-    row_gap = 14
-    top_bar_band = 62
-    long_parts_band = 150
-    row1_top = draw_top
-    row1_bottom = row1_top - top_bar_band
-    row2_top = row1_bottom - row_gap
-    row2_bottom = row2_top - long_parts_band
-    row3_top = row2_bottom - row_gap
-    row3_bottom = draw_bottom
-
-    draw_row(row_top_bar, row1_top, row1_bottom)
-    draw_row(row_long_parts, row2_top, row2_bottom)
-    draw_row(row_small_parts, row3_top, row3_bottom)
+    # Bottom-right corner: Joint Strengthener above C End Piece above the
+    # derived-dimensions box, all anchored to the page's bottom-right.
+    # `corner` is [strengthener, c_piece]; draw C End Piece nearest the box.
+    box_x = draw_right - box_w
+    corner_x = box_x + 14
+    cy = draw_bottom + box_h + row_gap + dim_h
+    for part in (corner[1], corner[0]):
+        draw_part(part, corner_x, cy)
+        cy += part["eff_h"] * scale + label_h + row_gap + dim_h
 
     input_lines = [
-        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm   Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm   "
-        f"Cap: {_ceil_mm(inputs.cap_diameter)}mm   Collar: {_ceil_mm(inputs.collar_diameter)}mm   "
-        f"Batten height: {_ceil_mm(d.batten_height)}mm",
-        f"Top bar: {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm   "
-        f"Bottom bar: {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm   "
-        f"Cage mount hole: Ø{_ceil_mm(d.cage_mount_hole_diameter)}mm @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from batten bottom   "
-        f"Strengthener/batten M6: Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
+        f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
+        f"Batten height {_ceil_mm(d.batten_height)}mm",
+        f"Top sail bar {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm",
+        f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
+        f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
+        f"C end piece {_ceil_mm(d.c_piece_length)} x {_ceil_mm(d.c_piece_width)}mm",
+        f"Cage holes Ø{_ceil_mm(d.cage_mount_hole_diameter)} @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from foot",
+        f"Strengthener/batten M6 Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
     ]
-    box_y = margin + 4
-    box_h = 34
-    _rounded_rect_text(c, margin, box_y, page_w - 2 * margin, box_h, "Derived dimensions", input_lines, title_font, body_font)
+    _rounded_rect_text(c, box_x, draw_bottom, box_w, box_h, "Derived dimensions", input_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, box_y - 10, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. hopeturtles.org/ecojoiners/generate")
+    c.drawString(draw_left, draw_bottom + 4, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. hopeturtles.org/ecojoiners/generate")
 
     c.showPage()
     c.save()

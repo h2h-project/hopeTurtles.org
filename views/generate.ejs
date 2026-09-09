@@ -279,6 +279,12 @@
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_sails %></span>
                 </button>
+                <button type="button" class="eco-type-card" data-type="sail_cutout" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/sails-export-preview.webp" alt="<%= t.gen_type_sail_cutout %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_sail_cutout %></span>
+                </button>
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
               <span class="eco-feedback" data-for="eco-type"></span>
@@ -389,7 +395,7 @@
                     <span class="ht-toggle__slider" aria-hidden="true"></span>
                   </label>
                 </li>
-                <li class="eco-fab-option">
+                <li class="eco-fab-option" data-fab-format="scad">
                   <span class="eco-fab-option__info">
                     <span class="eco-fab-option__title"><%= t.gen_fab_3d %></span>
                     <span class="eco-fab-option__desc"><%= t.gen_fab_3d_desc %></span>
@@ -399,7 +405,7 @@
                     <span class="ht-toggle__slider" aria-hidden="true"></span>
                   </label>
                 </li>
-                <li class="eco-fab-option">
+                <li class="eco-fab-option" data-fab-format="dxf">
                   <span class="eco-fab-option__info">
                     <span class="eco-fab-option__title"><%= t.gen_fab_cnc %></span>
                     <span class="eco-fab-option__desc"><%= t.gen_fab_cnc_desc %></span>

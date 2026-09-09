@@ -1,150 +1,264 @@
-# Syncing the turtle generators to `turtle_body/lib/params.scad`
+# Syncing the turtle generators to `turtle_body`
 
-Assessment written 2026-09-08 against turtle_body **v1.7.1** (`lib/params.scad`) and the
-generator sources in this directory as they stood after the `ecojoiner/` → `generator/`
-rename. Open items are tracked in `SYNC_LOG.md`; this file explains the work and the order.
+**Status (2026-09-08, turtle_body v1.8.1):** all recorded drift is fixed and the
+sync *mechanism* (S-5) is built. Value-level drift is now caught automatically;
+structural changes still need a manual propagation pass. Remaining backlog: S-5b
+and S-6 (below), plus the larger "automatic structural propagation" work, which
+is scoped but not started.
 
-## Ground rule
+Running record of every upstream change and how it was carried: `SYNC_LOG.md`.
 
-`../turtle_body/lib/params.scad` (plus `lib/ecojoiner.scad`, `lib/rear_fin.scad`,
-`lib/ballast_fin.scad`, `lib/sail_frame.scad`) is the authoritative geometry. The generators
-here are downstream consumers. When a value differs, the generator is wrong.
+---
 
-## Why the drift keeps happening
+## 1. Ground rule
 
-Every generator carries **three copies** of each formula:
+`../turtle_body/lib/params.scad` and the wooden component modules
+(`lib/ecojoiner.scad`, `lib/rear_fin.scad`, `lib/ballast_fin.scad`,
+`lib/sail_frame.scad`) are the authoritative geometry. The generators in
+`generator/` are downstream consumers. **When a value or rule differs, the
+generator is wrong** — with one nuance:
 
-1. the upstream `lib/` module,
-2. the generator's embedded SCAD body (`SCAD_BODY` / `SCAD_TEMPLATE` / the 6FC f-string),
-3. the generator's Python `derive_dimensions()` that re-derives 2D outlines for SVG/DXF/PDF.
+> **"Lib wins" means lib owns the *rule*, not just the number.** If a generator
+> carries a parametric rule that lib has flattened to a constant, lift the rule
+> *into* `lib/params.scad`, don't flatten the generator. Precedents: `p_port_length()`
+> (v1.7.2, lib had the constant 82; the generators' `taper_height + port_allowance`
+> was the real rule) and `eco_master_slot_depth()` (v1.8.1, the Master John's
+> deeper slot — the generator always had it, lib never modelled it).
 
-Nothing links them. turtle_body already ships what copy 2 needs: self-contained bundles in
-`turtle_body/v1.0 SCADs/*.scad`, each with a customizer block at the top, regenerated from
-`lib/` by `build/build.py`. Copy 3 has no mechanical fix; it is what the CLAUDE.md rule guards.
+---
 
-## Current drift (lib wins)
+## 2. Why drift happens — the three copies
 
-**S-1…S-5 are all done (2026-09-08) — see the "Resolved" entries below, "The mechanism (S-5)",
-and `SYNC_LOG.md`.** S-5's sub-item S-5b (generators load defaults from the snapshot instead of
-carrying checked literals) and S-6 (hygiene) remain, deliberately deferred. Cap, cage, axle and
-mold are printed PLA parts with no generator; they never need syncing.
+Each generator carries **three copies** of every part's geometry:
 
-### Resolved: rear fin, ballast, sails (2026-09-08)
+1. the upstream `lib/<module>.scad` — the source of truth;
+2. the generator's **embedded SCAD** (`objects/ecojoiner_6fc.py`'s f-string,
+   `back_fin_generator.py` / `bottom_ballast_fin_generator.py` `SCAD_BODY`,
+   `generate_sails.py`'s `str.replace` template);
+3. the generator's **Python `derive_dimensions()` + 2D writers** that re-derive
+   each flat part's outline/holes/slots for SVG, DXF and PDF.
 
-**Rear fin (S-1).** `shaft_hole_diameter` 6.0 → 6.4 (`p_m6_clearance_d()`). `shaft_hole_from_front` was a fixed TUNING default (50); it is now `None` by default, meaning "derive via TB-07" (`default_shaft_hole_from_front()` in `back_fin_generator.py`, reducing to `(2/3)*(fin_board_width−2t) − 25 + bottle_diameter` = 103 at defaults) — still overridable for deliberate testing. `objects/back_fin.py` threads the resolved value through `derive_dimensions()`/SVG/DXF/PDF instead of reading `inputs.shaft_hole_from_front` directly, and the PDF now shows it as a derived dimension.
+Nothing mechanically links them. S-5 (below) links copy 1 to a machine-readable
+snapshot and checks that copies 2–3 *agree on the shared scalars*. It does not
+remove copies 2–3 — that is what section 5 is about.
 
-**Ballast (S-2).** Defaults 15/320/35 → 12/305/31. Slat height `bh−ch+4.5·t` → `bh−ch+6·t` (360 at defaults). **Two things beyond simple constant drift, found while implementing:** (a) the standalone generator's core slat had **no M6 mount hole at all** — the whole bolt-to-Ecojoiner feature was missing from the SCAD, SVG, DXF and PDF outputs; added, matching `lib/ballast_fin.scad bl_mount_hole_*()` exactly (69 mm from top, Ø6.4, centred on the slat width). (b) the slat's shoulder-cut position (`upper_diagonal_start_z`) was computed from `port_length` (the axial insertion depth) instead of `bottle_diameter`/port **height** (the opening the slat passes through) — a latent bug masked only because the two happen to be numerically equal at the reference bottle's defaults (both 82); a non-default taper would have silently mis-cut the shoulder. Fixed to use `bottle_diameter`, matching `lib/ballast_fin.scad bl_upper_diag_start()`. Also fixed `ballast_fin_upper_cut_depth` (bare `bottle_diameter` → `bottle_diameter + wood_thickness`, the "+1 stock thickness so the bottle clears" correction lib already has). `bottom_fin_raw.py` (the orphan, closer-to-lib variant) is now genuinely superseded and was deleted.
+---
 
-**Sails (S-3, complete).** *Dimensions:* `generate_sails.py`'s `sail_apparatus()` module already accepted `bottle_diameter`, `cap_diameter`, `collar_diameter`, `bottle_height`, `cap_height`, `top_dome_height`, `bottom_dome_height` as real SCAD parameters matching lib exactly — the gap was that `build_scad()`'s Python wrapper only ever overrode `wood_thickness`/`side_batten_height`/`cage_mount_hole_diameter` via its `str.replace()` mechanism, leaving every bottle-shape value pinned at the template's hardcoded default regardless of the caller's input. Extended the replace-list and the top-of-template customizer block to cover all seven bottle-shape values; `objects/sails.py`'s `SailsInputs`/`DEFAULTS` now carry them as real form-driven inputs (mirroring what `mapBallastFields` already collects), and `utils/ecojoinerGenerator.js::mapSailsFields` forwards cap/collar/height/capHeight/topTapper/bottomTapper alongside diameter. Verified end to end: a 90 mm bottle_diameter override produces a 540 mm top sail bar (6×90) rather than the old fixed 492.
+## 3. The mechanism (S-5) — built 2026-09-08
 
-*2D writers (the remaining S-3 item, now done too):* added SVG/DXF/PDF for all 7 shapes (Top Sail Bar, Sail Batten, Non-sail Batten, Bottom Sail Bar, Joint Strengthener, C End Piece, Sail). Every outline, notch and hole position in `objects/sails.py` was derived algebraically from `generate_sails.py`'s SCAD formulas (`_cage_notch_root_radius()` etc.) and then verified against real OpenSCAD-rendered bounding boxes for `bottom_bars`/`c_end_pieces`/`strengtheners`/`sails`/`sail_batten`/`non_sail_batten`/`top_bar` — every dimension matched exactly, and the batten cage-mount-hole positions (55/87mm from top, 150/118mm from bottom) match CLAUDE.md section 10's independently-documented values exactly too. The PDF needed a genuinely different layout from the other three objects: putting the 492mm top bar in the same shared-scale row as 20mm battens collapsed the scale to near-nothing, so `write_pdf()` groups the 7 shapes into three independent rows (top bar alone; bottom bar + sail; the four small parts), each with its own scale — visually verified by rendering the PDF to PNG and inspecting it. `SUPPORTED_FORMATS` is now `(scad, svg, dxf, pdf)`; the form's fabrication-toggle restriction to 3D-only was removed from `public/js/ecojoiner-generate.js` and `mapSailsFields` now honours all four checkboxes like fin/ballast.
+| Piece | Repo | What it does |
+|---|---|---|
+| `build/export_params.py` → `build/params.json` | turtle_body | Renders every `p_*()` and writes them as JSON (values + version). Run by `build/build.py`; a stale snapshot fails `build/lint.py --check`. |
+| `generator/sync_from_turtle_body.py` | here | Pure copy of `params.json` + the four `v1.0 SCADs/*.scad` bundles into `generator/turtle_body/` (`params.json`, `scad/`, `VERSION`). `--check` reports staleness. |
+| `generator/check_params_sync.py` | here | 39 assertions: every generator's shared-**input** default vs the vendored snapshot (`slat_thickness`/`wood_thickness` ↔ `p_wood_t`, `cap_diameter` ↔ `p_bottle_cap_d`, `screw_diameter`/`shaft_hole_diameter`/`MOUNT_HOLE_DIAMETER` ↔ `p_m6_clearance_d`, solar panel dims, dome heights, …). Exit 1 + a `DRIFT` table on any mismatch. Runs in `npm run lint`. |
 
-**6FC Ecojoiner (S-4).** Re-based `objects/six_fc.py` (renamed `objects/ecojoiner_6fc.py`) on
-`lib/ecojoiner.scad`: `PART_QUANTITIES` is now Long John ×6, Little John ×6 (was ×5 + Master
-John ×1, removed entirely), `cap_diameter` 32→31, `collar_diameter` 32→34, `port_height` 85→82,
-`screw_diameter` 4.5 (pilot hole)→6.4 (M6 clearance hole, matching how the ballast/rear-fin
-actually bolt to the Ecojoiner). `EcojoinerDerived.master_slot_depth` and every
-`master_john_2d()`/`master_john()` SCAD module, PDF row, SVG/DXF group and layout slot were
-removed rather than repurposed — the sixth John now shares `little_john_2d()`/`standard_slot_depth`
-like the other five. The PDF's John-drawing area went from 3 rows to 2 (`n_rows`), gaining more
-vertical space per row rather than leaving a blank gap. `presser_source_note` (en/id/tr) no
-longer mentions Master John. Front-end: `PART_QUANTITIES_BY_TYPE['6fc']` and the
-`gen_dim_slot_depth_master`/`gen_part_master_john` keys removed from all 10 locale files and
-the JS fallback dict. Verified end to end at defaults: `john_length` 294, `john_height` 58,
-`standard_slot_depth` 29, `presser_diameter` 30, `final_key_length/width` 130/24,
-`screw_side_offset` 25 — all match `lib/ecojoiner.scad`'s `eco_*()` functions exactly; all four
-formats (SCAD/SVG/DXF/PDF) generate without error and the SCAD parses clean in OpenSCAD. Object
-type, job-slug prefix (`ecojoiner_`), and the public API contract are unchanged — only the
-Python file/module name changed, per the 2026-09-08 scope decision.
+`npm run generator:sync` = copy + check. `npm run generator:sync-check` is the
+release gate (needs `../turtle_body`). `npm run generator:check` runs the checker
+alone against the committed snapshot (no sibling checkout needed).
 
-**Corrected 2026-09-08 (turtle_body v1.8.1) — Master John restored.** Removing the Master
-John in S-4 was the one wrong call in that pass. The Master John is a real assembly
-feature: one of the six cross-slats is fitted *last*, into an almost-closed frame, and
-its two top slots must be cut deeper (`master_slot_depth = min(floor(port_height/2),
-floor(john_height·0.6))` — 34 vs the standard 29 at reference params) or it physically
-cannot be sprung into place. The generator had always carried this rule; `lib/ecojoiner.scad`
-simply never modelled it. Per the "lib owns the rule" precedent (port-length case below),
-the rule was **lifted upstream**: turtle_body v1.8.1 adds `eco_master_slot_depth()`,
-`eco_master_john_2d()`, `eco_master_john()`, and an `is_master`/`master_first_john` flag
-threaded from `eco_ecojoiner_only()` through one of its three rectangles (the full-turtle
-assembly is untouched). The generator was then restored from `0cb0de8^:ecojoiner/objects/six_fc.py`
-with the S-4 param changes (cap 31 / collar 34 / port 82 / Ø6.4) kept — so
-`PART_QUANTITIES` is back to Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12,
-`EcojoinerDerived.master_slot_depth` and the `master_john` SCAD/SVG/DXF/PDF paths return,
-`n_rows` is 3 again, and `PART_QUANTITIES_BY_TYPE['6fc']` + `gen_part_master_john` are
-back on the front end. Verified: dry run at defaults gives `standard_slot_depth` 29 /
-`master_slot_depth` 34, matching v1.8.1's `eco_slot_depth()` / `eco_master_slot_depth()`;
-all four formats generate clean and the Master John part renders in OpenSCAD (`part="master_john"`).
+**What the checker covers:** the ~39 shared scalar inputs. A changed `p_*()`
+value cannot slip through un-noticed.
 
-### Resolved: port length (2026-09-08, turtle_body v1.7.2)
+**What it does not cover:** new parameters, formula/rule changes inside the
+wooden `lib/*.scad` modules (`derive_dimensions()` layer), new or removed parts,
+geometry restructuring. Those are silent to the checker.
 
-The first drift table listed `port_length` (generators: `taper_height + port_allowance`; lib:
-constant 82) as generator drift. It was the reverse. lib had flattened the rule to its value
-for the reference bottle (top dome 62 + 20 = 82), which silently broke it for any other bottle.
-`lib/params.scad` now defines `p_port_allowance() = 20` and
-`p_port_length() = p_top_dome_h() + p_port_allowance()`; the default value is unchanged so no
-geometry moved. The generators were already right and need no change here; when S-1…S-4 map
-form fields to `p_*()` names, the form's **top tapper** is `p_top_dome_h()` and the hidden
-`port_allowance` override is `p_port_allowance()`.
+---
 
-**Lesson for every item below:** "lib wins" means lib owns the *rule*. Before flattening a
-generator to a lib number, check whether the generator's formula is the rule lib should have
-had. Candidates to inspect the same way: the ballast `port_length`-dependent neck shoulder
-(same rule, now consistent) and the 6FC `port_length` override path.
+## 4. Standing procedure after a turtle_body release
 
-## The mechanism (S-5) — built 2026-09-08
+```bash
+# in ../turtle_body
+git pull && python3 build/build.py            # refreshes build/params.json
 
-Three pieces, all in place:
+# in hopeTurtles.org
+npm run generator:sync                        # vendor snapshot + bundles, run the checker
+git diff generator/turtle_body/              # read the contract change
+```
 
-1. **turtle_body: `build/export_params.py`.** Emits a throwaway `.scad` that `echo()`s every
-   `p_*()` function, renders it headless, parses the `ECHO:` lines, and writes
-   `build/params.json` (`{ "p_bottle_d": 82, ..., "version": "1.8.1" }`, source order). Hooked
-   into `build/build.py` (full build only) and therefore into `build/lint.py`'s `--check`, so a
-   stale snapshot fails CI. Self-skips when OpenSCAD is unavailable.
-2. **hopeTurtles.org: `generator/sync_from_turtle_body.py`.** Pure copy: `../turtle_body`'s
-   `build/params.json` → `generator/turtle_body/params.json`, the four wooden bundles
-   (`Turtle_Core_Ecojoiner_v1.scad`, `Turtle_Rear_Fin_v1.scad`,
-   `Turtle_Bottom_Ballast_Fin_v1.scad`, `Turtle_Sail_Apparatus_v1.scad`) →
-   `generator/turtle_body/scad/`, plus `generator/turtle_body/VERSION`. `--check` reports
-   staleness. Upstream path: `--turtle-body`, then `$TURTLE_BODY_DIR`, then `../turtle_body`.
-3. **hopeTurtles.org: `generator/check_params_sync.py`.** Loads the vendored `params.json` and
-   asserts every generator's shared-**input** default (39 rows across all four objects —
-   `slat_thickness`/`wood_thickness` ↔ `p_wood_t`, `cap_diameter` ↔ `p_bottle_cap_d`,
-   `screw_diameter`/`shaft_hole_diameter`/`MOUNT_HOLE_DIAMETER` ↔ `p_m6_clearance_d`, …) still
-   equals the upstream value it mirrors. Exit 1 + a diff table on any mismatch. Runs on the
-   committed snapshot alone, so it works without the sibling checkout; wired into
-   `npm run lint` (and `npm run generator:check`). `npm run generator:sync` does copy + check;
-   `npm run generator:sync-check` is the release gate (needs `../turtle_body`).
+Then, by change type:
 
-**After a turtle_body release:** `git pull && python3 build/build.py` in turtle_body, then
-`python3 generator/sync_from_turtle_body.py && python3 generator/check_params_sync.py` here,
-then review `git diff generator/turtle_body/`. The checker catches the input layer;
-`derive_dimensions()` (the 2D outline formulas) still needs a human check against the matching
-`generator/turtle_body/scad/*.scad` bundle. Deferred sub-item **S-5b**: switch the generators
-to *load* their DEFAULTS from `turtle_body/params.json` rather than carry literals the checker
-verifies — a de-duplication of authoring, not a drift-protection gap (the checker already
-enforces agreement).
+- **Value tweak** (a shared scalar moved, no formula/structure change): the
+  checker names the stale literals. Edit them (cite the `p_*()` name in a
+  comment), commit. Minutes.
+- **Structural change** (formula, part list, new hole, new part, joint change):
+  the checker stays green but you must **budget a propagation pass** — for each
+  affected generator:
+  1. Read the `VERSION.json` changelog entry and the `lib/<module>.scad` diff.
+  2. In the generator's object module, find all three copies of the changed
+     geometry (section 2) and update them consistently.
+  3. Verify:
+     - `generator/.venv/bin/python3 generator/generate_exports.py --json <payload> --dry-run`
+       → `"ok": true` for `6fc`, `fin`, `ballast`, `sails`;
+     - generated `.scad` customizer block == the matching
+       `generator/turtle_body/scad/*.scad` bundle at default inputs;
+     - manifest `derived` values == the `p_*()` snapshot and the `eco_*`/`rf_*`/`bl_*`
+       lib functions.
+  4. Record it in `SYNC_LOG.md`.
 
-## Work items, in order
+If a propagation pass is out of scope for the task at hand, append an `open`
+entry to `SYNC_LOG.md` and say so — never leave a `lib/` change unrecorded here.
+
+---
+
+## 5. What automatic structural propagation would take
+
+Goal: a `lib/` change to a part's *shape* (not just a dimension) reaches the
+generator's SCAD/SVG/DXF/PDF output without a hand-edit. This means collapsing
+copies 2 and 3 (section 2) so they are *derived from* copy 1, not re-authored.
+Four levels, increasing cost; each is independently shippable.
+
+### Level 0 — shared scalars (done: S-5)
+
+`params.json` + `check_params_sync.py`. A value change is a named checker failure
+plus a one-line edit.
+
+### Level 1 — generators *load* scalar defaults from the snapshot (S-5b)
+
+Replace each `DEFAULTS = { "wood_thickness": 12.0, ... }` and the named constants
+(`SCREW_SIDE_OFFSET`, `MOUNT_HOLE_DIAMETER`, `DEFAULT_PORT_ALLOWANCE_MM`, …) with
+reads from `generator/turtle_body/params.json` via a small
+`generator/turtle_params.py` loader (`p("p_wood_t")`).
+
+- **Effect:** value changes need *zero* generator edits after `sync`.
+- **Effort:** small (~½ day). One loader + ~30 call-site edits across 4 objects
+  and their reference scripts.
+- **Risk:** a wrong *key* (`p("p_fin_board_w")` where `p("p_wood_t")` was meant)
+  feeds a real upstream value into the wrong slot — silent. Mitigation: keep
+  `check_params_sync.py` as the mapping guard (it independently declares the same
+  form-field ↔ `p_*()` pairing), and have it read the loader's output so the two
+  can't diverge.
+- **Dependency:** none. Purely local.
+
+### Level 2 — generate the SCAD from the vendored bundle, not an embedded template
+
+turtle_body already ships self-contained `v1.0 SCADs/*.scad` bundles with a
+customizer block at the top. Replace each generator's embedded SCAD (copy 2)
+with: take `generator/turtle_body/scad/Turtle_<part>_v1.scad`, rewrite the
+customizer-block assignments to the user's inputs, set the `part=` selector,
+return it.
+
+- **Effect:** the SCAD output is upstream-current *by construction* — a new
+  module, a changed formula, a new part in the lib all appear with no edit.
+  Copy 2 is deleted.
+- **Effort:** medium (~1 day per generator). Per part: a form-input →
+  customizer-variable map (~10 names), customizer-block rewriting (regex on
+  `name = value;` lines — `back_fin_generator.py` / `generate_sails.py` already do
+  a cruder version of this), and `part=` / `assembly_view` handling so the
+  generator can ask for `layout` / `full_set` / one part.
+- **Risk:** brittle if the bundle's customizer block isn't cleanly parseable or
+  its variable names drift. Mitigation below.
+- **Dependency (turtle_body):** a **stable customizer contract** — every wooden
+  bundle exposes the same top-of-file block, one `name = value;` per line, names
+  that don't churn between releases. Worth adding a `build/lint.py` check upstream
+  that the customizer names for a bundle match a checked-in list. Small upstream
+  task; makes Level 2 safe.
+
+### Level 3 — derive the 2D carpenter files from the geometry, not a Python re-implementation
+
+Copy 3 (`derive_dimensions()` + `write_svg` / `write_dxf` / `write_pdf`) exists
+because the cut files need exact per-part outlines-with-holes, today re-derived
+in Python from the same formulas. To make these propagate, the 2D profile of
+each flat part has to come *from* the upstream geometry. Three ways, pick one:
+
+- **3a — OpenSCAD `projection()` per part.** For each part, CLI-render
+  `projection()` of its extruded 2D profile to DXF, convert DXF→SVG, lay out the
+  PDF from the DXF.
+  - *Pro:* outlines are exactly upstream; no Python geometry at all.
+  - *Con:* needs **OpenSCAD on the server** (currently avoided by design — see
+    the STL-export note in `CLAUDE.md`); a render per request; the PDF still needs
+    a separate annotation pass (dimension lines, labels, part names) that isn't in
+    a DXF.
+  - *Effort:* medium, but the server-dependency decision is the real gate.
+
+- **3b — a parts manifest emitted by the lib modules.** turtle_body's wooden
+  modules `echo()` a structured description of every flat part — outline polygon,
+  hole list, slot list, label, suggested layout — the same way `params.json` is
+  an `echo()` dump. `build/export_params.py` grows a sibling `export_parts.py` →
+  `build/parts.json`. The generator vendors it and renders SVG/DXF/PDF with **one
+  generic renderer** replacing the four hand-written ones.
+  - *Pro:* no OpenSCAD on the server; outlines are upstream-authored; 4 writers
+    collapse to 1; the manifest is diffable like `params.json`.
+  - *Con:* turtle_body must add and *maintain* the `echo()` part descriptions in
+    every wooden module (real ongoing upstream work), and the schema has to cover
+    arcs, chamfers and text placement, not just line segments.
+  - *Effort:* large. ~1 week upstream to describe all ~20 flat parts + schema;
+    ~1 week here for the generic renderer + PDF layout engine.
+  - *This is the recommended end state* — it removes copy 3 without a server
+    dependency and keeps geometry authorship in one place.
+
+- **3c — vendor pre-rendered reference files, scale per bottle.** turtle_body
+  commits SVG/DXF/PDF for the reference bottle; the generator scales them to the
+  user's bottle.
+  - *Pro:* cheapest server-side.
+  - *Con:* only correct if per-part adjustment is close to uniform scaling — it
+    is **not** (slot depths, hole insets, shoulder cuts don't scale with the
+    bottle diameter). Rejected for anything but a preview thumbnail.
+
+### Recommended sequence
+
+1. **Level 1 (S-5b)** — cheap, local, do any time.
+2. **Level 2** — high value (kills copy 2), needs the small upstream customizer
+   contract first.
+3. **Level 3b** — the end state (kills copy 3), needs sustained upstream buy-in;
+   only worth starting once parts change often enough to pay for it.
+
+### What none of this solves
+
+Form design (which inputs to collect), validation ranges and messages, PDF copy
+and i18n, job-slug / retention / rate-limit plumbing, and the front-end — all
+genuinely generator-side, all stay hand-maintained. A brand-new *kind* of part
+still needs a form field + (Level 3b) a manifest entry + renderer support.
+
+---
+
+## 6. Remaining backlog
 
 | Id | Item | Size | Status |
 |---|---|---|---|
-| S-1 | Rear fin | small (~1 h) | **Done 2026-09-08**, hand-fixed directly (S-5 not built first). |
-| S-2 | Ballast | medium (~½ day) | **Done 2026-09-08**, hand-fixed directly; also fixed a missing mount hole and a latent port_length/bottle_diameter conflation (see above). |
-| S-3 | Sails | medium | **Done 2026-09-08**, hand-fixed directly. Bottle-shape dimensions are real inputs, and SVG/DXF/PDF writers exist for all 7 part shapes — the form's fabrication toggles are un-restricted. |
-| S-4 | 6FC Ecojoiner | large (~2 days) | **Done 2026-09-08**, hand-fixed directly. `objects/six_fc.py` renamed `objects/ecojoiner_6fc.py`; cap 31, collar 34, port 82 × 82, Ø6.4 clearance. **Master John restored 2026-09-08 (turtle_body v1.8.1)** — its removal in this pass was wrong; the rule was lifted upstream (`eco_master_slot_depth()`) and the generator re-based on `0cb0de8^` keeping the param changes. Part list: Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12. See the "Corrected 2026-09-08" note above. object_type ("6fc"), job-slug prefix, and every other public identifier unchanged. |
-| S-5 | Mechanism | medium | **Done 2026-09-08.** `turtle_body/build/export_params.py` → `build/params.json` (hooked into `build/build.py` + `lint.py`); `generator/sync_from_turtle_body.py` vendors it + the 4 bundles into `generator/turtle_body/`; `generator/check_params_sync.py` (39 shared-input assertions) runs in `npm run lint`. See "The mechanism (S-5)" above. Negative-tested: injecting `cap 31→32` / `M6 6.4→4.5` into the snapshot makes the checker exit 1. Sub-item **S-5b** (generators *load* defaults from the snapshot instead of carrying checked literals) is deferred — authoring de-dup, not a protection gap. |
-| S-6 | Hygiene | small | **Partly done.** `bottom_fin_raw.py` deleted (folded into the S-2 fix). `common.DESIGN_VERSION` ("3.2") turned out to be the 6FC object's own revision marker, not a whole-suite version — left alone pending S-4, not tied to anything here. `claude_code_ecojoiner_backend_prompt_v3_2.md` still holds unique implementation detail (validation ranges, job-slug format) not fully folded into CLAUDE.md yet — not deleted. |
+| S-5b | Generators load scalar defaults from `turtle_body/params.json` (Level 1 above) | small | **Deferred.** Authoring de-dup, not a drift-protection gap — the checker already enforces agreement. |
+| S-6 | Hygiene | small | **Partly done.** `bottom_fin_raw.py` deleted (folded into S-2). `common.DESIGN_VERSION` ("3.2") is the 6FC object's own revision marker, not a suite version — left alone. `claude_code_ecojoiner_backend_prompt_v3_2.md` still holds unique detail (validation ranges, job-slug format) not folded into `CLAUDE.md` — not deleted. |
+| Level 2 | SCAD from the vendored bundle | ~1 day/generator + small upstream task | Not started. |
+| Level 3b | Lib-emitted parts manifest + one generic 2D renderer | ~2 weeks split upstream/here | Not started; recommended end state. |
 
-## Verification for any sync item
+---
 
-- `python3 generator/sync_from_turtle_body.py && python3 generator/check_params_sync.py`
-  (or `npm run generator:sync`) — the input layer, checked automatically.
-- `generator/.venv/bin/python3 generator/generate_exports.py --json <payload> --dry-run` for
-  every `object_type` (`6fc`, `fin`, `ballast`, `sails`) → `"ok": true`.
-- Compare the generated `.scad` against the matching `generator/turtle_body/scad/*.scad` bundle
-  at default inputs (the customizer values must be identical; ideally the geometry too).
-- Compare `derived` in the manifest against the `p_*()` values in `generator/turtle_body/params.json`
-  and the `rf_*` / `bl_*` / `eco_*` functions in the matching lib module — the `derive_dimensions()`
-  formula layer the checker does not cover.
-- Record the turtle_body version synced against in `SYNC_LOG.md`.
+## 7. History (S-1…S-5, all 2026-09-08)
+
+Fixed by hand, in order, against turtle_body v1.7.1 (S-5 not built first — a
+scope call). Full detail per item in `SYNC_LOG.md`.
+
+- **S-1 rear fin.** `shaft_hole_diameter` 6.0 → 6.4 (`p_m6_clearance_d()`).
+  `shaft_hole_from_front` 50 (fixed) → `None` = "derive via TB-07"
+  (`(2/3)(fin_board_w − 2t) − 25 + bottle_d` = 103 at defaults), still
+  overridable. `objects/back_fin.py` threads the resolved value through
+  `derive_dimensions()` and the writers.
+- **S-2 ballast.** Defaults 15/320/35 → 12/305/31; slat height `bh−ch+4.5t` →
+  `bh−ch+6t`. Two bugs found while doing it: (a) the standalone core slat had
+  **no M6 mount hole at all** — added, matching `bl_mount_hole_*()`; (b) the
+  shoulder-cut position read `port_length` instead of `bottle_diameter`/port
+  height (equal only at the reference bottle — a non-default taper would mis-cut).
+  `bottom_fin_raw.py` deleted.
+- **S-3 sails.** `sail_apparatus()` already accepted the bottle-shape params;
+  `build_scad()`'s `str.replace` wrapper only forwarded three of them — extended
+  to all seven, `SailsInputs`/`DEFAULTS` and `mapSailsFields` now carry them.
+  **Plus** SVG/DXF/PDF writers built from scratch for all 7 shapes, every outline
+  verified against real OpenSCAD bounding boxes; `write_pdf()` uses a 3-row
+  independent-scale layout; fabrication toggles un-restricted.
+- **S-4 6FC.** Re-based on `lib/ecojoiner.scad`: `cap_diameter` 32→31,
+  `collar_diameter` 32→34, `port_height` 85→82, `screw_diameter` 4.5→6.4.
+  `objects/six_fc.py` → `objects/ecojoiner_6fc.py` (internal only; `object_type`,
+  job-slug prefix and public API unchanged). **Master John:** removed here, then
+  **restored** when turtle_body v1.8.1 lifted the rule upstream
+  (`eco_master_slot_depth()` = `min(floor(port_height/2), floor(john_height·0.6))`,
+  34 vs standard 29) — removing it had been the one wrong call in the pass. Part
+  list: Long ×6 + Little ×5 + Master ×1 + Final Key ×4 + Presser ×12.
+- **S-5 mechanism.** Section 3. Also nudged the 6FC `taper_height` default 60→62
+  to match `p_top_dome_h()` and sails (now checker-enforced).
+
+**Not drift — `port_length` (v1.7.2).** The first assessment listed it as
+generator drift; it was the reverse. `lib/params.scad` had `p_port_length()`
+flattened to the constant 82; it was corrected to
+`p_top_dome_h() + p_port_allowance()`, matching the generators' rule. Default
+value unchanged, no geometry moved. This is the precedent for the "lib owns the
+rule" nuance in section 1.

@@ -51,7 +51,11 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'non_sail_batten', part: 'Non-sail Batten', quantity: 2 },
     { key: 'bottom_sail_bar', part: 'Bottom Sail Bar', quantity: 2 },
     { key: 'joint_strengthener', part: 'Joint Strengthener', quantity: 2 },
-    { key: 'c_end_piece', part: 'C End Piece', quantity: 2 },
+    { key: 'c_end_piece', part: 'C End Piece', quantity: 2 }
+  ],
+  sail_cutout: [
+    // One shape, cut twice — the second sail is the same outline rotated
+    // 180deg in-plane, not a mirror (see generator/objects/sail_cutout.py).
     { key: 'sail', part: 'Sail', quantity: 2 }
   ]
 };
@@ -104,7 +108,8 @@ const toNumber = (value) => {
 const FIELD_MAPPERS = {
   fin: (body) => mapBackFinFields(body),
   ballast: (body) => mapBallastFields(body),
-  sails: (body) => mapSailsFields(body)
+  sails: (body) => mapSailsFields(body),
+  sail_cutout: (body) => mapSailCutoutFields(body)
 };
 
 export const mapFormFields = (body = {}) =>
@@ -438,6 +443,77 @@ const mapSailsFields = (body = {}) => {
     context: {
       material: body.material ? String(body.material) : null,
       ecojoinerType: 'sails'
+    },
+    notices: []
+  };
+};
+
+// Sail Cutout: the flat 1:1 sail-membrane pattern (PDF/SVG only — it isn't a
+// sawn wooden part, so it doesn't offer the 3D/CNC formats). Same required
+// bottle/board fields as the Sail Frame object above (they feed the same
+// derivation chain in generator/objects/sails.py, which
+// generator/objects/sail_cutout.py delegates to for the trapezoid's corner
+// radii/height — see that module's docstring).
+const mapSailCutoutFields = (body = {}) => {
+  const errors = [];
+
+  const required = {
+    brand: body.brand,
+    diameter: body.diameter,
+    cap: body.cap,
+    collar: body.collar,
+    thickness: body.thickness,
+    height: body.height,
+    capHeight: body.capHeight,
+    topTapper: body.topTapper,
+    bottomTapper: body.bottomTapper
+  };
+
+  const brand = String(required.brand ?? '').trim();
+  if (!brand) errors.push('Please tell us the bottle brand.');
+  if (brand.length > 60) errors.push('Bottle brand must be 60 characters or fewer.');
+
+  const numbers = {};
+  for (const key of ['diameter', 'cap', 'collar', 'thickness', 'height', 'capHeight', 'topTapper', 'bottomTapper']) {
+    const parsed = toNumber(required[key]);
+    if (parsed === null) {
+      errors.push(`Missing value: ${key}.`);
+    } else if (Number.isNaN(parsed)) {
+      errors.push(`${key} must be a number.`);
+    } else {
+      numbers[key] = parsed;
+    }
+  }
+
+  // Fabrication checkboxes → generator formats. Only PDF/SVG are meaningful
+  // here (no SCAD/DXF — see generator/objects/sail_cutout.py::SUPPORTED_FORMATS),
+  // so fab3d/fabDxf are ignored rather than surfaced as a silent no-op file.
+  const formats = new Set();
+  if (isTruthy(body.fabCarpentry)) formats.add('pdf');
+  if (isTruthy(body.fabSvg)) formats.add('svg');
+  if (!formats.size) errors.push('Choose at least one fabrication format.');
+
+  if (errors.length) {
+    throw new EcojoinerRequestError('Please check the form values.', errors);
+  }
+
+  return {
+    inputs: {
+      object_type: 'sail_cutout',
+      bottle_brand: brand,
+      bottle_diameter: numbers.diameter,
+      cap_diameter: numbers.cap,
+      collar_diameter: numbers.collar,
+      wood_thickness: numbers.thickness,
+      bottle_height: numbers.height,
+      cap_height: numbers.capHeight,
+      top_dome_height: numbers.topTapper,
+      bottom_dome_height: numbers.bottomTapper,
+      formats: Array.from(formats)
+    },
+    context: {
+      material: body.material ? String(body.material) : null,
+      ecojoinerType: 'sail_cutout'
     },
     notices: []
   };

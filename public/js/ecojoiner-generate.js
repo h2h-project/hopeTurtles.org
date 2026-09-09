@@ -411,6 +411,16 @@
   const typeCards = Array.from(form.querySelectorAll(".eco-type-card"));
   const finSolarPanel = form.querySelector('[data-panel="fin-solar"]');
 
+  // The Sail Cutout export is PDF/SVG only (a fabric pattern, not a sawn
+  // wooden part - see generator/objects/sail_cutout.py::SUPPORTED_FORMATS),
+  // so the 3D-source and CNC/laser fabrication options don't apply to it.
+  const unsupportedFabFormats = { sail_cutout: ["scad", "dxf"] };
+  const fabOptionsByFormat = {
+    scad: form.querySelector('[data-fab-format="scad"]'),
+    dxf: form.querySelector('[data-fab-format="dxf"]'),
+  };
+  const fabCheckboxByFormat = { scad: el("eco-fab-3d"), dxf: el("eco-fab-dxf") };
+
   typeCards.forEach((card) => {
     card.addEventListener("click", () => {
       if (card.dataset.available !== "true") {
@@ -428,6 +438,13 @@
         const isFin = card.dataset.type === "fin";
         finSolarPanel.hidden = !isFin;
         if (isFin) finSolarPanel.open = true;
+      }
+      const hiddenFormats = unsupportedFabFormats[card.dataset.type] || [];
+      for (const [format, option] of Object.entries(fabOptionsByFormat)) {
+        if (!option) continue;
+        const hide = hiddenFormats.includes(format);
+        option.hidden = hide;
+        if (hide && fabCheckboxByFormat[format]) fabCheckboxByFormat[format].checked = false;
       }
     });
   });
@@ -640,6 +657,11 @@
               s("gen_dim_sails_cage_holes"),
               `Ø${mm(d.cage_mount_hole_diameter)} @ ${mm(d.cage_mount_upper_from_batten_top)} / ${mm(d.cage_mount_lower_from_batten_top)}`,
             ],
+          ]
+        : data.object_type === "sail_cutout"
+        ? [
+            [s("gen_dim_sail_cutout_size"), `${mm(d.width_mm)} × ${mm(d.height_mm)}`],
+            [s("gen_dim_sail_cutout_tab"), mm(d.tab_height)],
           ]
         : data.object_type === "ballast"
         ? [

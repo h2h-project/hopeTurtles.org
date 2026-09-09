@@ -182,6 +182,12 @@ module sail_apparatus(
     // SAILS
     // ============================================================
     sail_thickness = 0.1;
+    // Straight fold-over tab at each rail edge (top and bottom), for
+    // stapling the sail membrane to the rail. Height = board_width, so the
+    // tab folds flat onto the rail's stock thickness without protruding
+    // beyond the far face of the rail.
+    // Mirrors lib/sail_frame.scad in turtle_body (CLAUDE.md s19).
+    sail_tab_height = board_width;
 
     // ============================================================
     // MASTER REFERENCE
@@ -1037,14 +1043,19 @@ module sail_apparatus(
             "The sail rails leave no vertical space for the sail.");
 
         // Draw in X/Z, then extrude 0.1 mm symmetrically through Y.
+        // Straight tabs extend the trapezoid past each rail edge, square
+        // across that edge's full width, so the membrane can be folded
+        // over the rail and stapled. The sail stays one flat 2D shape.
         translate([0, sail_thickness / 2, 0])
             rotate([90, 0, 0])
                 linear_extrude(height = sail_thickness)
                     polygon(points = [
-                        [sail_inner_radius, sail_bottom_z],
+                        [sail_inner_radius, sail_bottom_z - sail_tab_height],
+                        [sail_bottom_outer_radius, sail_bottom_z - sail_tab_height],
                         [sail_bottom_outer_radius, sail_bottom_z],
                         [sail_top_outer_radius, sail_top_z],
-                        [sail_inner_radius, sail_top_z]
+                        [sail_top_outer_radius, sail_top_z + sail_tab_height],
+                        [sail_inner_radius, sail_top_z + sail_tab_height]
                     ]);
     }
 

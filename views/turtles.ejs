@@ -23,21 +23,56 @@
   <div class="layout">
     <section class="page-split">
       <div class="page-split__main">
-        <%# These paragraphs carry inline links and emphasis, so they render unescaped. %>
-        <p><%- t.eco_intro_p1 %></p>
-        <p><%- t.eco_intro_p2 %></p>
-        <p><%- t.eco_intro_p3 %></p>
-        <p><%- t.eco_intro_p4 %></p>
-        <p><%- t.eco_intro_p5 %></p>
-        <p><%- t.eco_intro_p6 %></p>
+        <%# These paragraphs carry inline links, so they render unescaped. %>
+        <h2><%= t.turtles_intro_title %></h2>
+        <p><%- t.turtles_intro_p1 %></p>
+        <p><%- t.turtles_intro_p2 %></p>
 
-        <aside class="ecojoiners-note">
-          <h2><%= t.eco_note_title %></h2>
-          <p><%= t.eco_note_body %></p>
-        </aside>
+        <h2><%= t.turtles_bottles_title %></h2>
+        <p><%- t.turtles_bottles_p1 %></p>
 
-        <h2><%= t.eco_build_title %></h2>
-        <p><%= t.eco_build_body %></p>
+        <h2><%= t.turtles_design_title %></h2>
+        <p><%- t.turtles_design_p1 %></p>
+        <p><%- t.turtles_design_p2 %></p>
+
+        <h2><%= t.turtles_core_title %></h2>
+        <p><%- t.turtles_core_p1 %></p>
+
+        <h2><%= t.turtles_components_title %></h2>
+        <p><%- t.turtles_components_p1 %></p>
+
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_body_title %></h3>
+          <p><%- t.turtles_component_body_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_body" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+          </a>
+        </div>
+
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_shell_title %></h3>
+          <p><%- t.turtles_component_shell_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_shells" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+          </a>
+        </div>
+
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_os_title %></h3>
+          <p><%- t.turtles_component_os_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/turtleOS" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+          </a>
+        </div>
+
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_site_title %></h3>
+          <p><%- t.turtles_component_site_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/hopeTurtles.org" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+          </a>
+        </div>
+
         <div class="ecojoiners-actions">
           <a class="button" href="/turtles/generate">
             <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.turtles_banner_cta || 'Generate Your Turtle' %>
@@ -46,6 +81,10 @@
       </div>
 
       <aside class="page-split__aside">
+        <figure class="about-figure">
+          <img src="/images/full_turtle-preview-777px.webp" alt="<%= t.turtles_figure_alt || 'A fully assembled Hope Turtle' %>" />
+        </figure>
+
         <div class="turtles-repos">
           <h2><%= t.turtles_repos_title || 'Open source repositories' %></h2>
           <div class="turtles-repos__links">
