@@ -5945,6 +5945,12 @@ body.ocean-bg {
   display: none;
 }
 
+/* Panel 6 (fabrication) — nudge the "Fabrication selected." status clear of
+   the toggle list above it. */
+[data-panel="fabrication"] .eco-feedback {
+  margin-top: 20px;
+}
+
 .eco-feedback i {
   margin-right: 0.15rem;
 }

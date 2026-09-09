@@ -420,7 +420,7 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             c.setFillColor(colors.HexColor("#777777"))
             c.drawString(
                 mmx(_A3_MARGIN_MM), mmx(_A3_MARGIN_MM) - 10,
-                f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. hopeturtles.org/turtles/generate "
+                f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate "
                 f"- Sail {_ceil_mm(d.width_mm)} x {_ceil_mm(d.height_mm)}mm incl. {_ceil_mm(d.tab_height)}mm tabs. Cut x2.",
             )
 

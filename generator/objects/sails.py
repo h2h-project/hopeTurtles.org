@@ -924,7 +924,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(draw_left, draw_bottom + 4, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. hopeturtles.org/ecojoiners/generate")
+    c.drawString(draw_left, draw_bottom + 4, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
 
     c.showPage()
     c.save()

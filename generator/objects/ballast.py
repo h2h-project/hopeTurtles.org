@@ -960,6 +960,10 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
     _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
+    c.setFont(body_font, 6)
+    c.setFillColor(colors.HexColor("#555555"))
+    c.drawString(margin, 16, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
+
     c.showPage()
     c.save()
 

@@ -1303,19 +1303,23 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
     )
 
-    # Credit box, sized to hug its two lines of text rather than leaving a
+    # Credit box, sized to hug its three lines of text rather than leaving a
     # tall band of empty space below them (the box used to be 44pt tall for
-    # ~20pt of actual text).
-    credit_h = 32
-    credit_line2_y = 15
-    credit_line1_y = credit_line2_y + 11
+    # ~20pt of actual text). Keeps the same top edge (y=40) as the old
+    # two-line box — the third line (the generator URL) is squeezed in at a
+    # slightly smaller leading.
+    credit_h = 34
+    credit_line3_y = 8
+    credit_line2_y = credit_line3_y + 10
+    credit_line1_y = credit_line2_y + 10
     c.setStrokeColor(colors.HexColor("#aaaaaa"))
     c.setFillColor(colors.HexColor("#f8f8f8"))
-    c.roundRect(margin, 8, page_w - 2 * margin, credit_h, 5, fill=1, stroke=1)
+    c.roundRect(margin, 6, page_w - 2 * margin, credit_h, 5, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#222222"))
-    c.setFont(body_font, 6.5)
+    c.setFont(body_font, 6)
     c.drawString(margin + 8, credit_line1_y, T(lang, "license_statement"))
     c.drawString(margin + 8, credit_line2_y, T(lang, "version_credit", version=DESIGN_VERSION))
+    c.drawString(margin + 8, credit_line3_y, "https://hopeturtles.org/turtles/generate")
 
     c.showPage()
     c.save()

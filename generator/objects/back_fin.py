@@ -495,20 +495,26 @@ def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
 def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
     hole_x = d.shaft_hole_from_front
     hole_y = inputs.shaft_width / 2
+    n_u0 = d.shaft_notch_u0
+    n_w = d.shaft_notch_width
+    n_h = d.shaft_notch_height
+    n_v0 = d.shaft_notch_v0
     dims = [
+        # M6 hole position, measured from the shaft's front edge.
         (
             (0, inputs.shaft_width + 14), (hole_x, inputs.shaft_width + 14),
             f"{_ceil_mm(hole_x)}mm",
             {"ext1": (0, inputs.shaft_width), "ext2": (hole_x, inputs.shaft_width), "rotate_label": True},
         ),
+        # How far the rear half-lap notch reaches in from the back edge.
         (
-            (d.shaft_notch_u0, -6), (d.shaft_length, -6),
-            f"{_ceil_mm(d.shaft_notch_width)}mm", {"ext1": (d.shaft_notch_u0, 0), "ext2": (d.shaft_length, 0)},
+            (n_u0, -6), (d.shaft_length, -6),
+            f"{_ceil_mm(n_w)}mm deep", {"ext1": (n_u0, 0), "ext2": (d.shaft_length, 0)},
         ),
     ]
     labels = [
         ((hole_x, hole_y), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
-        ((d.shaft_notch_u0 + d.shaft_notch_width / 2, d.shaft_notch_v0 + d.shaft_notch_height / 2), f"{_ceil_mm(d.shaft_notch_height)}mm"),
+        ((n_u0 + n_w / 2, n_v0 + n_h / 2), f"{_ceil_mm(n_h)}mm wide"),
     ]
     return dims, labels
 
@@ -516,32 +522,81 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
 def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     upper, lower, solar = _fin_notches(inputs, d)
     dims = []
+    labels = []
+
+    # --- The two shaft slots, cut in from the fin's front (left) edge ---
+    # Existing callout: how deep each slot reaches into the fin.
     for nx, ny, nw, nh in (upper, lower):
         dims.append((
             (nx, ny - 6), (nx + nw, ny - 6),
-            f"{_ceil_mm(nw)}mm", {"ext1": (nx, ny), "ext2": (nx + nw, ny)},
+            f"{_ceil_mm(nw)}mm deep", {"ext1": (nx, ny), "ext2": (nx + nw, ny)},
         ))
-    nx, ny, nw, nh = solar
+        # The slot's opening (the "slot space") written on the slot itself.
+        labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
+
+    # Where those slots sit down the front edge: both centrelines measured
+    # from the fin's top edge (a clean reference edge, unlike the
+    # diagonal-cut bottom corner). Two parallel dimensions off the same
+    # datum rather than a chain, so no arrowheads collide. Drawn just
+    # inboard of the slot ends so the witness lines clear the overall-height
+    # dimension on the far left of the part.
+    slot_end = max(upper[0] + upper[2], lower[0] + lower[2])
+    lower_cy = lower[1] + lower[3] / 2
+    upper_cy = upper[1] + upper[3] / 2
     dims.append((
-        (nx + nw + 6, ny), (nx + nw + 6, ny + nh),
-        f"{_ceil_mm(nh)}mm",
-        {"ext1": (nx + nw, ny), "ext2": (nx + nw, ny + nh), "rotate_label": True},
+        (slot_end + 14, upper_cy), (slot_end + 14, d.fin_height),
+        f"{_ceil_mm(d.fin_height - upper_cy)}mm",
+        {"ext1": (slot_end, upper_cy), "ext2": (slot_end, d.fin_height), "rotate_label": True},
     ))
-    return dims, []
+    dims.append((
+        (slot_end + 30, lower_cy), (slot_end + 30, d.fin_height),
+        f"{_ceil_mm(d.fin_height - lower_cy)}mm",
+        {"ext1": (slot_end, lower_cy), "ext2": (slot_end, d.fin_height), "rotate_label": True},
+    ))
+
+    # --- Solar-panel-holder slot, cut in from the fin's top edge ---
+    nx, ny, nw, nh = solar
+    # How far down into the fin it reaches - dimensioned on the slot's left,
+    # into solid material, to keep clear of the crowded rear corner.
+    dims.append((
+        (nx - 5, ny), (nx - 5, ny + nh),
+        f"{_ceil_mm(nh)}mm deep",
+        {"ext1": (nx, ny), "ext2": (nx, ny + nh), "rotate_label": True},
+    ))
+    # Where it sits along the top edge: distance in from the fin's rear
+    # (right) edge.
+    dims.append((
+        (nx, ny - 10), (d.fin_width, ny - 10),
+        f"{_ceil_mm(d.fin_width - nx)}mm from rear",
+        {"ext1": (nx, ny), "ext2": (d.fin_width, ny)},
+    ))
+    # The slot's own width, on the slot itself.
+    labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nw)}mm"))
+
+    return dims, labels
 
 
 def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
     nx = (d.solar_holder_length - d.solar_slot_width) / 2
+    nw = d.solar_slot_width
     nh = d.solar_slot_depth + inputs.solar_slot_clearance / 2
     dims = [
+        # How deep the panel slot is cut up from the bottom edge.
         (
-            (nx + d.solar_slot_width + 4, 0), (nx + d.solar_slot_width + 4, nh),
-            f"{_ceil_mm(nh)}mm",
-            {"ext1": (nx + d.solar_slot_width, 0), "ext2": (nx + d.solar_slot_width, nh), "rotate_label": True},
+            (nx + nw + 4, 0), (nx + nw + 4, nh),
+            f"{_ceil_mm(nh)}mm deep",
+            {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh), "rotate_label": True},
+        ),
+        # Where the (centred) slot starts, measured in from the holder's end.
+        (
+            (0, -7), (nx, -7),
+            f"{_ceil_mm(nx)}mm", {"ext1": (0, 0), "ext2": (nx, 0)},
         ),
     ]
     labels = [
         ((d.solar_chamfer * 0.32, d.solar_chamfer * 0.32), f"{_ceil_mm(d.solar_chamfer)}mm"),
+        # The slot's width (the "slot space"), written on the slot itself.
+        ((nx + nw / 2, min(nh, 14) / 2), f"{_ceil_mm(nw)}mm wide"),
     ]
     return dims, labels
 
@@ -775,6 +830,10 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     input_box_y = derived_box_y + box_h + box_gap
     _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
     _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
+
+    c.setFont(body_font, 6)
+    c.setFillColor(colors.HexColor("#555555"))
+    c.drawString(margin, 16, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
 
     c.showPage()
     c.save()
