@@ -34,9 +34,10 @@
         <h2><%= t.turtles_design_title %></h2>
         <p><%- t.turtles_design_p1 %></p>
         <p><%- t.turtles_design_p2 %></p>
-
-        <h2><%= t.turtles_core_title %></h2>
-        <p><%- t.turtles_core_p1 %></p>
+        <p><%- t.turtles_design_p3 %></p>
+        <p><%- t.turtles_design_p4 %></p>
+        <p><%- t.turtles_design_p5 %></p>
+        <p><%- t.turtles_design_p6 %></p>
 
         <h2><%= t.turtles_components_title %></h2>
         <p><%- t.turtles_components_p1 %></p>
@@ -81,29 +82,40 @@
       </div>
 
       <aside class="page-split__aside">
-        <figure class="about-figure">
-          <img src="/images/full_turtle-preview-777px.webp" alt="<%= t.turtles_figure_alt || 'A fully assembled Hope Turtle' %>" />
-        </figure>
-
-        <div class="turtles-repos">
-          <h2><%= t.turtles_repos_title || 'Open source repositories' %></h2>
-          <div class="turtles-repos__links">
+        <div class="turtles-repo-panels">
+          <div class="turtles-repo-panel">
+            <img src="/images/repo--turtleos-preview.webp" alt="<%= t.turtles_repo_turtleos || 'TurtleOS' %>" loading="lazy" />
+            <h3><%= t.turtles_repo_turtleos || 'TurtleOS' %></h3>
+            <p><%= t.turtles_repo_panel_os_desc %></p>
             <a class="button ghost" href="https://github.com/h2h-project/turtleOS" target="_blank" rel="noopener noreferrer">
-              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtleos || 'TurtleOS' %>
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
             </a>
+          </div>
+
+          <div class="turtles-repo-panel">
+            <img src="/images/repo--shell-preview.webp" alt="<%= t.turtles_repo_turtle_shells || 'Turtle_Shells' %>" loading="lazy" />
+            <h3><%= t.turtles_repo_turtle_shells || 'Turtle_Shells' %></h3>
+            <p><%= t.turtles_repo_panel_shell_desc %></p>
             <a class="button ghost" href="https://github.com/h2h-project/turtle_shells" target="_blank" rel="noopener noreferrer">
-              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtle_shells || 'Turtle_Shells' %>
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
             </a>
+          </div>
+
+          <div class="turtles-repo-panel">
+            <img src="/images/repo--body-preview.webp" alt="<%= t.turtles_repo_turtle_body || 'Turtle_body' %>" loading="lazy" />
+            <h3><%= t.turtles_repo_turtle_body || 'Turtle_body' %></h3>
+            <p><%= t.turtles_repo_panel_body_desc %></p>
             <a class="button ghost" href="https://github.com/h2h-project/turtle_body" target="_blank" rel="noopener noreferrer">
-              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_turtle_body || 'Turtle_body' %>
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
             </a>
           </div>
         </div>
 
         <div class="about-materials-card">
-          <h2><%= t.about_materials_title %></h2>
           <canvas id="about-materials-chart" role="img" aria-label="<%= t.about_materials_title %>"></canvas>
-          <p class="about-materials-card__caption"><%= t.about_materials_caption %></p>
+          <h2><%= t.about_materials_title %></h2>
+          <%# This caption carries an inline link, so it renders unescaped. %>
+          <p class="about-materials-card__caption"><%- t.about_materials_caption %></p>
         </div>
         <% const materialsBreakdown = [
           { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },

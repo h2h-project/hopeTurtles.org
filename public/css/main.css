@@ -4983,6 +4983,42 @@ label.ht-toggle {
   line-height: 1.6;
 }
 
+.turtles-repo-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.turtles-repo-panel {
+  padding: 1.25rem;
+  border-radius: 1.2rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.turtles-repo-panel img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.9rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.turtles-repo-panel h3 {
+  margin: 0 0 0.5rem;
+}
+
+.turtles-repo-panel p {
+  margin: 0 0 1rem;
+  line-height: 1.6;
+}
+
+.turtles-repo-panel .button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .about-figure {
   margin: 0;
 }

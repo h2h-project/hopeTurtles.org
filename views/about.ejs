@@ -57,7 +57,8 @@
         <div class="about-materials-card">
           <h2><%= t.about_materials_title %></h2>
           <canvas id="about-materials-chart" role="img" aria-label="<%= t.about_materials_title %>"></canvas>
-          <p class="about-materials-card__caption"><%= t.about_materials_caption %></p>
+          <%# This caption carries an inline link, so it renders unescaped. %>
+          <p class="about-materials-card__caption"><%- t.about_materials_caption %></p>
         </div>
         <% const materialsBreakdown = [
           { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },
