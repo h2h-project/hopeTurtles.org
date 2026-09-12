@@ -42,7 +42,7 @@
     return;
   }
 
-  const colors = ['#017919', '#8a5a2b', '#8c8c8c', '#f2b705', '#3b6fb0', '#c0392b'];
+  const colors = ['#8a5a2b', '#017919', '#8c8c8c', '#c0392b', '#d9d9d9'];
 
   new Chart(canvas.getContext('2d'), {
     type: 'pie',
@@ -61,7 +61,7 @@
       responsive: true,
       plugins: {
         legend: {
-          position: 'bottom',
+          display: false,
         },
         tooltip: {
           callbacks: {

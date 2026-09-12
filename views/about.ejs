@@ -61,12 +61,11 @@
           <p class="about-materials-card__caption"><%- t.about_materials_caption %></p>
         </div>
         <% const materialsBreakdown = [
-          { key: 'food', pct: 83, label: t.about_material_food, examples: t.about_material_food_examples },
-          { key: 'wood', pct: 9, label: t.about_material_wood, examples: t.about_material_wood_examples },
-          { key: 'metal', pct: 2, label: t.about_material_metal, examples: t.about_material_metal_examples },
-          { key: 'lithium', pct: 3, label: t.about_material_lithium, examples: t.about_material_lithium_examples },
-          { key: 'plastic', pct: 2, label: t.about_material_plastic, examples: t.about_material_plastic_examples },
-          { key: 'misc', pct: 1, label: t.about_material_misc, examples: t.about_material_misc_examples }
+          { key: 'wood', pct: 10, label: t.about_material_wood, examples: t.about_material_wood_examples },
+          { key: 'food', pct: 82, label: t.about_material_food, examples: t.about_material_food_examples },
+          { key: 'metal', pct: 4, label: t.about_material_metal, examples: t.about_material_metal_examples },
+          { key: 'plastic', pct: 3, label: t.about_material_plastic, examples: t.about_material_plastic_examples },
+          { key: 'silicone', pct: 1, label: t.about_material_silicone, examples: t.about_material_silicone_examples }
         ]; %>
         <%# `<` is escaped so a string containing markup cannot close this tag early. %>
         <script id="about-materials-data" type="application/json"><%- JSON.stringify(materialsBreakdown).replace(/</g, '\\u003c') %></script>

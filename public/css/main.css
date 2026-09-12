@@ -3040,9 +3040,9 @@ body.mobile-menu-open {
   gap: 0.45rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  background: rgba(1, 121, 25, 0.16);
-  color: var(--color-primary);
-  border: 1px solid rgba(1, 121, 25, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
   text-decoration: none;
   font-weight: 700;
 }
@@ -3054,9 +3054,9 @@ body.mobile-menu-open {
 }
 
 [data-theme="dark"] #wcb_a {
-  background: rgba(35, 176, 83, 0.2);
-  color: #c0e3cb;
-  border-color: rgba(192, 227, 203, 0.35);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .footer-grid {
@@ -4764,6 +4764,20 @@ label.ht-toggle {
   font-size: 1.05rem;
 }
 
+.page-banner__cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.page-banner__hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+}
+
 .turtleos-page .page-banner__actions {
   flex-direction: column;
   align-items: flex-start;
@@ -4943,7 +4957,7 @@ label.ht-toggle {
 
 .about-materials-card h2 {
   margin: 0 0 1rem;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   text-align: center;
 }
 
@@ -5007,6 +5021,7 @@ label.ht-toggle {
 
 .turtles-repo-panel h3 {
   margin: 0 0 0.5rem;
+  font-size: 1.15rem;
 }
 
 .turtles-repo-panel p {
