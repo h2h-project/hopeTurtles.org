@@ -511,6 +511,15 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
             (n_u0, -6), (d.shaft_length, -6),
             f"{_ceil_mm(n_w)}mm deep", {"ext1": (n_u0, 0), "ext2": (d.shaft_length, 0)},
         ),
+        # The hole's position across the shaft's width - it's drilled dead
+        # centre, so this is the same as half the shaft width, but a
+        # carpenter needs that called out at the hole rather than having to
+        # infer it from the width dimension elsewhere on the sheet.
+        (
+            (hole_x + 10, 0), (hole_x + 10, hole_y),
+            f"{_ceil_mm(hole_y)}mm",
+            {"ext1": (hole_x, 0), "ext2": (hole_x, hole_y)},
+        ),
     ]
     labels = [
         ((hole_x, hole_y), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
@@ -533,6 +542,16 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
         ))
         # The slot's opening (the "slot space") written on the slot itself.
         labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
+
+    # --- Bottom corner diagonal cut ---
+    # Where the diagonal meets the bottom edge, measured on to the fin's
+    # rear (right) edge - the flat run a carpenter cuts after the angled
+    # cut, not the angled cut's own length.
+    dims.append((
+        (d.fin_diagonal_run, -8), (d.fin_width, -8),
+        f"{_ceil_mm(d.fin_width - d.fin_diagonal_run)}mm",
+        {"ext1": (d.fin_diagonal_run, 0), "ext2": (d.fin_width, 0)},
+    ))
 
     # Where those slots sit down the front edge: both measured from the
     # fin's top edge (a clean reference edge, unlike the diagonal-cut bottom
