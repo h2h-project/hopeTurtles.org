@@ -534,24 +534,33 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
         # The slot's opening (the "slot space") written on the slot itself.
         labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
 
-    # Where those slots sit down the front edge: both centrelines measured
-    # from the fin's top edge (a clean reference edge, unlike the
-    # diagonal-cut bottom corner). Two parallel dimensions off the same
-    # datum rather than a chain, so no arrowheads collide. Drawn just
-    # inboard of the slot ends so the witness lines clear the overall-height
-    # dimension on the far left of the part.
+    # Where those slots sit down the front edge: both measured from the
+    # fin's top edge (a clean reference edge, unlike the diagonal-cut bottom
+    # corner) down to the *top* of each slot (not its centreline - the top
+    # edge is the reference a carpenter actually marks from). Two parallel
+    # dimensions off the same datum rather than a chain, so no arrowheads
+    # collide. Drawn just inboard of the slot ends so the witness lines
+    # clear the overall-height dimension on the far left of the part.
     slot_end = max(upper[0] + upper[2], lower[0] + lower[2])
-    lower_cy = lower[1] + lower[3] / 2
-    upper_cy = upper[1] + upper[3] / 2
+    lower_top = lower[1] + lower[3]
+    upper_top = upper[1] + upper[3]
     dims.append((
-        (slot_end + 14, upper_cy), (slot_end + 14, d.fin_height),
-        f"{_ceil_mm(d.fin_height - upper_cy)}mm",
-        {"ext1": (slot_end, upper_cy), "ext2": (slot_end, d.fin_height), "rotate_label": True},
+        (slot_end + 14, upper_top), (slot_end + 14, d.fin_height),
+        f"{_ceil_mm(d.fin_height - upper_top)}mm",
+        {"ext1": (slot_end, upper_top), "ext2": (slot_end, d.fin_height), "rotate_label": True},
     ))
+    # x offset kept clear of the solar slot's own "mm deep" dimension line
+    # (anchored at solar_dim_x below) - both are long vertical lines running
+    # up to fin_height, and if they land within a label-width of each other
+    # the solar slot's rotated label gets struck through by this line.
+    solar_dim_x = solar[0] - 5
+    lower_dim_x = slot_end + 30
+    if abs(lower_dim_x - solar_dim_x) < 20:
+        lower_dim_x = max(slot_end + 22, solar_dim_x - 20)
     dims.append((
-        (slot_end + 30, lower_cy), (slot_end + 30, d.fin_height),
-        f"{_ceil_mm(d.fin_height - lower_cy)}mm",
-        {"ext1": (slot_end, lower_cy), "ext2": (slot_end, d.fin_height), "rotate_label": True},
+        (lower_dim_x, lower_top), (lower_dim_x, d.fin_height),
+        f"{_ceil_mm(d.fin_height - lower_top)}mm",
+        {"ext1": (slot_end, lower_top), "ext2": (slot_end, d.fin_height), "rotate_label": True},
     ))
 
     # --- Solar-panel-holder slot, cut in from the fin's top edge ---
@@ -559,7 +568,7 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     # How far down into the fin it reaches - dimensioned on the slot's left,
     # into solid material, to keep clear of the crowded rear corner.
     dims.append((
-        (nx - 5, ny), (nx - 5, ny + nh),
+        (solar_dim_x, ny), (solar_dim_x, ny + nh),
         f"{_ceil_mm(nh)}mm deep",
         {"ext1": (nx, ny), "ext2": (nx, ny + nh), "rotate_label": True},
     ))
@@ -592,9 +601,20 @@ def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
             (0, -7), (nx, -7),
             f"{_ceil_mm(nx)}mm", {"ext1": (0, 0), "ext2": (nx, 0)},
         ),
+        # Where the 45-degree corner chamfer begins, measured along the
+        # holder's own horizontal (bottom) edge from the corner - not the
+        # chamfer's own diagonal length, which isn't what a carpenter marks
+        # before cutting it. rotate_label centers the text on the line
+        # itself (this part is drawn rotated in the PDF, so the line ends up
+        # vertical) instead of trying to fit it to one side, which would run
+        # off the page in this narrow rightmost column.
+        (
+            (0, -14), (d.solar_chamfer, -14),
+            f"{_ceil_mm(d.solar_chamfer)}mm",
+            {"ext1": (0, 0), "ext2": (d.solar_chamfer, 0), "rotate_label": True},
+        ),
     ]
     labels = [
-        ((d.solar_chamfer * 0.32, d.solar_chamfer * 0.32), f"{_ceil_mm(d.solar_chamfer)}mm"),
         # The slot's width (the "slot space"), written on the slot itself.
         ((nx + nw / 2, min(nh, 14) / 2), f"{_ceil_mm(nw)}mm wide"),
     ]
@@ -628,7 +648,6 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
-    c.drawString(margin, title_y - 28, "Bottle Holder Shaft and Solar Panel Holder are rotated 90deg here to fit the page.")
 
     # Drawing area: 3 columns sharing the page's full width, each part
     # scaled identically (see the shared `scale` computed below) so the
