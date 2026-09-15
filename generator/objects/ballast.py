@@ -647,6 +647,38 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.slot_depth)} x {_ceil_mm(d.slot_height)}mm",
             {"ext1": (0, d.slot_z0), "ext2": (d.slot_depth, d.slot_z0)},
         ),
+        # The slot's own width x height (above) doesn't say where along the
+        # slat it falls - this pins its vertical position, measured from the
+        # bottom edge like the slot geometry itself is defined. Shares the
+        # +6mm witness column with the mount-hole dimension below since the
+        # two never overlap in height (slot near the bottom, hole near top).
+        (
+            (d.slat_width + 6, 0), (d.slat_width + 6, d.slot_z0),
+            f"{_ceil_mm(d.slot_z0)}mm",
+            {"ext1": (d.slat_width, 0), "ext2": (d.slat_width, d.slot_z0), "rotate_label": True},
+        ),
+        # First (topmost) 45-degree shoulder cut: how far it bites in
+        # horizontally (the depth carpenters need to know to cut it), then
+        # where it starts and ends vertically, both measured from the
+        # bottom edge so they read the same way as the slot dimension above.
+        # The depth callout sits just below the cut, in the neck's own
+        # cut-away space, rather than above it where it would crowd the
+        # nearby M6 mount hole.
+        (
+            (0, d.upper_neck_start_z - 6), (d.shoulder_step, d.upper_neck_start_z - 6),
+            f"{_ceil_mm(d.shoulder_step)}mm deep",
+            {"ext1": (0, d.upper_diagonal_start_z), "ext2": (d.shoulder_step, d.upper_neck_start_z)},
+        ),
+        (
+            (d.slat_width + 16, 0), (d.slat_width + 16, d.upper_diagonal_start_z),
+            f"{_ceil_mm(d.upper_diagonal_start_z)}mm",
+            {"ext1": (0, 0), "ext2": (0, d.upper_diagonal_start_z), "rotate_label": True},
+        ),
+        (
+            (d.slat_width + 26, 0), (d.slat_width + 26, d.upper_neck_start_z),
+            f"{_ceil_mm(d.upper_neck_start_z)}mm",
+            {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.upper_neck_start_z), "rotate_label": True},
+        ),
         (
             (d.slat_width + 6, d.mount_hole_y), (d.slat_width + 6, d.slat_height),
             f"{_ceil_mm(d.mount_hole_from_top)}mm",
@@ -722,7 +754,8 @@ def _lock_annotations(d: BallastDerived):
 
 def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir: Optional[Path] = None) -> None:
     """One-page Letter portrait carpenter reference for the assembly's 4
-    part shapes.
+    part shapes, laid out in 3 columns: core slat, ballast-bottom board
+    stacked over the bottom ballast fin, and the ballast lock foot.
 
     The Ballast-Bottom Board and Bottom Ballast Fin are long, thin parts, so
     they're rotated 90 degrees for this reference drawing (their SVG/DXF
@@ -748,21 +781,27 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
-    c.drawString(margin, title_y - 28, "Ballast-Bottom Board and Bottom Ballast Fin are rotated 90deg here to fit the page.")
 
-    # Drawing area: 4 columns sharing the page's full width, each part
-    # scaled identically (see the shared `scale` computed below) so the
-    # parts stay size-comparable to each other. Diagrams hang from a shared
-    # top line rather than a shared baseline, since the smallest part (the
-    # ballast lock foot, rightmost) then leaves open space at the bottom of
-    # its own column for the input/derived-dimension boxes.
+    # Drawing area: 3 columns sharing the page's full width - core slat,
+    # then the ballast-bottom board stacked over the bottom ballast fin,
+    # then the ballast lock foot - each part scaled identically (see the
+    # shared `scale` computed below) so they stay size-comparable to each
+    # other. Columns 1 and 2 hang their top diagram from a shared line below
+    # the title; column 3 (the lock foot, the smallest of the 4 shapes) has
+    # no diagram sharing its column, so it doesn't need that headroom
+    # cleared and instead runs the full page length, leaving room at its own
+    # bottom for the derived-dimensions box. The input-variables box lives
+    # at the bottom of column 2, below the stacked board/fin diagrams.
     draw_left = margin
     draw_right = page_w - margin
-    draw_top = title_y - 44
+    draw_top = title_y - 30
     draw_bottom = 40
     diagram_top = draw_top - 20
-    dim_line_reserve = 26  # room below each shape for its width dimension line
-    avail_h = diagram_top - draw_bottom - dim_line_reserve
+    full_diagram_top = page_h - margin - 20
+    bottom_dim_reserve = 26  # room below a diagram for its width dimension line
+    row_gap = 46  # between stacked column-2 diagrams: one's bottom dim line + the next's top label
+    avail_h = diagram_top - draw_bottom
+    full_avail_h = full_diagram_top - draw_bottom
 
     # Column padding: the height dimension label is drawn rotated, running
     # along its own line rather than written left-to-right beside it, so it
@@ -771,6 +810,8 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     col_left_pad = 20
     col_right_pad = 10
     col_gap = 10
+    box_gap = 10
+    box_h = 92
 
     yellow_edges, yellow_notches = _yellow_fin_edges_and_notches(d)
     slat_dims, slat_labels = _slat_annotations(d)
@@ -857,34 +898,34 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "labels": [(r(p), text) for p, text in part["labels"]],
         }
 
-    parts = [prepare(p) for p in parts_raw]
-    # Scale is chosen so the tallest part (by how much of avail_h its own
-    # height would need) fills the full available height - the core slat, in
-    # practice - rather than being capped by whichever part is widest, which
-    # left every part far short of the page's full vertical space. Columns
-    # are then sized to each part's actual drawn width at that scale (see
-    # the layout loop below) instead of fixed equal quarters, since the 4
-    # parts are no longer assumed to fit the same column width. A
-    # proportional-shrink fallback guards the (unusual) case where that
-    # would overflow the page's total width.
-    scale = min(avail_h / p["eff_h"] for p in parts)
-    total_w = sum(p["eff_w"] for p in parts) * scale + 4 * (col_left_pad + col_right_pad) + 3 * col_gap
+    slat, board, fin, lock = (prepare(p) for p in parts_raw)
+
+    # Shared scale: every column's content (its diagram(s), the label above
+    # each, a width-dimension line below each, and any bottom info box) has
+    # to fit within that column's own height budget. Column 1 (slat alone)
+    # and column 3 (lock foot alone, but with the full page length and its
+    # own derived-dimensions box to leave room for) are simple; column 2
+    # stacks the board and fin diagrams with the input-variables box below
+    # both. Taking the smallest resulting scale keeps all 4 shapes
+    # size-comparable to each other, exactly as the single `min()` did when
+    # every part had its own column.
+    col1_scale_cap = (avail_h - bottom_dim_reserve) / slat["eff_h"]
+    col2_scale_cap = (avail_h - row_gap - bottom_dim_reserve - box_gap - box_h) / (board["eff_h"] + fin["eff_h"])
+    col3_scale_cap = (full_avail_h - bottom_dim_reserve - box_gap - box_h) / lock["eff_h"]
+    scale = min(col1_scale_cap, col2_scale_cap, col3_scale_cap)
+
+    col2_eff_w = max(board["eff_w"], fin["eff_w"])
+    total_eff_w = slat["eff_w"] + col2_eff_w + lock["eff_w"]
+    total_w = total_eff_w * scale + 3 * (col_left_pad + col_right_pad) + 2 * col_gap
     avail_total_w = draw_right - draw_left
     if total_w > avail_total_w:
-        fixed_overhead = 4 * (col_left_pad + col_right_pad) + 3 * col_gap
-        scale = (avail_total_w - fixed_overhead) / sum(p["eff_w"] for p in parts)
+        fixed_overhead = 3 * (col_left_pad + col_right_pad) + 2 * col_gap
+        scale = (avail_total_w - fixed_overhead) / total_eff_w
 
-    lock_col_w = None
-    cursor = draw_left
-    for part in parts:
-        cx0 = cursor
-        ox = cx0 + col_left_pad
-        oy = diagram_top - part["eff_h"] * scale
-        col_w = part["eff_w"] * scale + col_left_pad + col_right_pad
-
+    def draw_part(part, ox, oy):
         c.setFont(title_font, 9)
         c.setFillColor(colors.HexColor("#222222"))
-        c.drawString(ox, draw_top - 10, part["name"])
+        c.drawString(ox, oy + part["eff_h"] * scale + 10, part["name"])
 
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
 
@@ -924,17 +965,49 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             c.setFillColor(colors.HexColor("#333333"))
             c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 
-        if part["name"] == "Ballast Lock Foot (x2)":
-            lock_col_w = col_w
+    # A column has to be at least as wide as its own part name label, not
+    # just its scaled diagram - the ballast lock foot in particular is tiny
+    # (a 5x wood-thickness square) next to how long "Ballast Lock Foot (x2)"
+    # renders at the label's font size, so its column would otherwise run
+    # the label off the page.
+    def label_w(part):
+        return c.stringWidth(part["name"], title_font, 9)
 
-        cursor += col_w + col_gap
+    col1_w = max(slat["eff_w"] * scale, label_w(slat)) + col_left_pad + col_right_pad
+    col2_w = max(col2_eff_w * scale, label_w(board), label_w(fin)) + col_left_pad + col_right_pad
+    col3_w = max(lock["eff_w"] * scale, label_w(lock)) + col_left_pad + col_right_pad
 
-    # The lock foot is always the smallest of the 4 parts (a 5x wood
-    # thickness square, vs. the other three which scale with bottle
-    # diameter/height), so its column has open space below its diagram -
-    # that's where the input and derived-dimension boxes live, stacked
-    # instead of side-by-side, anchored to the page's bottom-right corner
-    # rather than trailing the diagram.
+    # Stacking column 2 usually caps `scale` well below what columns 1 and 3
+    # alone would allow, so the 3 columns rarely fill the page's width on
+    # their own - any leftover is spread evenly between them instead of left
+    # as a dead gap on the right. This also pushes column 3 clear of the
+    # title text above it, since column 3 has no title headroom of its own
+    # to keep it out from under that text.
+    leftover = avail_total_w - (col1_w + col2_w + col3_w + 2 * col_gap)
+    gap = col_gap + max(leftover, 0) / 2
+
+    # Column 1 - core slat.
+    col1_x = draw_left
+    ox1 = col1_x + col_left_pad
+    oy1 = diagram_top - slat["eff_h"] * scale
+    draw_part(slat, ox1, oy1)
+
+    # Column 2 - ballast-bottom board stacked over the bottom ballast fin,
+    # with the input-variables box below both.
+    col2_x = col1_x + col1_w + gap
+    ox2 = col2_x + col_left_pad
+    oy_board = diagram_top - board["eff_h"] * scale
+    draw_part(board, ox2, oy_board)
+    oy_fin = oy_board - row_gap - fin["eff_h"] * scale
+    draw_part(fin, ox2, oy_fin)
+
+    # Column 3 - ballast lock foot, full page length (no title headroom to
+    # clear), with the derived-dimensions box below it.
+    col3_x = col2_x + col2_w + gap
+    ox3 = col3_x + col_left_pad
+    oy3 = full_diagram_top - lock["eff_h"] * scale
+    draw_part(lock, ox3, oy3)
+
     input_lines = [
         f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
         f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
@@ -951,14 +1024,15 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
         f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
-    box_gap = 10
-    box_h = 92
-    box_w = lock_col_w - col_right_pad
-    box_x = draw_right - box_w
+    input_box_w = col2_w - col_right_pad
+    input_box_x = col2_x
+    input_box_y = draw_bottom
+    _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, "Input variables", input_lines, title_font, body_font)
+
+    derived_box_w = col3_w - col_right_pad
+    derived_box_x = draw_right - derived_box_w
     derived_box_y = draw_bottom
-    input_box_y = derived_box_y + box_h + box_gap
-    _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
+    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
