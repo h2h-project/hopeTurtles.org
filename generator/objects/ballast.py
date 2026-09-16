@@ -649,11 +649,12 @@ def _slat_annotations(d: BallastDerived):
         ),
         # The slot's own width x height (above) doesn't say where along the
         # slat it falls - this pins its vertical position, measured from the
-        # bottom edge like the slot geometry itself is defined. Shares the
-        # +6mm witness column with the mount-hole dimension below since the
-        # two never overlap in height (slot near the bottom, hole near top).
+        # bottom edge like the slot geometry itself is defined. Drawn just
+        # inside the right edge (solid material for this whole z-range) so
+        # it isn't cut off by the shape's own outline or crowded out by
+        # whatever sits to the right of the part on the page.
         (
-            (d.slat_width + 6, 0), (d.slat_width + 6, d.slot_z0),
+            (d.slat_width - 6, 0), (d.slat_width - 6, d.slot_z0),
             f"{_ceil_mm(d.slot_z0)}mm",
             {"ext1": (d.slat_width, 0), "ext2": (d.slat_width, d.slot_z0), "rotate_label": True},
         ),
@@ -1029,12 +1030,23 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
         f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
-    input_box_w = col2_w - col_right_pad
-    input_box_x = col2_x
+    # Sized to fit their own text (not stretched to the full column width,
+    # which - for the input box in particular, sitting under the narrower
+    # board-only column 2 - ran past the column's own dimension lines on its
+    # left) and right-aligned within their column, matching _rounded_rect_text's
+    # own text inset (8pt each side).
+    def box_width(title, lines):
+        w = c.stringWidth(title, title_font, 8)
+        for line in lines:
+            w = max(w, c.stringWidth(line, body_font, 6.5))
+        return w + 16
+
+    input_box_w = box_width("Input variables", input_lines)
+    input_box_x = col2_x + col2_w - col_right_pad - input_box_w
     input_box_y = draw_bottom
     _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, "Input variables", input_lines, title_font, body_font)
 
-    derived_box_w = col3_w - col_right_pad
+    derived_box_w = box_width("Derived dimensions", derived_lines)
     derived_box_x = draw_right - derived_box_w
     derived_box_y = draw_bottom
     _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
