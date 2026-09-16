@@ -679,6 +679,14 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.upper_neck_start_z)}mm",
             {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.upper_neck_start_z), "rotate_label": True},
         ),
+        # Bottommost 45-degree cut (the neck's other end, returning to full
+        # width): where it begins vertically, same bottom-edge reference as
+        # every other slat dimension here.
+        (
+            (d.slat_width + 36, 0), (d.slat_width + 36, d.lower_neck_start_z),
+            f"{_ceil_mm(d.lower_neck_start_z)}mm",
+            {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.lower_neck_start_z), "rotate_label": True},
+        ),
         (
             (d.slat_width + 6, d.mount_hole_y), (d.slat_width + 6, d.slat_height),
             f"{_ceil_mm(d.mount_hole_from_top)}mm",
@@ -903,19 +911,18 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     # Shared scale: every column's content (its diagram(s), the label above
     # each, a width-dimension line below each, and any bottom info box) has
     # to fit within that column's own height budget. Column 1 (slat alone)
-    # and column 3 (lock foot alone, but with the full page length and its
-    # own derived-dimensions box to leave room for) are simple; column 2
-    # stacks the board and fin diagrams with the input-variables box below
-    # both. Taking the smallest resulting scale keeps all 4 shapes
-    # size-comparable to each other, exactly as the single `min()` did when
-    # every part had its own column.
+    # and column 2 (board alone, with the input-variables box below it) are
+    # simple; column 3 stacks the lock foot and fin diagrams - full page
+    # length, no title headroom to clear - with the derived-dimensions box
+    # below both. Taking the smallest resulting scale keeps all 4 shapes at
+    # one true, size-comparable scale across the whole page.
     col1_scale_cap = (avail_h - bottom_dim_reserve) / slat["eff_h"]
-    col2_scale_cap = (avail_h - row_gap - bottom_dim_reserve - box_gap - box_h) / (board["eff_h"] + fin["eff_h"])
-    col3_scale_cap = (full_avail_h - bottom_dim_reserve - box_gap - box_h) / lock["eff_h"]
+    col2_scale_cap = (avail_h - bottom_dim_reserve - box_gap - box_h) / board["eff_h"]
+    col3_scale_cap = (full_avail_h - row_gap - bottom_dim_reserve - box_gap - box_h) / (lock["eff_h"] + fin["eff_h"])
     scale = min(col1_scale_cap, col2_scale_cap, col3_scale_cap)
 
-    col2_eff_w = max(board["eff_w"], fin["eff_w"])
-    total_eff_w = slat["eff_w"] + col2_eff_w + lock["eff_w"]
+    col3_eff_w = max(lock["eff_w"], fin["eff_w"])
+    total_eff_w = slat["eff_w"] + board["eff_w"] + col3_eff_w
     total_w = total_eff_w * scale + 3 * (col_left_pad + col_right_pad) + 2 * col_gap
     avail_total_w = draw_right - draw_left
     if total_w > avail_total_w:
@@ -974,15 +981,13 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         return c.stringWidth(part["name"], title_font, 9)
 
     col1_w = max(slat["eff_w"] * scale, label_w(slat)) + col_left_pad + col_right_pad
-    col2_w = max(col2_eff_w * scale, label_w(board), label_w(fin)) + col_left_pad + col_right_pad
-    col3_w = max(lock["eff_w"] * scale, label_w(lock)) + col_left_pad + col_right_pad
+    col2_w = max(board["eff_w"] * scale, label_w(board)) + col_left_pad + col_right_pad
+    col3_w = max(col3_eff_w * scale, label_w(lock), label_w(fin)) + col_left_pad + col_right_pad
 
-    # Stacking column 2 usually caps `scale` well below what columns 1 and 3
+    # Stacking column 3 usually caps `scale` well below what columns 1 and 2
     # alone would allow, so the 3 columns rarely fill the page's width on
     # their own - any leftover is spread evenly between them instead of left
-    # as a dead gap on the right. This also pushes column 3 clear of the
-    # title text above it, since column 3 has no title headroom of its own
-    # to keep it out from under that text.
+    # as a dead gap on the right.
     leftover = avail_total_w - (col1_w + col2_w + col3_w + 2 * col_gap)
     gap = col_gap + max(leftover, 0) / 2
 
@@ -992,21 +997,21 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     oy1 = diagram_top - slat["eff_h"] * scale
     draw_part(slat, ox1, oy1)
 
-    # Column 2 - ballast-bottom board stacked over the bottom ballast fin,
-    # with the input-variables box below both.
+    # Column 2 - ballast-bottom board, with the input-variables box below it.
     col2_x = col1_x + col1_w + gap
     ox2 = col2_x + col_left_pad
     oy_board = diagram_top - board["eff_h"] * scale
     draw_part(board, ox2, oy_board)
-    oy_fin = oy_board - row_gap - fin["eff_h"] * scale
-    draw_part(fin, ox2, oy_fin)
 
-    # Column 3 - ballast lock foot, full page length (no title headroom to
-    # clear), with the derived-dimensions box below it.
+    # Column 3 - ballast lock foot stacked over the bottom ballast fin, full
+    # page length (no title headroom to clear), with the derived-dimensions
+    # box below both.
     col3_x = col2_x + col2_w + gap
     ox3 = col3_x + col_left_pad
-    oy3 = full_diagram_top - lock["eff_h"] * scale
-    draw_part(lock, ox3, oy3)
+    oy_lock = full_diagram_top - lock["eff_h"] * scale
+    draw_part(lock, ox3, oy_lock)
+    oy_fin = oy_lock - row_gap - fin["eff_h"] * scale
+    draw_part(fin, ox3, oy_fin)
 
     input_lines = [
         f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
