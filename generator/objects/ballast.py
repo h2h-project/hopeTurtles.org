@@ -677,6 +677,15 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.slat_height - d.upper_diagonal_start_z)}mm",
             {"ext1": (0, d.upper_diagonal_start_z), "ext2": (0, d.slat_height), "rotate_label": True},
         ),
+        # Bottommost 45-degree cut (the neck's other end, returning to full
+        # width): same shoulder-bite depth as the first cut, mirrored into
+        # the same neck cut-away void, just above where this cut starts
+        # rather than below where it ends.
+        (
+            (0, d.lower_neck_start_z + 6), (d.shoulder_step, d.lower_neck_start_z + 6),
+            f"{_ceil_mm(d.shoulder_step)}mm",
+            {"ext1": (0, d.lower_full_width_return_z), "ext2": (d.shoulder_step, d.lower_neck_start_z)},
+        ),
         # Top-to-hole-center distance, drawn inside the slat (like the slot
         # position dimension above) rather than outside, where it used to
         # crowd the page margin.
@@ -692,37 +701,47 @@ def _slat_annotations(d: BallastDerived):
             (d.shoulder_step + 8, (d.upper_diagonal_start_z + d.upper_neck_start_z) / 2),
             "45°",
         ),
+        (
+            (d.shoulder_step + 8, (d.lower_neck_start_z + d.lower_full_width_return_z) / 2),
+            "45°",
+        ),
     ]
     return dims, labels
 
 
 def _board_annotations(d: BallastDerived):
-    # Each notch's depth dimension runs parallel to the board's own front or
-    # rear edge - keeping its own line flush with that edge (as a naive
-    # depth-from-0 line would) puts one of its two ends right on top of the
-    # board's outline. Insetting the line by a few mm off that edge, with a
-    # witness line bridging back out to the true edge point, keeps the
-    # dimension entirely inside the board like every other inside-the-shape
-    # callout on this sheet.
+    # Each notch's depth dimension runs down the middle of the notch's own
+    # open band (rather than beside it), so the arrow and its label sit
+    # inside the slot like every other inside-the-shape callout on this
+    # sheet. Insetting both ends a few mm off the board's own edge and the
+    # notch's own inner end, with witness lines bridging back out to the
+    # true edge points, keeps the arrow off those two lines.
     inset = 4
     notches = _board_notches(d)
     sides = ["bottom", "bottom", "bottom", "top", "top"]
     dims = []
     for (nx, ny, nw, nh), side in zip(notches, sides):
+        mid = nx + nw / 2
         if side == "bottom":
             dims.append((
-                (nx + nw + 3, inset), (nx + nw + 3, nh - inset),
-                f"{_ceil_mm(nh)}mm", {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh)},
+                (mid, inset), (mid, nh - inset),
+                f"{_ceil_mm(nh)}mm", {"ext1": (mid, 0), "ext2": (mid, nh)},
             ))
         else:
             top = d.ballast_bottom_width
             dims.append((
-                (nx - 3, top - inset), (nx - 3, top - nh + inset),
-                f"{_ceil_mm(nh)}mm", {"ext1": (nx, top), "ext2": (nx, top - nh)},
+                (mid, top - inset), (mid, top - nh + inset),
+                f"{_ceil_mm(nh)}mm", {"ext1": (mid, top), "ext2": (mid, top - nh)},
             ))
     _, center_ny, center_nw, center_nh = notches[1]
     labels = [
-        ((d.center_slot_center, center_ny + min(center_nh, 14) / 2), f"{_ceil_mm(d.ballast_slot_width)}mm wide"),
+        # Offset off the depth-dimension line's own centerline (which now
+        # runs straight through the middle of this same notch) rather than
+        # sharing it, so the two labels don't collide.
+        (
+            (d.center_slot_center - d.ballast_slot_width / 2 + 2, center_ny + center_nh / 2),
+            f"{_ceil_mm(d.ballast_slot_width)}mm wide",
+        ),
     ]
     return dims, labels
 
