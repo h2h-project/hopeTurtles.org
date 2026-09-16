@@ -660,45 +660,43 @@ def _slat_annotations(d: BallastDerived):
         ),
         # First (topmost) 45-degree shoulder cut: how far it bites in
         # horizontally (the depth carpenters need to know to cut it), then
-        # where it starts and ends vertically, both measured from the
-        # bottom edge so they read the same way as the slot dimension above.
-        # The depth callout sits just below the cut, in the neck's own
-        # cut-away space, rather than above it where it would crowd the
-        # nearby M6 mount hole.
+        # where it starts, measured from the top edge (the reference a
+        # carpenter marks from) and drawn outside the shape. The depth
+        # callout sits just below the cut, in the neck's own cut-away space,
+        # rather than above it where it would crowd the nearby M6 mount
+        # hole. The cut's own angle is marked directly beside it so the
+        # bottom-edge-referenced end point (formerly a separate "265mm"
+        # dimension to the lower cut) is no longer needed.
         (
             (0, d.upper_neck_start_z - 6), (d.shoulder_step, d.upper_neck_start_z - 6),
-            f"{_ceil_mm(d.shoulder_step)}mm deep",
+            f"{_ceil_mm(d.shoulder_step)}mm",
             {"ext1": (0, d.upper_diagonal_start_z), "ext2": (d.shoulder_step, d.upper_neck_start_z)},
         ),
         (
-            (d.slat_width + 16, 0), (d.slat_width + 16, d.upper_diagonal_start_z),
-            f"{_ceil_mm(d.upper_diagonal_start_z)}mm",
-            {"ext1": (0, 0), "ext2": (0, d.upper_diagonal_start_z), "rotate_label": True},
+            (d.slat_width + 16, d.upper_diagonal_start_z), (d.slat_width + 16, d.slat_height),
+            f"{_ceil_mm(d.slat_height - d.upper_diagonal_start_z)}mm",
+            {"ext1": (0, d.upper_diagonal_start_z), "ext2": (0, d.slat_height), "rotate_label": True},
         ),
         (
             (d.slat_width + 26, 0), (d.slat_width + 26, d.upper_neck_start_z),
             f"{_ceil_mm(d.upper_neck_start_z)}mm",
             {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.upper_neck_start_z), "rotate_label": True},
         ),
-        # Bottommost 45-degree cut (the neck's other end, returning to full
-        # width): where it begins vertically, same bottom-edge reference as
-        # every other slat dimension here. Drawn inside the right-hand solid
-        # material (like the slot-position dimension below) rather than
-        # outside the shape, where it isn't cut off by the shape's own
-        # outline or whatever sits to the right of the part on the page.
+        # Top-to-hole-center distance, drawn inside the slat (like the slot
+        # position dimension above) rather than outside, where it used to
+        # crowd the page margin.
         (
-            (d.slat_width - 16, 0), (d.slat_width - 16, d.lower_neck_start_z),
-            f"{_ceil_mm(d.lower_neck_start_z)}mm",
-            {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.lower_neck_start_z), "rotate_label": True},
-        ),
-        (
-            (d.slat_width + 6, d.mount_hole_y), (d.slat_width + 6, d.slat_height),
+            (d.slat_width - 6, d.mount_hole_y), (d.slat_width - 6, d.slat_height),
             f"{_ceil_mm(d.mount_hole_from_top)}mm",
             {"ext1": (d.slat_width, d.mount_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
         ),
     ]
     labels = [
-        ((d.mount_hole_x, d.mount_hole_y), f"⌀{_ceil_mm(d.mount_hole_diameter)}"),
+        ((d.mount_hole_x, d.mount_hole_y), "M6"),
+        (
+            (d.shoulder_step + 8, (d.upper_diagonal_start_z + d.upper_neck_start_z) / 2),
+            "45°",
+        ),
     ]
     return dims, labels
 
