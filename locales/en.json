@@ -396,7 +396,7 @@
   "turtles_repo_button": "View on GitHub",
   "gen_page_title": "Generate Your Turtle Components — Hope Turtle Structure",
   "gen_hero_title": "Generate Your Turtle",
-  "gen_hero_blurb": "Use our system to generate custom 2D carpentry specs and 3D CNC and printer files for your bottle. This is a non-AI, 100% algorithmic generation of the turtle component geometry. The generated files will serve as a starting point for customizing your turtle components to the quirks of your bottle.",
+  "gen_hero_blurb": "Our hope turtles are made out of various components that are specific to the PET bottles that you choose for your project. Our Turtle Generator system lets you choose a turtle design (we only have the v1 at the moment!) then input your bottle's dimensions and generate the custom design files you will need to build it. Choose from 2D carpentry specs, 3D SCAD renders, CNC cutting files, to SVG 1:1 outlines. This is a non-AI, 100% algorithmic generation of the turtle component geometry. The generated files serve as a starting point for customizing your turtle's design to the quirks of your local bottle.",
   "gen_notice_title": "Yeay! We're adding all the various turtle components at the moment.",
   "gen_notice_body": "The work is still in progress. Bear with us if exports aren't quite ideal yet. 🙏",
   "gen_login_required_title": "Please log in to generate a turtle component",

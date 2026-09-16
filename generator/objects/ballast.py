@@ -677,11 +677,6 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.slat_height - d.upper_diagonal_start_z)}mm",
             {"ext1": (0, d.upper_diagonal_start_z), "ext2": (0, d.slat_height), "rotate_label": True},
         ),
-        (
-            (d.slat_width + 26, 0), (d.slat_width + 26, d.upper_neck_start_z),
-            f"{_ceil_mm(d.upper_neck_start_z)}mm",
-            {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.upper_neck_start_z), "rotate_label": True},
-        ),
         # Top-to-hole-center distance, drawn inside the slat (like the slot
         # position dimension above) rather than outside, where it used to
         # crowd the page margin.
@@ -716,13 +711,13 @@ def _board_annotations(d: BallastDerived):
     for (nx, ny, nw, nh), side in zip(notches, sides):
         if side == "bottom":
             dims.append((
-                (nx + nw + 3, inset), (nx + nw + 3, nh),
+                (nx + nw + 3, inset), (nx + nw + 3, nh - inset),
                 f"{_ceil_mm(nh)}mm", {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh)},
             ))
         else:
             top = d.ballast_bottom_width
             dims.append((
-                (nx - 3, top - inset), (nx - 3, top - nh),
+                (nx - 3, top - inset), (nx - 3, top - nh + inset),
                 f"{_ceil_mm(nh)}mm", {"ext1": (nx, top), "ext2": (nx, top - nh)},
             ))
     _, center_ny, center_nw, center_nh = notches[1]
@@ -739,17 +734,16 @@ def _yellow_fin_annotations(d: BallastDerived):
     dims = [
         # These end up as vertical lines once rotated into the page (fin
         # rotates for this reference sheet), with the label pushed to the
-        # "left" side specifically so it lands in open space rather than
-        # under the front chamfer's diagonal edge.
+        # "right" side so it lands in open space to the right of the slot.
         (
             (lx, ly - 4), (lx + lw, ly - 4),
             f"{_ceil_mm(lw)} x {_ceil_mm(lh)}mm",
-            {"ext1": (lx, ly), "ext2": (lx + lw, ly), "label_side": "left"},
+            {"ext1": (lx, ly), "ext2": (lx + lw, ly), "label_side": "right"},
         ),
         (
             (ux, uy - 14), (ux + uw, uy - 14),
             f"{_ceil_mm(uw)}mm",
-            {"ext1": (ux, uy), "ext2": (ux + uw, uy), "label_side": "left"},
+            {"ext1": (ux, uy), "ext2": (ux + uw, uy), "label_side": "right"},
         ),
     ]
     return dims, []
