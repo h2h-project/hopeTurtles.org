@@ -682,9 +682,12 @@ def _slat_annotations(d: BallastDerived):
         ),
         # Bottommost 45-degree cut (the neck's other end, returning to full
         # width): where it begins vertically, same bottom-edge reference as
-        # every other slat dimension here.
+        # every other slat dimension here. Drawn inside the right-hand solid
+        # material (like the slot-position dimension below) rather than
+        # outside the shape, where it isn't cut off by the shape's own
+        # outline or whatever sits to the right of the part on the page.
         (
-            (d.slat_width + 36, 0), (d.slat_width + 36, d.lower_neck_start_z),
+            (d.slat_width - 16, 0), (d.slat_width - 16, d.lower_neck_start_z),
             f"{_ceil_mm(d.lower_neck_start_z)}mm",
             {"ext1": (d.shoulder_step, 0), "ext2": (d.shoulder_step, d.lower_neck_start_z), "rotate_label": True},
         ),
@@ -701,19 +704,27 @@ def _slat_annotations(d: BallastDerived):
 
 
 def _board_annotations(d: BallastDerived):
+    # Each notch's depth dimension runs parallel to the board's own front or
+    # rear edge - keeping its own line flush with that edge (as a naive
+    # depth-from-0 line would) puts one of its two ends right on top of the
+    # board's outline. Insetting the line by a few mm off that edge, with a
+    # witness line bridging back out to the true edge point, keeps the
+    # dimension entirely inside the board like every other inside-the-shape
+    # callout on this sheet.
+    inset = 4
     notches = _board_notches(d)
     sides = ["bottom", "bottom", "bottom", "top", "top"]
     dims = []
     for (nx, ny, nw, nh), side in zip(notches, sides):
         if side == "bottom":
             dims.append((
-                (nx + nw + 3, 0), (nx + nw + 3, nh),
+                (nx + nw + 3, inset), (nx + nw + 3, nh),
                 f"{_ceil_mm(nh)}mm", {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh)},
             ))
         else:
             top = d.ballast_bottom_width
             dims.append((
-                (nx - 3, top), (nx - 3, top - nh),
+                (nx - 3, top - inset), (nx - 3, top - nh),
                 f"{_ceil_mm(nh)}mm", {"ext1": (nx, top), "ext2": (nx, top - nh)},
             ))
     _, center_ny, center_nw, center_nh = notches[1]
@@ -1030,11 +1041,10 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
         f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
-    # Sized to fit their own text (not stretched to the full column width,
-    # which - for the input box in particular, sitting under the narrower
-    # board-only column 2 - ran past the column's own dimension lines on its
-    # left) and right-aligned within their column, matching _rounded_rect_text's
-    # own text inset (8pt each side).
+    # Sized to fit its own text (not stretched to the full column width,
+    # which - sitting under the narrower board-only column 2 - ran past the
+    # column's own dimension lines on its left) and right-aligned within its
+    # column, matching _rounded_rect_text's own text inset (8pt each side).
     def box_width(title, lines):
         w = c.stringWidth(title, title_font, 8)
         for line in lines:
@@ -1046,7 +1056,10 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     input_box_y = draw_bottom
     _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, "Input variables", input_lines, title_font, body_font)
 
-    derived_box_w = box_width("Derived dimensions", derived_lines)
+    # The derived-dimensions box, unlike the input box, spans column 3's
+    # full width - that column has nothing to its left for a wide box to run
+    # into.
+    derived_box_w = col3_w - col_right_pad
     derived_box_x = draw_right - derived_box_w
     derived_box_y = draw_bottom
     _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
