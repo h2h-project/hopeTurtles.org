@@ -743,6 +743,37 @@ def _board_annotations(d: BallastDerived):
             f"{_ceil_mm(d.ballast_slot_width)}mm wide",
         ),
     ]
+
+    # Position chain along the board's length: the depth dims above only say
+    # how deep each notch is cut, not where along the 287mm-ish board it
+    # falls - a carpenter can't mark the slots from those alone. This adds a
+    # running chain from the board's own start edge, through each slot's
+    # near/far edges in order, out to the board's end edge, so every gap
+    # between consecutive features has its own measured distance. Drawn at
+    # local y < 0 (just outside the board's own footprint) rather than
+    # inside a notch, so it doesn't compete with the depth/width callouts
+    # already sitting there; rotate_label mirrors _slat_annotations' outside
+    # dims since this part is rotated for the sheet the same way.
+    pos_offset = -14
+    ordered_edges = sorted(
+        ((nx, nx + nw) for nx, _ny, nw, _nh in notches), key=lambda pair: pair[0]
+    )
+    prev_end = 0.0
+    for x0, x1 in ordered_edges:
+        if x0 > prev_end:
+            dims.append((
+                (prev_end, pos_offset), (x0, pos_offset),
+                f"{_ceil_mm(x0 - prev_end)}mm",
+                {"ext1": (prev_end, 0), "ext2": (x0, 0), "rotate_label": True},
+            ))
+        prev_end = max(prev_end, x1)
+    if d.ballast_bottom_length > prev_end:
+        dims.append((
+            (prev_end, pos_offset), (d.ballast_bottom_length, pos_offset),
+            f"{_ceil_mm(d.ballast_bottom_length - prev_end)}mm",
+            {"ext1": (prev_end, 0), "ext2": (d.ballast_bottom_length, 0), "rotate_label": True},
+        ))
+
     return dims, labels
 
 
