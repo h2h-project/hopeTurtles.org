@@ -65,7 +65,7 @@
       gen_res_working: "Working out your cuts…",
       gen_step_saving: "Saving…",
       gen_step_generating_specs: "Generating specs…",
-      gen_step_done: "✅ Done",
+      gen_step_done: "Done",
       gen_res_generating: "Generating files…",
       gen_res_err_derive: "We could not work out these measurements.",
       gen_res_err_generate: "We could not generate your files.",
@@ -524,14 +524,27 @@
     results.scrollIntoView({ behavior: "smooth", block: "nearest" });
   };
 
+  // Adds a card below whatever's already in #eco-results, instead of
+  // replacing it — used so the download links land under the still-visible
+  // spec preview rather than wiping it out.
+  const appendResults = (html) => {
+    if (!results) return;
+    results.insertAdjacentHTML("beforeend", html);
+    results.hidden = false;
+    results.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  };
+
   const hideResults = () => {
     if (!results) return;
     results.hidden = true;
     results.innerHTML = "";
   };
 
-  const renderErrors = (message, errors) =>
-    showResults(
+  // `append: true` adds the error below whatever's already shown (used once
+  // the spec preview is up and file generation itself fails, so that
+  // preview isn't wiped out by the error).
+  const renderErrors = (message, errors, { append = false } = {}) =>
+    (append ? appendResults : showResults)(
       `<div class="eco-results__card eco-results__card--error">
          <h2 class="eco-results__title">
            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i> ${esc(message)}
@@ -775,7 +788,7 @@
 
   const renderDownloads = (data) => {
     const files = data.files || [];
-    showResults(
+    appendResults(
       `<div class="eco-results__card eco-results__card--done">
          <h2 class="eco-results__title">
            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> ${esc(
@@ -821,7 +834,9 @@
       );
       if (handledAuthExpiry(status)) return;
       if (!ok || !body.success) {
-        renderErrors(body.message || s("gen_res_err_generate"), body.errors);
+        renderErrors(body.message || s("gen_res_err_generate"), body.errors, {
+          append: true,
+        });
         return;
       }
       lastGenerated = body.data;
@@ -833,7 +848,7 @@
       // design's status to "generated" instead of leaving it a draft.
       await saveWorkingDraft(lastGenerated);
     } catch (error) {
-      renderErrors(s("gen_res_err_network"), [error.message]);
+      renderErrors(s("gen_res_err_network"), [error.message], { append: true });
     } finally {
       button.disabled = false;
       button.innerHTML = original;

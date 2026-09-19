@@ -539,7 +539,7 @@
   "gen_res_working": "Working out your cuts…",
   "gen_step_saving": "Saving…",
   "gen_step_generating_specs": "Generating specs…",
-  "gen_step_done": "✅ Done",
+  "gen_step_done": "Done",
   "gen_res_generating": "Generating files…",
   "gen_res_err_derive": "We could not work out these measurements.",
   "gen_res_err_generate": "We could not generate your files.",
