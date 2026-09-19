@@ -81,7 +81,7 @@ const sessionCookieOptions = {
   httpOnly: true,
   secure: true,                 // Always true (HTTPS enforced by nginx)
   sameSite: 'none',             // Needed for cross-site redirect back from buwana.ecobricks.org
-  maxAge: 1000 * 60 * 15        // Session lasts 15 minutes (short-lived OAuth session)
+  maxAge: 1000 * 60 * 60         // Session lasts 1 hour, refreshed on activity (see `rolling` below)
 };
 
 // ✅ Use consistent cookie domain (.hopeturtles.org if subdomains)
@@ -96,6 +96,7 @@ const sessionMiddleware = session({
   name: config.auth.sessionCookieName || 'ht.sid',
   secret: config.auth.sessionSecret || 'changeme',
   resave: false,
+  rolling: true,                 // Reset the 1-hour expiry on every request, so active users stay logged in
   saveUninitialized: false,
   store: sessionStore,
   cookie: sessionCookieOptions
