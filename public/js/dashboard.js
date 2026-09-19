@@ -1461,9 +1461,12 @@ toggleBottlesTableState();
     ["height_mm", "Height (mm)"],
     ["top_tapper_mm", "Top tapper (mm)"],
     ["bottom_tapper_mm", "Bottom tapper (mm)"],
+    ["cap_height_mm", "Cap height (mm)"],
     ["material", "Material"],
     ["thickness_mm", "Thickness (mm)"],
   ];
+
+  const DESIGN_STATUSES = ["draft", "generated", "expired"];
 
   const CONNECTION_STEPS = [
     { mm: 1, label: "Loose" },
@@ -1545,6 +1548,7 @@ toggleBottlesTableState();
     ).map(([key, label]) => [label, snapshot[key]]),
     ["Tightness", connectionLabelForMm(snapshot.port_fit_mm)],
     ["Visibility", row.dataset.visibility === "public" ? "Public" : "Private"],
+    ["Status", row.dataset.status || "draft"],
   ];
 
   document.querySelectorAll("[data-view-eco-design]").forEach((button) => {
@@ -1674,6 +1678,10 @@ toggleBottlesTableState();
       editVisibility = row.dataset.visibility || "private";
       editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
         const key = field.dataset.ecoEditField;
+        if (key === "status") {
+          field.value = row.dataset.status || "draft";
+          return;
+        }
         const value = snapshot[key];
         field.value = value === undefined || value === null ? "" : value;
       });
@@ -1737,6 +1745,15 @@ toggleBottlesTableState();
         const snapshot = readRowSnapshot(row);
         editForm.querySelectorAll("[data-eco-edit-field]").forEach((field) => {
           const key = field.dataset.ecoEditField;
+          if (key === "status") {
+            row.dataset.status = field.value;
+            const pill = row.querySelector(".status-pill");
+            if (pill) {
+              pill.dataset.status = field.value;
+              pill.textContent = field.value;
+            }
+            return;
+          }
           if (field.value === "") return;
           const numeric = field.type === "number";
           snapshot[key] = numeric ? Number(field.value) : field.value;

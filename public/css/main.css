@@ -539,6 +539,13 @@ body.mobile-menu-open {
   text-decoration: none;
 }
 
+.button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .button.button-small {
   font-size: 0.85rem;
   padding: 0.35rem 0.85rem;

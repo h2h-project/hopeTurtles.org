@@ -55,7 +55,7 @@
       gen_session_body:
         "You've been signed out, so we couldn't finish that just now. Log back in to carry on generating your files.",
       gen_session_save_tip:
-        "Tip: use Save to keep your bottle and board settings — next time you can pick up right where you left off.",
+        "Tip: your bottle and board settings are saved automatically — next time you can pick up right where you left off.",
       gen_session_login: "Login Again",
       gen_session_dismiss: "Not now",
       gen_res_ready_lede:
@@ -63,7 +63,10 @@
       gen_res_retention:
         "Files are kept for 7 days — download them now and keep a copy.",
       gen_res_working: "Working out your cuts…",
-      gen_res_generating: "Generating…",
+      gen_step_saving: "Saving…",
+      gen_step_generating_specs: "Generating specs…",
+      gen_step_done: "✅ Done",
+      gen_res_generating: "Generating files…",
       gen_res_err_derive: "We could not work out these measurements.",
       gen_res_err_generate: "We could not generate your files.",
       gen_res_err_network:
@@ -344,8 +347,9 @@
   const check = (key) => (validators[key] ? validators[key]() : true);
 
   // Live feedback as the user edits.
-  const WHOLE_NUMBER_IDS = [
-    "eco-volume",
+  const WHOLE_NUMBER_IDS = ["eco-volume"];
+  // Bottle specs (panel 2) allow one decimal place.
+  const ONE_DECIMAL_IDS = [
     "eco-diameter",
     "eco-cap",
     "eco-collar",
@@ -358,6 +362,12 @@
     const key = event.target.id;
     if (WHOLE_NUMBER_IDS.includes(key) && event.target.value.includes(".")) {
       event.target.value = event.target.value.split(".")[0];
+    }
+    if (ONE_DECIMAL_IDS.includes(key)) {
+      const match = event.target.value.match(/^-?\d*\.?\d{0,1}/);
+      if (match && match[0] !== event.target.value) {
+        event.target.value = match[0];
+      }
     }
     if (validators[key]) check(key);
     // Tapper ratios depend on height, so re-run them when height changes.
@@ -480,6 +490,31 @@
     submitBtn.innerHTML = isBusy
       ? `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${label}`
       : submitLabel;
+  };
+
+  // Static checkmark state (as opposed to busy()'s spinner) — used once a
+  // step has actually finished, briefly, before the flow moves on.
+  const setDone = (button, label) => {
+    if (!button) return;
+    button.disabled = true;
+    button.innerHTML = `<i class="fa-solid fa-circle-check" aria-hidden="true"></i> ${esc(label)}`;
+  };
+
+  const setSpinning = (button, label) => {
+    if (!button) return;
+    button.disabled = true;
+    button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${esc(label)}`;
+  };
+
+  // Every step of the Save and Generate pipeline holds its loading state for
+  // at least this long, so fast responses don't flash the spinner illegibly.
+  const MIN_STEP_MS = 1000;
+  const withMinDuration = async (promise, ms) => {
+    const start = Date.now();
+    const result = await promise;
+    const elapsed = Date.now() - start;
+    if (elapsed < ms) await new Promise((r) => setTimeout(r, ms - elapsed));
+    return result;
   };
 
   const showResults = (html) => {
@@ -629,6 +664,11 @@
     const bottlePhotoInput = el("eco-bottle-photo");
     if (bottlePhotoInput && bottlePhotoInput.files[0]) {
       formData.set("bottle_photo", bottlePhotoInput.files[0]);
+      // Clear the input now that its file is captured in formData, so a
+      // stale selection doesn't silently ride along on later saves that
+      // aren't meant to touch the bottle photo (was causing oversized
+      // uploads / 413s on unrelated design saves).
+      bottlePhotoInput.value = "";
     }
     return formData;
   };
@@ -764,22 +804,20 @@
     );
   };
 
-  // Set after a successful generate, so Save can persist those exact files
-  // (utils/ecojoinerDesignFiles.js::persistDesignFiles) instead of saving a
-  // draft with no output yet. Cleared whenever the form changes, since a
-  // stale job_slug would point at geometry that no longer matches the form.
+  // Set after a successful generate and handed to saveWorkingDraft so it can
+  // persist those exact files (utils/ecojoinerDesignFiles.js::persistDesignFiles)
+  // instead of saving a draft with no output yet. Cleared whenever the form
+  // changes, since a stale job_slug would point at geometry that no longer
+  // matches the form.
   let lastGenerated = null;
 
   const generate = async (button) => {
     const original = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> ${esc(
-      s("gen_res_generating"),
-    )}`;
+    setSpinning(button, s("gen_res_generating"));
     try {
-      const { ok, status, body } = await post(
-        "/api/ecojoiner/generate",
-        collect(),
+      const { ok, status, body } = await withMinDuration(
+        post("/api/ecojoiner/generate", collect()),
+        MIN_STEP_MS,
       );
       if (handledAuthExpiry(status)) return;
       if (!ok || !body.success) {
@@ -787,11 +825,13 @@
         return;
       }
       lastGenerated = body.data;
+      setDone(button, s("gen_step_done"));
+      await new Promise((r) => setTimeout(r, MIN_STEP_MS));
       renderDownloads(body.data);
       // Autosave the working bottle profile + a draft design behind the
-      // files just generated, so it's there even if the user never opens
-      // the Save dialog to name it.
-      await saveWorkingDraft();
+      // files just generated — passing the job/files along flips the
+      // design's status to "generated" instead of leaving it a draft.
+      await saveWorkingDraft(lastGenerated);
     } catch (error) {
       renderErrors(s("gen_res_err_network"), [error.message]);
     } finally {
@@ -805,10 +845,12 @@
   form.addEventListener("input", () => {
     hideResults();
     lastGenerated = null;
+    busy(false);
   });
   form.addEventListener("change", () => {
     hideResults();
     lastGenerated = null;
+    busy(false);
   });
 
   // Ensure a panel is open so the user can see a flagged field.
@@ -890,20 +932,35 @@
       return;
     }
 
-    // Step 1 — the server derives the real dimensions without writing files, so
-    // the user can sanity-check the geometry before committing to a download.
-    busy(true, s("gen_res_working"));
+    hideResults();
+
     try {
-      const { ok, status, body } = await post(
-        "/api/ecojoiner/validate",
-        collect(),
+      // Step 1 — silently save the bottle profile + a draft design behind
+      // it, so nothing typed is lost even before the files exist.
+      setSpinning(submitBtn, s("gen_step_saving"));
+      await withMinDuration(saveWorkingDraft(), MIN_STEP_MS);
+
+      // Step 2 — the server derives the real dimensions without writing
+      // files, so we can show the spec preview before committing to a
+      // download.
+      setSpinning(submitBtn, s("gen_step_generating_specs"));
+      const { ok, status, body } = await withMinDuration(
+        post("/api/ecojoiner/validate", collect()),
+        MIN_STEP_MS,
       );
       if (handledAuthExpiry(status)) return;
       if (!ok || !body.success) {
         renderErrors(body.message || s("gen_res_err_derive"), body.errors);
         return;
       }
+
       renderPreview(body.data);
+      setDone(submitBtn, s("gen_step_done"));
+
+      // Step 3 — automatically continue straight into writing the files,
+      // no extra click required.
+      const confirm = el("eco-confirm");
+      if (confirm) await generate(confirm);
     } catch (error) {
       renderErrors(s("gen_res_err_network"), [error.message]);
     } finally {
@@ -932,12 +989,19 @@
     SPEC_FIELD_IDS.map((id) => el(id).value);
 
   // Bottle spec columns are DECIMAL(x,2) in the DB, so a loaded profile hands
-  // back "1500.00" etc. — round to a whole number for these fields (thickness
+  // back "1500.00" etc. — round to a whole number for volume (thickness
   // stays decimal-friendly since sheet material comes in fractional mm).
   const wholeNumber = (value) => {
     if (value === null || value === undefined || value === "") return "";
     const num = Number(value);
     return Number.isFinite(num) ? String(Math.round(num)) : "";
+  };
+
+  // Panel 2 bottle dimensions allow one decimal place.
+  const oneDecimal = (value) => {
+    if (value === null || value === undefined || value === "") return "";
+    const num = Number(value);
+    return Number.isFinite(num) ? String(Math.round(num * 10) / 10) : "";
   };
 
   const bottlePhotoPreview = document.querySelector(
@@ -955,13 +1019,13 @@
   const applyProfileToForm = (profile) => {
     el("eco-brand").value = profile.brand || "";
     el("eco-volume").value = wholeNumber(profile.volume_ml);
-    el("eco-diameter").value = wholeNumber(profile.diameter_mm);
-    el("eco-cap").value = wholeNumber(profile.cap_mm);
-    el("eco-collar").value = wholeNumber(profile.collar_mm);
-    el("eco-height").value = wholeNumber(profile.height_mm);
-    el("eco-top-tapper").value = wholeNumber(profile.top_tapper_mm);
-    el("eco-bottom-tapper").value = wholeNumber(profile.bottom_tapper_mm);
-    el("eco-cap-height").value = wholeNumber(profile.cap_height_mm);
+    el("eco-diameter").value = oneDecimal(profile.diameter_mm);
+    el("eco-cap").value = oneDecimal(profile.cap_mm);
+    el("eco-collar").value = oneDecimal(profile.collar_mm);
+    el("eco-height").value = oneDecimal(profile.height_mm);
+    el("eco-top-tapper").value = oneDecimal(profile.top_tapper_mm);
+    el("eco-bottom-tapper").value = oneDecimal(profile.bottom_tapper_mm);
+    el("eco-cap-height").value = oneDecimal(profile.cap_height_mm);
     el("eco-material").value = profile.material || "";
     el("eco-thickness").value = profile.thickness_mm ?? "";
     el("eco-board-max-width").value = profile.board_max_width_mm ?? "";
@@ -1389,8 +1453,10 @@
 
   // Creates or (for an already-owned design) updates the draft design tied
   // to `profileId`, capturing the current ecojoiner type / fabrication
-  // formats / connection fit.
-  const syncDraftDesign = async (profileId, label) => {
+  // formats / connection fit. `jobInfo` (job_slug + files), when passed,
+  // attaches the just-generated files and flips the design's status to
+  // "generated" server-side instead of leaving it a draft.
+  const syncDraftDesign = async (profileId, label, jobInfo = null) => {
     if (!profileId) return;
     const values = collect();
     const formData = new FormData();
@@ -1409,6 +1475,10 @@
       "visibility",
       loadedDesign && loadedDesign.visibility === "public" ? "public" : "private",
     );
+    if (jobInfo) {
+      formData.set("job_id", jobInfo.job_slug || "");
+      formData.set("files", JSON.stringify(jobInfo.files || []));
+    }
 
     const editingOwnDesign = Boolean(
       loadedDesign && loadedDesign.is_owner && loadedDesign.design_id,
@@ -1435,8 +1505,9 @@
 
   // Best-effort: saves the profile, then the draft design behind it. Silent
   // on failure — this is a convenience autosave, not something that should
-  // block Save Bottle Profile or Generate from otherwise succeeding.
-  const saveWorkingDraft = async () => {
+  // block Save and Generate from otherwise succeeding. `jobInfo` is passed
+  // through to syncDraftDesign once files have actually been generated.
+  const saveWorkingDraft = async (jobInfo = null) => {
     const values = collect();
     const required = ["brand", "volume", "diameter", "cap", "collar", "topTapper", "thickness"];
     const missing = required.some(
@@ -1451,228 +1522,11 @@
       loadedProfileSpecs = currentSpecValues();
       updateSaveProfileVisibility();
       updateSaveChangesVisibility();
-      await syncDraftDesign(profileId, label);
+      await syncDraftDesign(profileId, label, jobInfo);
     } catch {
       // Autosave failures shouldn't surface — Save Bottle Profile / Generate
       // already show their own success/error feedback for the parts that matter.
     }
   };
 
-  // --- Save flow ------------------------------------------------------------
-
-  const saveDialog = document.getElementById("ecoSaveDialog");
-  const saveForm = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-form]")
-    : null;
-  const saveFeedback = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-feedback]")
-    : null;
-  const saveShare = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-share]")
-    : null;
-  const saveLabelInput = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-label]")
-    : null;
-  const saveVisibilityToggle = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-visibility]")
-    : null;
-  const saveSuccess = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-success]")
-    : null;
-  const saveSuccessShare = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-success-share]")
-    : null;
-  const savePhotoPreview = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-photo-preview]")
-    : null;
-  const savePhotoPreviewImg = saveDialog
-    ? saveDialog.querySelector("[data-eco-save-photo-preview-img]")
-    : null;
-
-  const showSavePhotoPreview = (url) => {
-    if (!savePhotoPreview || !savePhotoPreviewImg) return;
-    savePhotoPreview.hidden = !url;
-    savePhotoPreviewImg.src = url || "";
-  };
-
-  const setSaveFeedback = (message) => {
-    if (!saveFeedback) return;
-    saveFeedback.hidden = !message;
-    saveFeedback.textContent = message || "";
-  };
-
-  // Reset the dialog back to the editable form, hiding any prior success state.
-  const showSaveForm = () => {
-    if (saveForm) saveForm.hidden = false;
-    if (saveSuccess) saveSuccess.hidden = true;
-  };
-
-  const showSaveSuccess = (shareUrl) => {
-    if (saveForm) {
-      saveForm.reset();
-      saveForm.hidden = true;
-    }
-    if (saveSuccess) saveSuccess.hidden = false;
-    if (saveSuccessShare) {
-      saveSuccessShare.hidden = !shareUrl;
-      saveSuccessShare.textContent = shareUrl
-        ? `Shareable link: ${shareUrl}`
-        : "";
-    }
-  };
-
-  const saveBtn = el("eco-save");
-  if (saveBtn && saveDialog) {
-    saveBtn.addEventListener("click", () => {
-      showSaveForm();
-      setSaveFeedback("");
-      if (saveShare) saveShare.hidden = true;
-      // Editing an already-owned loaded design re-saves it in place, so its
-      // name and photo come pre-filled; anything else (including someone
-      // else's public design, loaded read-only) starts from blank.
-      const editingOwnDesign = Boolean(loadedDesign && loadedDesign.is_owner);
-      const selectedProfile =
-        profilePicker && profilePicker.value
-          ? profilesById[profilePicker.value]
-          : null;
-      if (saveLabelInput) {
-        saveLabelInput.value = editingOwnDesign
-          ? loadedDesign.label
-          : (selectedProfile && selectedProfile.label) || "";
-      }
-      if (saveVisibilityToggle)
-        saveVisibilityToggle.checked = editingOwnDesign
-          ? loadedDesign.visibility === "public"
-          : false;
-      showSavePhotoPreview(
-        editingOwnDesign ? loadedDesign.ecojoiner_photo_url : null,
-      );
-      if (typeof saveDialog.showModal === "function") saveDialog.showModal();
-      else saveDialog.setAttribute("open", "");
-    });
-  }
-
-  if (saveDialog) {
-    saveDialog
-      .querySelectorAll("[data-close-eco-save]")
-      .forEach((btn) =>
-        btn.addEventListener("click", () => saveDialog.close()),
-      );
-    saveDialog.addEventListener("click", (event) => {
-      if (event.target === saveDialog) saveDialog.close();
-    });
-    // Always start fresh next time the dialog opens, regardless of how it closed.
-    saveDialog.addEventListener("close", showSaveForm);
-  }
-
-  if (saveForm) {
-    saveForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      setSaveFeedback("");
-
-      const profileLabel = saveLabelInput ? saveLabelInput.value.trim() : "";
-      if (!profileLabel) {
-        setSaveFeedback("Please give this design a name.");
-        return;
-      }
-
-      const formValues = collect();
-      const formData = new FormData();
-      formData.set("label", profileLabel);
-      formData.set("brand", formValues.brand);
-      formData.set("volume", formValues.volume);
-      formData.set("diameter", formValues.diameter);
-      formData.set("cap", formValues.cap);
-      formData.set("collar", formValues.collar);
-      formData.set("height", formValues.height);
-      formData.set("topTapper", formValues.topTapper);
-      formData.set("bottomTapper", formValues.bottomTapper);
-      formData.set("material", formValues.material);
-      formData.set("thickness", formValues.thickness);
-      formData.set("ecojoinerType", formValues.ecojoinerType);
-      formData.set("portFitMm", formValues.portFitMm);
-      formData.set(
-        "formats",
-        JSON.stringify(
-          Object.entries({
-            fabCarpentry: "pdf",
-            fab3d: "scad",
-            fabSvg: "svg",
-          })
-            .filter(([key]) => formValues[key])
-            .map(([, format]) => format),
-        ),
-      );
-      formData.set(
-        "visibility",
-        saveVisibilityToggle && saveVisibilityToggle.checked
-          ? "public"
-          : "private",
-      );
-
-      if (profilePicker && profilePicker.value) {
-        formData.set("profile_id", profilePicker.value);
-      }
-      if (lastGenerated) {
-        formData.set("job_id", lastGenerated.job_slug || "");
-        formData.set("files", JSON.stringify(lastGenerated.files || []));
-      }
-
-      // The bottle photo now lives with the bottle (Panel 1), not the design.
-      const bottlePhotoInput = el("eco-bottle-photo");
-      const ecojoinerPhotoInput = saveForm.querySelector(
-        'input[name="ecojoiner_photo"]',
-      );
-      if (bottlePhotoInput && bottlePhotoInput.files[0]) {
-        formData.set("bottle_photo", bottlePhotoInput.files[0]);
-      }
-      if (ecojoinerPhotoInput && ecojoinerPhotoInput.files[0]) {
-        formData.set("ecojoiner_photo", ecojoinerPhotoInput.files[0]);
-      }
-
-      const submitBtn = saveForm.querySelector('button[type="submit"]');
-      const originalLabel = submitBtn ? submitBtn.textContent : "";
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Saving…";
-      }
-
-      const editingOwnDesign = Boolean(loadedDesign && loadedDesign.is_owner);
-      const url = editingOwnDesign
-        ? `/api/ecojoiner/designs/${encodeURIComponent(loadedDesign.design_id)}`
-        : "/api/ecojoiner/designs";
-
-      try {
-        const response = await fetch(url, {
-          method: editingOwnDesign ? "PUT" : "POST",
-          body: formData,
-        });
-        const body = await response.json().catch(() => ({}));
-        if (handledAuthExpiry(response.status)) {
-          if (saveDialog && typeof saveDialog.close === "function") saveDialog.close();
-          return;
-        }
-        if (!response.ok || !body.success) {
-          setSaveFeedback(body.message || "We could not save this design.");
-          return;
-        }
-        showSaveSuccess(body.data.share_url);
-        if (loadedDesign) {
-          loadedDesign.label = profileLabel;
-          loadedDesign.visibility = body.data.visibility;
-        }
-        loadProfiles();
-        loadDesignsList();
-      } catch (error) {
-        setSaveFeedback(
-          error.message || "We could not reach the server. Please try again.",
-        );
-      } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalLabel;
-        }
-      }
-    });
-  }
 })();

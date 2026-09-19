@@ -431,6 +431,7 @@
               data-visibility="<%= design.visibility %>"
               data-share-token="<%= design.share_token || '' %>"
               data-ecojoiner-type="<%= design.ecojoiner_type %>"
+              data-status="<%= design.status %>"
               data-profile-id="<%= design.profile_id || '' %>"
               data-bottle-photo="<%= design.bottle_photo_url || '' %>"
               data-ecojoiner-photo="<%= design.ecojoiner_photo_url || '' %>"
@@ -592,6 +593,18 @@
         <label>
           Bottom tapper (mm)
           <input type="number" name="bottomTapper" data-eco-edit-field="bottom_tapper_mm" min="0" step="1" />
+        </label>
+        <label>
+          Cap height (mm)
+          <input type="number" name="capHeight" data-eco-edit-field="cap_height_mm" min="0" step="1" />
+        </label>
+        <label>
+          Status
+          <select name="status" data-eco-edit-field="status">
+            <option value="draft">Draft</option>
+            <option value="generated">Generated</option>
+            <option value="expired">Expired</option>
+          </select>
         </label>
         <label>
           Material

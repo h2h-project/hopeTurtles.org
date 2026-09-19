@@ -146,37 +146,37 @@
               <div class="eco-fields eco-fields--grid">
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_diameter %></span>
-                  <input type="number" id="eco-diameter" name="diameter" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_diameter_ph %>" />
+                  <input type="number" id="eco-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_diameter_ph %>" />
                   <span class="eco-feedback" data-for="eco-diameter"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_cap %></span>
-                  <input type="number" id="eco-cap" name="cap" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_cap_ph %>" />
+                  <input type="number" id="eco-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_ph %>" />
                   <span class="eco-feedback" data-for="eco-cap"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_collar %></span>
-                  <input type="number" id="eco-collar" name="collar" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_collar_ph %>" />
+                  <input type="number" id="eco-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_collar_ph %>" />
                   <span class="eco-feedback" data-for="eco-collar"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_height %></span>
-                  <input type="number" id="eco-height" name="height" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_height_ph %>" />
+                  <input type="number" id="eco-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_height_ph %>" />
                   <span class="eco-feedback" data-for="eco-height"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_top_tapper %></span>
-                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
+                  <input type="number" id="eco-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-top-tapper"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_bottom_tapper %></span>
-                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
+                  <input type="number" id="eco-bottom-tapper" name="bottomTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_bottom_tapper_ph %>" />
                   <span class="eco-feedback" data-for="eco-bottom-tapper"></span>
                 </label>
                 <label class="eco-field">
                   <span class="eco-field__label"><%= t.gen_field_cap_height %></span>
-                  <input type="number" id="eco-cap-height" name="capHeight" inputmode="numeric" min="0" step="1" placeholder="<%= t.gen_field_cap_height_ph %>" />
+                  <input type="number" id="eco-cap-height" name="capHeight" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_height_ph %>" />
                   <span class="eco-feedback" data-for="eco-cap-height"></span>
                 </label>
               </div>
@@ -442,9 +442,6 @@
     </div>
 
     <div class="eco-actions">
-      <button type="button" class="button ghost" id="eco-save">
-        <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_save %>
-      </button>
       <button type="submit" class="button" id="eco-generate-btn">
         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.gen_submit %>
       </button>
@@ -454,58 +451,6 @@
          the download links once the user confirms. -->
     <section class="eco-results" id="eco-results" hidden aria-live="polite" tabindex="-1"></section>
   </form>
-
-  <dialog id="ecoSaveDialog" class="mission-dialog" aria-labelledby="ecoSaveDialogTitle">
-    <form class="form-card mission-dialog__form" data-eco-save-form enctype="multipart/form-data">
-      <header class="mission-dialog__header">
-        <div>
-          <h2 id="ecoSaveDialogTitle">Save your turtle component</h2>
-          <p class="panel-subtitle">Save this design to your dashboard.</p>
-        </div>
-        <button type="button" class="dialog-close" data-close-eco-save aria-label="Close">&times;</button>
-      </header>
-      <div class="mission-form-grid">
-        <label class="full-width">
-          Name this design
-          <input type="text" name="label" placeholder="e.g. Aqua 1.5L" data-eco-save-label required />
-        </label>
-        <label class="full-width">
-          Photo of your finished component
-          <div class="eco-photo-field">
-            <div class="eco-photo-preview" data-eco-save-photo-preview hidden>
-              <img data-eco-save-photo-preview-img alt="Current turtle component photo" />
-            </div>
-            <input type="file" name="ecojoiner_photo" accept="image/*" />
-          </div>
-        </label>
-        <div class="eco-fab-option full-width">
-          <span class="eco-fab-option__info">
-            <span class="eco-fab-option__title">Make this design public</span>
-            <span class="eco-fab-option__desc">Public designs get a shareable link. Private designs are only visible to you.</span>
-          </span>
-          <label class="ht-toggle">
-            <input type="checkbox" data-eco-save-visibility />
-            <span class="ht-toggle__slider" aria-hidden="true"></span>
-          </label>
-        </div>
-      </div>
-      <div class="mission-dialog__actions">
-        <button type="button" class="button ghost" data-close-eco-save>Cancel</button>
-        <button type="submit" class="button">Save</button>
-      </div>
-      <p class="form-feedback" role="status" data-eco-save-feedback hidden></p>
-      <p class="form-feedback" role="status" data-eco-save-share hidden></p>
-    </form>
-    <div class="form-card eco-save-success" data-eco-save-success hidden>
-      <i class="fa-solid fa-circle-check eco-save-success__icon" aria-hidden="true"></i>
-      <h1 class="eco-save-success__title">Your Turtle Component Design is Saved</h1>
-      <p class="eco-save-success__desc">You can find your saved designs on your dashboard for handy revisiting.</p>
-      <p class="form-feedback" role="status" data-eco-save-success-share hidden></p>
-      <div class="mission-dialog__actions">
-        <button type="button" class="button" data-close-eco-save>Done</button>
-      </div>
-    </div>
-  </dialog>
 
   <dialog id="ecoSessionDialog" class="mission-dialog" aria-labelledby="ecoSessionDialogTitle">
     <div class="form-card eco-session-card">
