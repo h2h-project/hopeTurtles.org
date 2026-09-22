@@ -81,7 +81,7 @@ PART_QUANTITIES = {
 # Form-driven inputs.                       upstream (turtle_body/lib/params.scad)
 DEFAULTS = {
     "wood_thickness": 12.0,               # p_wood_t()
-    "bottle_diameter": 82.0,              # p_bottle_d()
+    "bottle_diameter": 84.0,              # p_bottle_d()
     "bottle_height": 305.0,               # p_bottle_h()
     "cap_diameter": 31.0,                 # p_bottle_cap_d()
     "cap_height": 17.0,                   # p_bottle_cap_h()
@@ -105,7 +105,8 @@ TUNING = {
 TOP_BAR_WIDTH = 22.0                  # p_top_crossbar_w()
 TOP_BAR_SLOT_WIDTH = 10.0             # == BATTEN_THICKNESS
 TOP_BAR_SLOT_DEPTH = 11.0
-TOP_BAR_AXLE_HOLE_D = 12.0            # p_sail_bar_axle_hole_d()
+TOP_BAR_AXLE_HOLE_D = 8.2              # p_sail_bar_axle_hole_d() -- TB-08: round shaft + 0.2 mm
+                                        # running clearance (was Ø12 for the retired hex corners)
 
 BATTEN_WIDTH = 20.0                   # p_side_batten_w()
 BATTEN_THICKNESS = 10.0
@@ -123,8 +124,6 @@ C_PIECE_OUTER_EXTENSION = 15.0
 
 STRENGTHENER_WIDTH = 24.0
 STRENGTHENER_ABOVE_BAR = 24.0
-STRENGTHENER_BELOW_BAR = 15.0
-STRENGTHENER_SLOT_DEPTH = 12.0
 
 BATTEN_CAGE_M6_HOLE_D = 6.4           # p_m6_clearance_d() -- the strengthener/batten M6 joint
 
@@ -202,13 +201,9 @@ class SailsDerived:
     bottom_bar_slot_width: float
     bottom_bar_slot_depth: float
     bottom_bar_inner_overhang: float
-    strengthener_rail_slot_offset: float
 
     strengthener_width: float
     strengthener_height: float
-    strengthener_slot_width: float
-    strengthener_slot_depth: float
-    strengthener_slot_height: float
     strengthener_m6_z: float
 
     c_piece_length: float
@@ -278,13 +273,15 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     # ---- bottom sail bar / strengthener / C piece radial offsets ----
     bottom_bar_inner_radius = bd / 2 + BOTTLE_CLEARANCE
     bottom_bar_inner_overhang = notch_root_r - bottom_bar_inner_radius
-    strengthener_rail_slot_offset = bottom_bar_inner_overhang + BATTEN_THICKNESS
     c_piece_length = bottom_bar_inner_overhang + BATTEN_THICKNESS + C_PIECE_OUTER_EXTENSION
     bottom_bar_length = 3 * bd
 
-    # ---- joint strengthener ----
-    strengthener_height = STRENGTHENER_ABOVE_BAR + t + STRENGTHENER_BELOW_BAR  # 39+t
-    strengthener_m6_z = STRENGTHENER_BELOW_BAR + t + STRENGTHENER_ABOVE_BAR / 2  # 27+t
+    # ---- joint strengthener: a plain block resting on the rail's own top
+    # surface (TB-08-adjacent rail/strengthener simplification -- no notch,
+    # no fastener into the rail; held by the horizontal M6 bolt through the
+    # side batten alone). ----
+    strengthener_height = STRENGTHENER_ABOVE_BAR
+    strengthener_m6_z = STRENGTHENER_ABOVE_BAR / 2
 
     # ---- sail (fabric/mylar) outline ----
     bottom_bar_z = batten_bottom_z + BATTEN_END_MARGIN
@@ -318,12 +315,8 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
         bottom_bar_slot_width=BOTTOM_BAR_SLOT_WIDTH,
         bottom_bar_slot_depth=BOTTOM_BAR_SLOT_DEPTH,
         bottom_bar_inner_overhang=bottom_bar_inner_overhang,
-        strengthener_rail_slot_offset=strengthener_rail_slot_offset,
         strengthener_width=STRENGTHENER_WIDTH,
         strengthener_height=strengthener_height,
-        strengthener_slot_width=t,
-        strengthener_slot_depth=STRENGTHENER_SLOT_DEPTH,
-        strengthener_slot_height=t,
         strengthener_m6_z=strengthener_m6_z,
         c_piece_length=c_piece_length,
         c_piece_width=C_PIECE_WIDTH,
@@ -477,10 +470,12 @@ def _bottom_bar_outline(d: SailsDerived):
 
 
 def _bottom_bar_notches(d: SailsDerived):
+    # Only the rail's own batten slot -- no second (strengthener) mortise.
+    # The joint strengthener rests on the rail's top surface instead of
+    # interlocking with it (see the joint-strengthener rail/screw note above).
     y0 = d.bottom_bar_width - d.bottom_bar_slot_depth
     return (
         (d.bottom_bar_inner_overhang, y0, d.bottom_bar_slot_width, d.bottom_bar_slot_depth),
-        (d.strengthener_rail_slot_offset, y0, d.strengthener_slot_width, d.bottom_bar_slot_depth),
     )
 
 
@@ -489,7 +484,9 @@ def _strengthener_outline(d: SailsDerived):
 
 
 def _strengthener_notches(d: SailsDerived):
-    return ((0, STRENGTHENER_BELOW_BAR, d.strengthener_slot_depth, d.strengthener_slot_height),)
+    # No notch: the strengthener is a plain block whose bottom face rests
+    # flush on the rail's own top surface.
+    return ()
 
 
 def _strengthener_circles(d: SailsDerived):

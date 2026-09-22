@@ -819,16 +819,27 @@ def _yellow_fin_annotations(d: BallastDerived):
 
 def _lock_annotations(d: BallastDerived):
     slot_y0 = (d.red_piece_height - d.red_slot_height) / 2
+    # The pointed end's flat vertical edge (between the two 45-degree
+    # chamfers) is always 2x the board thickness by construction
+    # (red_piece_height - 2*red_chamfer == 5t - 3t == 2t) - called out here
+    # so a carpenter can verify the cut rather than just trusting the
+    # outline. Drawn outside the shape on the right, alongside the point,
+    # since that's the only open space next to this edge.
+    flat_y0 = d.red_chamfer
+    flat_y1 = d.red_piece_height - d.red_chamfer
     dims = [
         (
             (0, slot_y0 - 10), (d.red_slot_depth, slot_y0 - 10),
             f"{_ceil_mm(d.red_slot_depth)} x {_ceil_mm(d.red_slot_height)}mm",
             {"ext1": (0, slot_y0), "ext2": (d.red_slot_depth, slot_y0)},
         ),
+        (
+            (d.red_piece_width + 10, flat_y0), (d.red_piece_width + 10, flat_y1),
+            f"{_ceil_mm(flat_y1 - flat_y0)}mm",
+            {"ext1": (d.red_piece_width, flat_y0), "ext2": (d.red_piece_width, flat_y1), "rotate_label": True},
+        ),
     ]
-    labels = [
-        ((d.red_chamfer * 0.32, d.red_chamfer * 0.32), f"{_ceil_mm(d.red_chamfer)}mm"),
-    ]
+    labels = []
     return dims, labels
 
 

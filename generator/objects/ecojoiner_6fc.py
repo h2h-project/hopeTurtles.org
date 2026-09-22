@@ -275,7 +275,7 @@ class EcojoinerInputs:
     taper_height: Optional[float] = 62.0  # turtle_body p_top_dome_h() (form's "top tapper")
     port_length: Optional[float] = None
     port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM  # turtle_body p_port_allowance()
-    port_height: float = 82.0  # bottle body diameter -- turtle_body p_bottle_d() / p_port_height()
+    port_height: float = 84.0  # bottle body diameter -- turtle_body p_bottle_d() / p_port_height()
     bottle_volume_l: float = 1.5
     bottle_brand: str = "generic"
     screw_diameter: float = 6.4  # M6 clearance hole (through-bolt, not a self-tapping pilot hole)
@@ -344,7 +344,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         taper_height=_to_float(get("taperHeight", "taper_height"), None),
         port_length=_to_float(get("portLength", "port_length"), None),
         port_allowance=_to_float(get("portAllowance", "port_allowance"), DEFAULT_PORT_ALLOWANCE_MM),
-        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 82.0)
+        port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 84.0)
         + _to_float(get("portFitMm", "port_fit_mm"), 0.0),
         bottle_volume_l=_to_float(get("bottleVolumeL", "bottle_volume_l", "volume", "bottleVolume"), 1.5),
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),

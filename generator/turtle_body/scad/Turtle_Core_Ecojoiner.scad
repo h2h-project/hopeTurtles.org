@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
-//  Produced by build/build.py from components/Turtle_Core_Ecojoiner_v1.scad
-//  Turtle Body version 1.8.3
+//  Produced by build/build.py from components/Turtle_Core_Ecojoiner.scad
+//  Turtle Body version 4.0.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -65,7 +65,7 @@ function p_fn_wood()      = 96;     // cut wooden parts
 function p_fn_curve()     = 180;    // fine profile curves (bottle, sails)
 
 // ---- bottle (the foundation reference) ---------------------------------
-function p_bottle_d()        = 82;    // outside diameter
+function p_bottle_d()        = 84;    // outside diameter (was 86, and 82 before that; other bottle dims held)
 function p_bottle_h()        = 305;   // total height incl. ordinary screw cap
 function p_bottle_wall_t()   = 0.5;   // modelling assumption, not a measurement
 function p_bottle_cap_d()    = 31;    // ordinary screw cap (NOT the control-cap disk)
@@ -118,45 +118,60 @@ function p_m6_bolt_head_t()  = 4;
 //  the axle (below) is derived to this datum.
 function p_cap_disk_d()      = 100;   // control-cap disk (independent of p_bottle_cap_d)
 function p_cap_roof_t()      = 5;     // disk / roof thickness
-function p_cap_boss_depth()  = 2;     // extra projection of the centre boss into the hollow cap
+function p_cap_boss_depth()  = 1.5;   // extra projection of the centre boss into the hollow cap
+                                       // (was 2; lowered 0.5 mm -> 6.5 mm axle bearing length)
 function p_cap_boss_d()      = 18;
 function p_cap_insert_len()  = 35;    // straight insert shaft length
 function p_cap_insert_wall_t() = 4;
 function p_cap_entry_chamfer_h()     = 1;
 function p_cap_entry_chamfer_delta() = 1;
-function p_cap_axle_bore_d() = 8.6;   // 0.3 mm radial clearance to the Ø8 shaft
+function p_cap_axle_bore_d() = 8.7;   // 0.35 mm radial clearance to the Ø8 shaft (was 8.6 / 0.3 mm)
 function p_cap_cage_radial_clearance() = 1;   // cap disk -> cage inner wall (radial)
 function p_cap_total_h()     = p_cap_roof_t() + p_cap_insert_len();           // 40
-function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 7
+function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 6.5 (was 7)
 
 // buttons (through both cap and cage)
 function p_button_upper_d()  = 17;    // clearance hole in the cap
 function p_button_axis()     = "y";   // "x" or "y"
-function p_button_radius()   = 24;    // radial position of the two button centres (48 mm apart)
+function p_button_radius()   = 25;    // radial position of the two button centres (50 mm apart;
+                                       // was 24 / 48 mm -- shared with the cage's matching bore)
 
 // ---- silicone seal grooves + rings (CLAUDE.md s8) ------------------
 function p_seal_groove_count()      = 2;
-function p_seal_groove_axial_h()    = 2;   // groove height
+function p_seal_groove_axial_h()    = 2.7; // groove height (was 3.5; retuned to just clear
+                                            // the 2.6 mm ring axial thickness below, 0.1 mm margin)
 function p_seal_groove_radial_depth() = 2; // groove depth
 function p_seal_groove1_from_shoulder() = 12;  // groove centre, measured from the insert SHOULDER
 function p_seal_groove2_from_shoulder() = 25;
-function p_seal_ring_axial_t()      = 1.5;  // cast ring thickness
-function p_seal_ring_radial_w()     = 5;    // NOT validated; 3.5 was a suggested milder prototype
+function p_seal_ring_axial_t()      = 2.6;  // cast ring thickness (was 3)
+function p_seal_ring_radial_w()     = 10;   // cast ring radial width (was 5; doubled). NOT validated.
+function p_seal_ring_elasticity_reduction() = 0.25;
+    // Cast the ring's inner diameter this fraction SMALLER than the groove
+    // root it mates to, so real (stretchy) silicone is under tension --
+    // and therefore actually grips -- once stretched onto the cap, instead
+    // of sitting at a 1:1 as-cast fit. Tweak this here as real silicone
+    // behaviour is characterized; NOT validated (see lib/silicone_ring_mold.scad).
 function p_seal_groove_root_d() = p_insert_shaft_d()
-                                - 2 * p_seal_groove_radial_depth();            // 75
+                                - 2 * p_seal_groove_radial_depth();            // 79 at the 86 mm bottle
 
-// ---- round / hex centre axle (CLAUDE.md s9) -----------------------
+// ---- sail shaft: uniform round centre axle (CLAUDE.md s9) ----------
 //  Derived to the 5/2 cap datum (TB-03/TB-04). round_inside_cap is measured
 //  from the roof underside and INCLUDES the boss -- do not add the boss again.
+//  TB-08: the shaft is now one uniform round bar top to bottom -- no hex
+//  section. It free-spins in the cap bore (p_cap_axle_bore_d) and passes
+//  with a light running clearance through the cage hub bore and the top
+//  sail bar's own hole (both p_axle_shaft_hole_d()); it locks to the
+//  ROTATING cage with a single M3 set screw through the cage hub
+//  (p_cage_setscrew_pilot_d()) rather than a shaped (hex) interference fit.
 function p_axle_round_d()        = 8;
 function p_axle_round_ext()      = 1;    // projection above the cap's outer face
 function p_axle_round_inside_cap() = p_cap_insert_len() - 5;  // 30: roof underside to round end (incl. boss)
 function p_axle_round_len()      = p_axle_round_inside_cap() + p_cap_roof_t() + p_axle_round_ext();  // 36
-function p_axle_hex_af()         = 10.0; // shaft across-flats (0.3 mm to the Ø10.3 cage bore)
-function p_axle_hex_len()        = 23;
-function p_axle_join_overlap()   = 0.2;  // hex<->round Boolean overlap
-function p_axle_total_len()      = p_axle_hex_len() + p_axle_round_len();
-function p_axle_hex_corner_d()   = p_axle_hex_af() / cos(30);                  // ~11.55
+function p_axle_upper_len()      = 23;   // continues up through the cage hub + sail bar (was the hex length)
+function p_axle_total_len()      = p_axle_upper_len() + p_axle_round_len();
+function p_axle_shaft_clearance() = 0.2; // light running clearance, diametral: any hole the shaft passes
+                                          // (but does not bear in) is p_axle_round_d() + this
+function p_axle_shaft_hole_d()   = p_axle_round_d() + p_axle_shaft_clearance();  // 8.2
 function p_magnet_d()            = 3;    // AS5600 sensing magnet recess
 function p_magnet_t()            = 1;
 
@@ -175,21 +190,23 @@ function p_cap_oring_gland_from_face() = 3.5; // gland centre, from the cap oute
 
 // ---- rotating control cage (CLAUDE.md s6) ------------------------
 function p_cage_wall_t()     = 6.5;   // radial wall thickness
-function p_cage_roof_t()     = 6;     // roof / surface plate thickness
+function p_cage_roof_t()     = 4;     // roof / surface plate thickness
 function p_cage_inner_d()    = p_cap_disk_d() + 2 * p_cap_cage_radial_clearance();   // 102
 function p_cage_outer_d()    = p_cage_inner_d() + 2 * p_cage_wall_t();               // 115
 function p_cage_skirt_depth()   = 44;   // roof underside to the ORIGINAL skirt rim
 function p_cage_peak_extension() = 20;  // crest extends this far past the original rim
 function p_cage_valley_wall_h()  = 10;  // minimum wall depth between mounts
-function p_cage_total_h()    = p_cage_skirt_depth() + p_cage_roof_t();              // 50 (native)
+function p_cage_total_h()    = p_cage_skirt_depth() + p_cage_roof_t();              // 48 (native)
 function p_cage_notch_count()   = 4;
 function p_cage_notch_w()    = 22.5;  // batten groove width
 function p_cage_notch_depth() = 3.7;
 function p_cage_wave_segments() = 240;
 function p_cage_hub_d()      = 29;
-function p_cage_pocket_d()   = 26;    // top clip pocket
-function p_cage_pocket_depth() = 4;
-function p_cage_hex_bore_af() = 10.3; // central hex bore (0.3 mm to the Ø10.0 shaft)
+function p_cage_pocket_d()   = 26;    // top clip pocket (control_cage top_pocket, OFF by default)
+function p_cage_pocket_depth() = 4;   //   "        "     "
+// TB-08: hex bore replaced by a plain round bore (p_axle_shaft_hole_d(),
+// shared with the sail bar) + a radial M3 set screw that locks the cage to
+// the shaft -- see p_cage_setscrew_*() below.
 function p_cage_bearing_d()  = 9;     // hemispherical bearing bump
 function p_cage_bearing_count() = 8;
 function p_cage_bearing_pcd() = p_cap_disk_d() - p_cage_bearing_d() + 0.5;          // 91.5
@@ -197,10 +214,19 @@ function p_cage_top_hole_d() = 18;    // central button / access hole through th
 function p_cage_mount_hole_d() = 3.2; // two M3 clearance holes per batten / groove
 function p_cage_mount_pitch()  = 32;  // vertical pitch of the pair
 function p_cage_lower_hole_from_tip() = 10;
+// Single radial M3 set (grub) screw through the hub wall, pressing on the
+// shaft to lock cage <-> shaft rotation (TB-08). Self-tapping into the
+// printed PLA hub -- not a clearance hole for a separate nut, unlike the
+// batten/mount M3 holes above. Pilot diameter is an untested starting
+// point (typical M3-into-rigid-plastic self-tap pilots run 2.5-2.8 mm) --
+// verify real thread engagement and tapping torque before relying on it.
+function p_cage_setscrew_pilot_d() = 2.5;
+function p_cage_setscrew_angle()   = 0;    // radial angle of the lock screw around the hub
 // 45-deg outward chamfer on the roof-top outer edge (0 = sharp). The cage
 // prints roof-face-down, so this bevel flares OUT from the bed and stays
-// printable; it is masked away around each batten groove. See lib/control_cage.scad.
-function p_cage_roof_bevel() = 4;
+// printable; it runs the full perimeter, batten grooves included. See
+// lib/control_cage.scad.
+function p_cage_roof_bevel() = 3;
 
 // ---- sail apparatus (CLAUDE.md s10) ---------------------------
 function p_side_batten_h()   = 205;
@@ -209,7 +235,8 @@ function p_side_batten_radial_t() = 10;
 function p_top_crossbar_len() = 6 * p_bottle_d();   // 492
 function p_top_crossbar_w()  = 22;
 function p_top_crossbar_t()  = p_wood_t();          // 12
-function p_sail_bar_axle_hole_d() = 12;             // Ø12; fits the ~11.55 hex corner dia
+function p_sail_bar_axle_hole_d() = p_axle_shaft_hole_d();  // TB-08: Ø8.2, same running
+                                                              // clearance as the cage hub bore (was Ø12 for the hex corners)
 function p_bottom_rail_len() = 3 * p_bottle_d();    // 246
 function p_bottom_rail_bottle_clearance() = 1;
 function p_sail_rail_color()  = [0.56, 0.39, 0.39]; // brown (top AND bottom rails)
@@ -240,6 +267,17 @@ function p_ballast_slat_spacing() = p_bottle_d() + p_wood_t();                  
 function p_ballast_board_len() = 3.5 * p_bottle_d();   // 287
 function p_ballast_fin_len()   = 3 * p_bottle_d();     // 246
 function p_ballast_lock_w()    = 5 * p_wood_t();       // 60
+
+// ---- neutral wood shades (used when enable_color_coding = false) -------
+// With the full colour code off, every wooden subsystem still renders in its
+// OWN shade of brown so the parts stay visually separable. All are warm browns
+// (R > G > B) spaced by lightness. The two large fins share one darker shade so
+// they read as a matched pair, distinct from the rest of their own assembly.
+function p_wood_shade_sail()     = [0.85, 0.66, 0.47]; // sail frame  (lightest)
+function p_wood_shade_rear_fin() = [0.72, 0.50, 0.33]; // rear-fin shafts + solar holder
+function p_wood_shade_eco()      = [0.62, 0.44, 0.28]; // Ecojoiner core
+function p_wood_shade_ballast()  = [0.52, 0.34, 0.22]; // ballast slats / board / locks
+function p_wood_shade_fin()      = [0.40, 0.26, 0.17]; // rear fin + ballast fin, shared (darkest)
 // [bundle] end   <params.scad>
 // [bundle] begin use <util.scad>
 // ==========================================================================
@@ -380,24 +418,24 @@ module eco_master_john_2d()
 
 // ---- 3D parts -------------------------------------------------------
 module eco_long_john(colored = true)
-    wood_color("yellow", colored)
+    wood_color("yellow", colored, p_wood_shade_eco())
         linear_extrude(height = eco_slat_t()) eco_long_john_2d();
 
 module eco_little_john(colored = true)
-    wood_color("seagreen", colored)
+    wood_color("seagreen", colored, p_wood_shade_eco())
         linear_extrude(height = eco_slat_t()) eco_little_john_2d();
 
 // Same family as the Little John; darker tint marks the deeper-slotted one.
 module eco_master_john(colored = true)
-    wood_color([0.13, 0.42, 0.28], colored)
+    wood_color([0.13, 0.42, 0.28], colored, p_wood_shade_eco())
         linear_extrude(height = eco_slat_t()) eco_master_john_2d();
 
 module eco_final_key(colored = true)
-    wood_color([0.82, 0.78, 0.05], colored)
+    wood_color([0.82, 0.78, 0.05], colored, p_wood_shade_eco())
         cube([eco_final_key_length(), eco_final_key_width(), eco_slat_t()]);
 
 module eco_presser(colored = true)
-    wood_color([0.10, 0.34, 0.20], colored)
+    wood_color([0.10, 0.34, 0.20], colored, p_wood_shade_eco())
         difference() {
             cylinder(d = eco_presser_d(), h = eco_slat_t());
             translate([0, 0, -0.1])

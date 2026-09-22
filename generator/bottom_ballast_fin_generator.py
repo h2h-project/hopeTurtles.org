@@ -41,7 +41,7 @@ from pathlib import Path
 DEFAULTS = {
     "wood_thickness": 12,
     "bottle_height": 305,
-    "bottle_diameter": 82,
+    "bottle_diameter": 84,
     "cap_height": 17,
     "cap_diameter": 31,
     "fin_board_width": 93,

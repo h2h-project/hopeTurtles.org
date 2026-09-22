@@ -32,7 +32,7 @@ DEFAULTS = {
     "wood_thickness": 12.0,
     "bottle_height": 305.0,
     "cap_height": 17.0,
-    "bottle_diameter": 82.0,
+    "bottle_diameter": 84.0,
     "solar_panel_width": 148.0,
     "solar_panel_height": 223.0,
     "solar_panel_thickness": 2.5,
