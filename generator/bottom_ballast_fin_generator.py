@@ -243,9 +243,12 @@ ballast_fin_upper_cut_z0 =
     + ballast_fin_slot_height
     + 1.5 * wood_thickness;
 
-// Bottom-front 45-degree chamfer.
+// Bottom-front 45-degree chamfer. Sized so a full board thickness of solid
+// material remains between it and the lower slot above it
+// (ballast_fin_lower_protrusion - ballast_fin_front_chamfer == wood_thickness) --
+// was 1.5*wood_thickness, leaving only 0.5*wood_thickness there.
 ballast_fin_front_chamfer =
-    1.5 * wood_thickness;
+    ballast_fin_lower_protrusion - wood_thickness;
 
 
 // ============================================================================
@@ -832,7 +835,8 @@ def main() -> None:
     yellow_length = 3 * bd
     yellow_slot_depth = bd / 2
     yellow_upper_cut_depth = bd + t
-    yellow_chamfer = 1.5 * t
+    yellow_lower_protrusion = 2 * t
+    yellow_chamfer = yellow_lower_protrusion - t
 
     print(f"Wrote: {output.resolve()}")
     print()

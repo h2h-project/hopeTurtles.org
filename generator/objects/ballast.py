@@ -256,7 +256,10 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     # actually clears the cut (see turtle_body CLAUDE.md s12).
     ballast_fin_upper_cut_depth = bd + t
     ballast_fin_upper_cut_z0 = ballast_fin_lower_protrusion + ballast_fin_slot_height + 1.5 * t
-    ballast_fin_front_chamfer = 1.5 * t
+    # One full board thickness of solid material between the chamfer and the
+    # slot above it (was 1.5*t, leaving only 0.5*t there -- turtle_body
+    # lib/ballast_fin.scad bl_fin_front_chamfer(), the source of this rule).
+    ballast_fin_front_chamfer = ballast_fin_lower_protrusion - t
 
     return BallastDerived(
         port_length=port_length,
@@ -686,6 +689,15 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.shoulder_step)}mm",
             {"ext1": (0, d.lower_full_width_return_z), "ext2": (d.shoulder_step, d.lower_neck_start_z)},
         ),
+        # Bottom edge up to where that bottommost 45-degree cut STARTS (the
+        # first cut a carpenter reaches working up from the bottom edge) --
+        # drawn outside the shape on the left, mirroring the topmost cut's
+        # own outside dimension on the right.
+        (
+            (-16, 0), (-16, d.lower_full_width_return_z),
+            f"{_ceil_mm(d.lower_full_width_return_z)}mm",
+            {"ext1": (0, 0), "ext2": (0, d.lower_full_width_return_z), "rotate_label": True},
+        ),
         # Top-to-hole-center distance, drawn inside the slat (like the slot
         # position dimension above) rather than outside, where it used to
         # crowd the page margin.
@@ -796,7 +808,13 @@ def _yellow_fin_annotations(d: BallastDerived):
             {"ext1": (ux, uy), "ext2": (ux + uw, uy), "label_side": "right"},
         ),
     ]
-    return dims, []
+    labels = [
+        (
+            (d.ballast_fin_front_chamfer / 3, d.ballast_fin_front_chamfer / 3),
+            "45°",
+        ),
+    ]
+    return dims, labels
 
 
 def _lock_annotations(d: BallastDerived):
@@ -1083,18 +1101,12 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
         f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
-    # Sized to fit its own text (not stretched to the full column width,
-    # which - sitting under the narrower board-only column 2 - ran past the
-    # column's own dimension lines on its left) and right-aligned within its
-    # column, matching _rounded_rect_text's own text inset (8pt each side).
-    def box_width(title, lines):
-        w = c.stringWidth(title, title_font, 8)
-        for line in lines:
-            w = max(w, c.stringWidth(line, body_font, 6.5))
-        return w + 16
-
-    input_box_w = box_width("Input variables", input_lines)
-    input_box_x = col2_x + col2_w - col_right_pad - input_box_w
+    # Spans column 2's full width, flush with the board diagram's own left
+    # edge (ox2) and right edge (col_right_pad in from col2's right side) --
+    # same right edge as the old text-fitted box, just no longer leaving a
+    # dead gap on the left.
+    input_box_w = col2_w - col_left_pad - col_right_pad
+    input_box_x = col2_x + col_left_pad
     input_box_y = draw_bottom
     _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, "Input variables", input_lines, title_font, body_font)
 
