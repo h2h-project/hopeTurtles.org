@@ -694,6 +694,27 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
 # PDF
 # ---------------------------------------------------------------------------
 
+SAILS_ILLUSTRATION = Path(__file__).resolve().parents[2] / "public" / "images" / "sails-export-high.webp"
+
+
+def _load_illustration():
+    """The assembly illustration as (ImageReader, (px_w, px_h)), or None.
+
+    Converted to greyscale (it is line art) and downscaled to roughly 2x its
+    printed size so it doesn't bloat the PDF."""
+    try:
+        from PIL import Image
+        from reportlab.lib.utils import ImageReader
+
+        # Flatten the drawing's off-white paper tone to pure white so it
+        # doesn't print as a grey box on the sheet.
+        img = Image.open(SAILS_ILLUSTRATION).convert("L").point(lambda v: 255 if v > 225 else v)
+        img.thumbnail((720, 720))
+        return ImageReader(img), img.size
+    except Exception:
+        return None
+
+
 def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Optional[Path] = None) -> None:
     """One-page Letter landscape carpenter reference for the assembly's 6
     wooden part shapes (the sail is soft goods and is not drawn).
@@ -719,7 +740,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     c.drawString(margin, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
     c.setFont(body_font, 8)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, title_y - 13, "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once. The sail is soft goods and is not on this sheet.")
+    c.drawString(margin, title_y - 13, "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once.")
+    c.drawString(margin, title_y - 23, "The sail is soft goods and is not on this sheet. Slot and hole positions are in mm, measured from the nearest end.")
 
     draw_left = margin
     draw_right = page_w - margin
@@ -844,9 +866,39 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
 
     label_h = 12       # part title, above the shape
     dim_h = 15         # dimension line + label, below the shape
+    tier_h = 12        # spacing between stacked lateral dimension lines
     row_gap = 14       # minimum vertical gap between stacked parts
     left_pad = 34      # clearance for the left (height) dimension line
     box_w, box_h = 250.0, 106.0
+
+    # Lateral dimensions for the column parts, so the carpenter can mark
+    # every slot and hole along the board. Each feature is measured from the
+    # NEARER end of the part (tape from that end): a slot gets an arrow to
+    # its near edge chained to an arrow across its width, a hole an arrow to
+    # its centre. Left-end and right-end dimensions share tiers (they never
+    # overlap horizontally), nearest feature closest to the part.
+    for part in column:
+        w = part["eff_w"]
+        features = []
+        for wall in part["notches"]:
+            xs = [p[0] for p in wall]
+            features.append(("slot", min(xs), max(xs), min(p[1] for p in wall)))
+        for cx, cy, dia in part["circles"]:
+            features.append(("hole", cx, cx, cy - dia / 2))
+        left = sorted((f for f in features if (f[1] + f[2]) / 2 <= w / 2 + 1e-6), key=lambda f: f[1])
+        right = sorted((f for f in features if (f[1] + f[2]) / 2 > w / 2 + 1e-6), key=lambda f: -f[2])
+        dims = []   # (tier, x1_mm, x2_mm, label, ext_y1_mm | None, ext_y2_mm | None)
+        for tier, (kind, x0, x1, fy) in enumerate(left):
+            dims.append((tier, 0.0, x0, _ceil_mm(x0), 0.0, fy))
+            if kind == "slot":
+                dims.append((tier, x0, x1, _ceil_mm(x1 - x0), None, fy))
+        for tier, (kind, x0, x1, fy) in enumerate(right):
+            dims.append((tier, x1, w, _ceil_mm(w - x1), fy, 0.0))
+            if kind == "slot":
+                dims.append((tier, x0, x1, _ceil_mm(x1 - x0), fy, None))
+        part["lateral"] = dims
+        part["tiers"] = max(len(left), len(right))
+        part["dim_h"] = dim_h + tier_h * part["tiers"]
 
     # ---- one shared mm -> pt scale --------------------------------------
     # Width-limited by the longest part (the top bar); every part is then
@@ -854,6 +906,17 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     avail_w = draw_right - draw_left - left_pad - 6
     avail_h = draw_top - draw_bottom
     scale = avail_w / max(p["eff_w"] for p in column)
+
+    # The assembly illustration sits in the top-right corner and the
+    # full-width column starts beneath it, so the column (packed at row_gap)
+    # plus a minimum-size illustration must fit the page height.
+    img_top = page_h - margin
+    img_min_h, img_max_h, img_pad = 90.0, 185.0, 8.0
+    col_bottom = draw_bottom + 22
+    col_fixed = sum(label_h + p["dim_h"] for p in column) + row_gap * (len(column) - 1)
+    col_var = sum(p["eff_h"] for p in column)
+    room = img_top - col_bottom - img_min_h - img_pad - col_fixed
+    scale = min(scale, room / col_var)
 
     # Safety clamp: the bottom-right stack (Strengthener over C End Piece
     # over the derived-dimensions box) must still fit the page height.
@@ -873,8 +936,16 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             c.setStrokeColor(colors.HexColor("#999999"))
             c.setLineWidth(0.5)
             c.circle(ox + cx * scale, oy + cy * scale, (dia / 2) * scale, stroke=1, fill=0)
+        for tier, x1, x2, text, ey1, ey2 in part.get("lateral", ()):
+            ly = oy - tier_h * (tier + 1)
+            _draw_dimension_line(
+                c, ox + x1 * scale, ly, ox + x2 * scale, ly, text, font=body_font, size=5,
+                ext1=None if ey1 is None else (ox + x1 * scale, oy + ey1 * scale),
+                ext2=None if ey2 is None else (ox + x2 * scale, oy + ey2 * scale),
+            )
+        overall_y = oy - 11 - tier_h * part.get("tiers", 0)
         _draw_dimension_line(
-            c, ox, oy - 11, ox + part["eff_w"] * scale, oy - 11,
+            c, ox, overall_y, ox + part["eff_w"] * scale, overall_y,
             f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=5,
         )
         _draw_dimension_line(
@@ -882,20 +953,27 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=5, label_side="left", rotate_label=True,
         )
 
-    # Left-hand column of bars/battens, spread evenly down the page. The
+    # Assembly illustration, top-right. As tall as the packed column below
+    # it allows, capped at img_max_h. Skipped (column starts at draw_top) if
+    # the image or Pillow is unavailable.
+    natural = col_fixed + col_var * scale
+    col_top = draw_top
+    illustration = _load_illustration()
+    if illustration is not None:
+        img_reader, (px_w, px_h) = illustration
+        img_h = min(img_max_h, img_top - img_pad - (col_bottom + natural))
+        img_w = img_h * px_w / px_h
+        c.drawImage(img_reader, draw_right - img_w, img_top - img_h, img_w, img_h)
+        col_top = min(draw_top, img_top - img_h - img_pad)
+
+    # Left-hand column of bars/battens, packed at row_gap from the top. The
     # footer strip at the bottom is kept clear.
     ox = draw_left + left_pad
-    col_bottom = draw_bottom + 22
-    natural = sum(label_h + p["eff_h"] * scale + dim_h for p in column)
-    slack = (draw_top - col_bottom) - natural
-    gap_between = max(row_gap, slack / max(1, len(column) - 1))
-    y = draw_top
-    for n, part in enumerate(column):
+    y = col_top
+    for part in column:
         oy = y - label_h - part["eff_h"] * scale
         draw_part(part, ox, oy)
-        y = oy - dim_h
-        if n < len(column) - 1:
-            y -= gap_between
+        y = oy - part["dim_h"] - row_gap
 
     # Bottom-right corner: Joint Strengthener above C End Piece above the
     # derived-dimensions box, all anchored to the page's bottom-right.
