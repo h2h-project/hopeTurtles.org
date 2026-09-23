@@ -742,10 +742,11 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     draw_bottom = margin + 6
 
     # ---- header band --------------------------------------------------------
-    # Assembly illustration top-left, with the title + a four-line intro
-    # beside it (the illustration is sized to exactly that text block); the
-    # Derived dimensions box sits top-right.
+    # Title + intro top-left, aligned with the parts' left edges below; the
+    # Derived dimensions box sits top-right. (The assembly illustration is
+    # drawn last, in the bottom-right corner.)
     band_top = page_h - margin
+    left_pad = 34      # parts' left edge sits this far in (room for their height dims)
     box_title_size = 8 * 1.2
     derived_lines = [
         f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
@@ -765,9 +766,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     _rounded_rect_text(c, draw_right - box_w, box_bottom, box_w, box_h, "Derived dimensions",
                        derived_lines, title_font, body_font, title_size=box_title_size)
 
-    # The intro is set in exactly four lines: the largest size (up to 9.5pt)
-    # that wraps it into four lines of the space between the illustration
-    # and the box. The illustration's height is then title + those lines.
+    # The intro is set at the largest size (up to 9.5pt) that wraps it into
+    # at most four lines between the parts' left edge and the box.
     intro = (
         "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored "
         "pairs are drawn once. Positions are in mm from the nearest end of the part, and M3/M6 "
@@ -777,26 +777,16 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         "The sail is soft goods and is not on this sheet."
     )
     title_size = 16
-    illustration = _load_illustration()
-    aspect = (illustration[1][0] / illustration[1][1]) if illustration else 0.0
-
-    def set_intro(size):
-        leading = size * 1.45
-        text_h = title_size + 8 + size + 3 * leading + 3
-        img_w = text_h * aspect
-        text_x = draw_left + (img_w + 16 if illustration else 0)
-        text_w = draw_right - box_w - 16 - text_x
-        return simpleSplit(intro, body_font, size, text_w), leading, text_h, img_w, text_x
-
+    text_x = draw_left + left_pad
+    text_w = draw_right - box_w - 16 - text_x
     size = 9.5
-    lines, leading, text_h, img_w, text_x = set_intro(size)
+    lines = simpleSplit(intro, body_font, size, text_w)
     while len(lines) > 4 and size > 5:
         size -= 0.25
-        lines, leading, text_h, img_w, text_x = set_intro(size)
-    head_bottom = band_top - text_h
+        lines = simpleSplit(intro, body_font, size, text_w)
+    leading = size * 1.45
+    head_bottom = band_top - (title_size + 8 + size + (len(lines) - 1) * leading + 3)
 
-    if illustration:
-        c.drawImage(illustration[0], draw_left, head_bottom, img_w, text_h)
     title_y = band_top - title_size + 3
     c.setFont(title_font, title_size)
     c.setFillColor(colors.HexColor("#111111"))
@@ -806,8 +796,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     for n, text in enumerate(lines):
         c.drawString(text_x, title_y - 8 - size - leading * n, text)
 
-    # The half-width Bottom Sail Bar row starts under the illustration +
-    # intro (it clears the taller Derived box); the full-width rows below it
+    # The half-width Bottom Sail Bar row starts under the intro (it clears
+    # the taller Derived box); the full-width rows below it
     # must start under the box.
     body_top = head_bottom - 16
 
@@ -934,7 +924,6 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     tier_h = 12        # spacing between stacked lateral dimension lines
     row_gap = 14       # minimum vertical gap between rows
     row_gap_max = 30   # rows spread into spare height, up to this gap
-    left_pad = 34      # clearance for the left (height) dimension line
     side_gap = 44      # batten end -> side part (room for its height dim)
 
     # Lateral dimensions for the bars and battens, so the carpenter can mark
@@ -964,9 +953,26 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
                 dims.append((tier, x0, x1, _ceil_mm(x1 - x0), fy, None))
         part["lateral"] = dims
         part["tiers"] = max(len(left), len(right))
-        part["dim_h"] = dim_h + tier_h * part["tiers"]
+        part["dim_h"] = dim_h + (tier_h + 3) * part["tiers"]
     for part in sides:
         part["dim_h"] = dim_h
+    # The C End Piece gets one chained row across every stretch of its top
+    # edge - left shoulder, slot, right shoulder - so each surface's width
+    # is read directly rather than worked out from the overall length.
+    c_end = sides[1]
+    stations = [(0.0, 0.0)]
+    for wall in c_end["notches"]:
+        xs = [p[0] for p in wall]
+        floor = min(p[1] for p in wall)
+        stations += [(min(xs), floor), (max(xs), floor)]
+    stations.append((c_end["eff_w"], 0.0))
+    stations.sort()
+    c_end["lateral"] = [
+        (0, x1, x2, _ceil_mm(x2 - x1), y1, y2)
+        for (x1, y1), (x2, y2) in zip(stations, stations[1:])
+    ]
+    c_end["tiers"] = 1
+    c_end["dim_h"] = dim_h + tier_h + 3
 
     # ---- one shared mm -> pt scale + layout ------------------------------
     # Width-limited by the longest part (the top bar); every part is then
@@ -1035,7 +1041,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
                 ext1=None if ey1 is None else (ox + x1 * scale, oy + ey1 * scale),
                 ext2=None if ey2 is None else (ox + x2 * scale, oy + ey2 * scale),
             )
-        overall_y = oy - 11 - tier_h * part.get("tiers", 0)
+        overall_y = oy - 11 - (tier_h + 3) * part.get("tiers", 0)
         _draw_dimension_line(
             c, ox, overall_y, ox + part["eff_w"] * scale, overall_y,
             f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=5,
@@ -1051,6 +1057,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     while gap > row_gap and column_bottom(scale, gap) < col_bottom:
         gap -= 1
     y = body_top
+    top_bar_bottom, rows_right = body_top, ox
     for n, row in enumerate(rows):
         if n == 1:
             y = min(y, box_bottom - row_gap)
@@ -1060,6 +1067,25 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             draw_part(part, px, oy)
             px += part["eff_w"] * scale + side_gap
         y = oy - row_below(row) - gap
+        if n == 1:
+            top_bar_bottom = y + gap
+        if n >= 2:   # the batten rows share the bottom half with the image
+            rows_right = max(rows_right, px - side_gap)
+
+    # Assembly illustration, bottom-right corner, in the open space under
+    # the Top Sail Bar and right of the side parts. Skipped if the image or
+    # Pillow is unavailable.
+    illustration = _load_illustration()
+    if illustration is not None:
+        img_reader, (px_w, px_h) = illustration
+        img_h = min(
+            156.0,
+            top_bar_bottom - row_gap - draw_bottom,
+            (draw_right - rows_right - 24) * px_h / px_w,
+        )
+        if img_h > 0:
+            img_w = img_h * px_w / px_h
+            c.drawImage(img_reader, draw_right - img_w, draw_bottom, img_w, img_h)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
