@@ -740,8 +740,12 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     c.drawString(margin, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
     c.setFont(body_font, 8)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, title_y - 13, "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once.")
-    c.drawString(margin, title_y - 23, "The sail is soft goods and is not on this sheet. Slot and hole positions are in mm, measured from the nearest end.")
+    subtitle = (
+        "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once.",
+        "The sail is soft goods and is not on this sheet. Slot and hole positions are in mm, measured from the nearest end.",
+    )
+    for n, text in enumerate(subtitle):
+        c.drawString(margin, title_y - 13 - 10 * n, text)
 
     draw_left = margin
     draw_right = page_w - margin
@@ -857,11 +861,14 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
         }
 
-    # Column of horizontal bars/battens, longest effective width first.
-    column = sorted(
-        (prepare(top_bar), prepare(bottom_bar), prepare(sail_batten), prepare(non_sail_batten)),
-        key=lambda p: p["eff_w"], reverse=True,
-    )
+    # Column of horizontal bars/battens. The Bottom Sail Bar leads: it only
+    # uses about half the page width, so the assembly illustration hangs
+    # down beside it from the top-right corner. The full-width Top Sail Bar
+    # follows beneath the illustration, then the two battens.
+    head = prepare(bottom_bar)
+    full = prepare(top_bar)
+    rest = [prepare(sail_batten), prepare(non_sail_batten)]
+    column = [head, full, *rest]
     corner = [prepare(strengthener), prepare(c_piece)]
 
     label_h = 12       # part title, above the shape
@@ -869,7 +876,9 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     tier_h = 12        # spacing between stacked lateral dimension lines
     row_gap = 14       # minimum vertical gap between stacked parts
     left_pad = 34      # clearance for the left (height) dimension line
-    box_w, box_h = 250.0, 106.0
+    box_h, box_gap = 108.0, 10.0
+    box_w_min, box_w_max = 175.0, 220.0
+    img_max_h, img_pad = 230.0, 8.0
 
     # Lateral dimensions for the column parts, so the carpenter can mark
     # every slot and hole along the board. Each feature is measured from the
@@ -899,31 +908,45 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         part["lateral"] = dims
         part["tiers"] = max(len(left), len(right))
         part["dim_h"] = dim_h + tier_h * part["tiers"]
+    for part in corner:
+        part["dim_h"] = dim_h
 
-    # ---- one shared mm -> pt scale --------------------------------------
+    # ---- one shared mm -> pt scale + layout ------------------------------
     # Width-limited by the longest part (the top bar); every part is then
-    # drawn at that same scale so board thicknesses stay comparable.
-    avail_w = draw_right - draw_left - left_pad - 6
-    avail_h = draw_top - draw_bottom
-    scale = avail_w / max(p["eff_w"] for p in column)
-
-    # The assembly illustration sits in the top-right corner and the
-    # full-width column starts beneath it, so the column (packed at row_gap)
-    # plus a minimum-size illustration must fit the page height.
-    img_top = page_h - margin
-    img_min_h, img_max_h, img_pad = 90.0, 185.0, 8.0
+    # drawn at that same scale so board thicknesses stay comparable. The
+    # scale is stepped down until the layout fits: the bottom-right block
+    # (Strengthener + C End Piece over the Input/Derived boxes) needs room
+    # beside the battens and beneath the full-width Top Sail Bar.
+    ox = draw_left + left_pad
+    col_top = draw_top
     col_bottom = draw_bottom + 22
-    col_fixed = sum(label_h + p["dim_h"] for p in column) + row_gap * (len(column) - 1)
-    col_var = sum(p["eff_h"] for p in column)
-    room = img_top - col_bottom - img_min_h - img_pad - col_fixed
-    scale = min(scale, room / col_var)
 
-    # Safety clamp: the bottom-right stack (Strengthener over C End Piece
-    # over the derived-dimensions box) must still fit the page height.
-    corner_fixed = box_h + 2 * row_gap + 2 * (label_h + dim_h)
-    corner_var = sum(p["eff_h"] for p in corner)
-    if corner_var * scale + corner_fixed > avail_h:
-        scale = min(scale, (avail_h - corner_fixed) / corner_var)
+    def row_h(part, s):
+        return label_h + part["eff_h"] * s + part["dim_h"]
+
+    def plan(s):
+        region_left = ox + max(p["eff_w"] for p in rest) * s + 24
+        bw = min(box_w_max, (draw_right - region_left - box_gap) / 2)
+        if bw < box_w_min:
+            return None
+        corner_top = draw_bottom + box_h + row_gap + max(row_h(p, s) for p in corner)
+        # Top Sail Bar row top: no higher than just under the Bottom Sail Bar
+        # row, no lower than the battens + the corner block allow.
+        tb_max = col_top - row_h(head, s) - row_gap
+        tb_min = max(
+            col_bottom + row_h(full, s) + sum(row_h(p, s) + row_gap for p in rest),
+            corner_top + row_gap + row_h(full, s),
+        )
+        if tb_min > tb_max:
+            return None
+        return tb_min, tb_max, bw, region_left
+
+    scale = (draw_right - draw_left - left_pad - 6) / full["eff_w"]
+    layout = plan(scale)
+    while layout is None and scale > 0.2:
+        scale *= 0.97
+        layout = plan(scale)
+    tb_min, tb_max, box_w, region_left = layout
 
     def draw_part(part, ox, oy):
         c.setFont(title_font, 6.5)
@@ -953,41 +976,56 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=5, label_side="left", rotate_label=True,
         )
 
-    # Assembly illustration, top-right. As tall as the packed column below
-    # it allows, capped at img_max_h. Skipped (column starts at draw_top) if
-    # the image or Pillow is unavailable.
-    natural = col_fixed + col_var * scale
-    col_top = draw_top
+    # Assembly illustration, top-right, hanging down beside the Bottom Sail
+    # Bar row. As large as the space right of that bar and the rows below
+    # allow; the Top Sail Bar row starts just under it. Skipped if the image
+    # or Pillow is unavailable.
+    img_top = page_h - margin
+    tb_top = tb_max
     illustration = _load_illustration()
     if illustration is not None:
         img_reader, (px_w, px_h) = illustration
-        img_h = min(img_max_h, img_top - img_pad - (col_bottom + natural))
-        img_w = img_h * px_w / px_h
-        c.drawImage(img_reader, draw_right - img_w, img_top - img_h, img_w, img_h)
-        col_top = min(draw_top, img_top - img_h - img_pad)
+        # Clear of both the Bottom Sail Bar and the two subtitle lines.
+        subtitle_right = margin + max(c.stringWidth(t, body_font, 8) for t in subtitle)
+        beside_w = draw_right - max(ox + head["eff_w"] * scale, subtitle_right) - 16
+        img_h = min(img_max_h, img_top - img_pad - tb_min, beside_w * px_h / px_w)
+        if img_h > 0:
+            img_w = img_h * px_w / px_h
+            c.drawImage(img_reader, draw_right - img_w, img_top - img_h, img_w, img_h)
+            tb_top = max(tb_min, min(tb_max, img_top - img_h - img_pad))
 
-    # Left-hand column of bars/battens, packed at row_gap from the top. The
-    # footer strip at the bottom is kept clear.
-    ox = draw_left + left_pad
-    y = col_top
-    for part in column:
+    # Left-hand column: Bottom Sail Bar at the top, then Top Sail Bar under
+    # the illustration, then the battens packed at row_gap.
+    draw_part(head, ox, col_top - label_h - head["eff_h"] * scale)
+    y = tb_top
+    for part in (full, *rest):
         oy = y - label_h - part["eff_h"] * scale
         draw_part(part, ox, oy)
         y = oy - part["dim_h"] - row_gap
 
-    # Bottom-right corner: Joint Strengthener above C End Piece above the
-    # derived-dimensions box, all anchored to the page's bottom-right.
-    # `corner` is [strengthener, c_piece]; draw C End Piece nearest the box.
-    box_x = draw_right - box_w
-    corner_x = box_x + 14
-    cy = draw_bottom + box_h + row_gap + dim_h
-    for part in (corner[1], corner[0]):
-        draw_part(part, corner_x, cy)
-        cy += part["eff_h"] * scale + label_h + row_gap + dim_h
+    # Bottom-right block: Joint Strengthener and C End Piece side by side,
+    # above the Input variables and Derived dimensions boxes (also side by
+    # side), right of the battens and under the Top Sail Bar.
+    parts_oy = draw_bottom + box_h + row_gap + dim_h
+    cx0 = region_left + 16
+    for part in corner:
+        draw_part(part, cx0, parts_oy)
+        cx0 += max(part["eff_w"] * scale, c.stringWidth(part["name"], title_font, 6.5)) + 34
 
     input_lines = [
-        f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Batten height {_ceil_mm(d.batten_height)}mm",
+        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
+        f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
+        f"Bottle height: {_ceil_mm(inputs.bottle_height)}mm",
+        f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
+        f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
+        f"Collar diameter: {_ceil_mm(inputs.collar_diameter)}mm",
+        f"Top tapper: {_ceil_mm(inputs.top_dome_height)}mm",
+        f"Bottom tapper: {_ceil_mm(inputs.bottom_dome_height)}mm",
+    ]
+    derived_lines = [
+        f"Battens {_ceil_mm(d.batten_height)} x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
+        f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
+        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm wide (fit the rails)",
         f"Top sail bar {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm",
         f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
         f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
@@ -995,7 +1033,10 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         f"Cage holes Ø{_ceil_mm(d.cage_mount_hole_diameter)} @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from foot",
         f"Strengthener/batten M6 Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
     ]
-    _rounded_rect_text(c, box_x, draw_bottom, box_w, box_h, "Derived dimensions", input_lines, title_font, body_font)
+    derived_x = draw_right - box_w
+    input_x = derived_x - box_gap - box_w
+    _rounded_rect_text(c, input_x, draw_bottom, box_w, box_h, "Input variables", input_lines, title_font, body_font)
+    _rounded_rect_text(c, derived_x, draw_bottom, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
