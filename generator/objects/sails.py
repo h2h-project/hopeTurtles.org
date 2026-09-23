@@ -728,6 +728,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
+    from reportlab.lib.utils import simpleSplit
+
     title_font, body_font, _mono_font = _register_fonts(font_dir)
 
     page_w, page_h = landscape(letter)
@@ -735,23 +737,79 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     c.setTitle(f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
 
     margin = 24
-    title_y = page_h - 30
-    c.setFont(title_font, 16)
-    c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
-    c.setFont(body_font, 8)
-    c.setFillColor(colors.HexColor("#555555"))
-    subtitle = (
-        "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored parts drawn once.",
-        "The sail is soft goods and is not on this sheet. Slot and hole positions are in mm, measured from the nearest end.",
-    )
-    for n, text in enumerate(subtitle):
-        c.drawString(margin, title_y - 13 - 10 * n, text)
-
     draw_left = margin
     draw_right = page_w - margin
-    draw_top = title_y - 40
     draw_bottom = margin + 6
+
+    # ---- header band --------------------------------------------------------
+    # Assembly illustration top-left, with the title + a four-line intro
+    # beside it (the illustration is sized to exactly that text block); the
+    # Derived dimensions box sits top-right.
+    band_top = page_h - margin
+    box_title_size = 8 * 1.2
+    derived_lines = [
+        f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
+        f"Battens {_ceil_mm(d.batten_height)} x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
+        f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
+        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm wide (fit the rails)",
+        f"Top sail bar {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm",
+        f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
+        f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
+        f"C end piece {_ceil_mm(d.c_piece_length)} x {_ceil_mm(d.c_piece_width)}mm",
+        f"Cage holes M3 Ø{_ceil_mm(d.cage_mount_hole_diameter)} @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from foot",
+        f"Strengthener/batten M6 Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
+    ]
+    box_w = 215.0
+    box_h = 5 + box_title_size + 11 + 9 * (len(derived_lines) - 1) + 10
+    box_bottom = band_top - box_h
+    _rounded_rect_text(c, draw_right - box_w, box_bottom, box_w, box_h, "Derived dimensions",
+                       derived_lines, title_font, body_font, title_size=box_title_size)
+
+    # The intro is set in exactly four lines: the largest size (up to 9.5pt)
+    # that wraps it into four lines of the space between the illustration
+    # and the box. The illustration's height is then title + those lines.
+    intro = (
+        "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored "
+        "pairs are drawn once. Positions are in mm from the nearest end of the part, and M3/M6 "
+        "name the bolt each hole takes. The sail bars, strengtheners and C end pieces are cut from "
+        f"your {_ceil_mm(inputs.wood_thickness)}mm board; the battens are "
+        f"{_ceil_mm(d.batten_width)} x {_ceil_mm(BATTEN_THICKNESS)}mm stock. "
+        "The sail is soft goods and is not on this sheet."
+    )
+    title_size = 16
+    illustration = _load_illustration()
+    aspect = (illustration[1][0] / illustration[1][1]) if illustration else 0.0
+
+    def set_intro(size):
+        leading = size * 1.45
+        text_h = title_size + 8 + size + 3 * leading + 3
+        img_w = text_h * aspect
+        text_x = draw_left + (img_w + 16 if illustration else 0)
+        text_w = draw_right - box_w - 16 - text_x
+        return simpleSplit(intro, body_font, size, text_w), leading, text_h, img_w, text_x
+
+    size = 9.5
+    lines, leading, text_h, img_w, text_x = set_intro(size)
+    while len(lines) > 4 and size > 5:
+        size -= 0.25
+        lines, leading, text_h, img_w, text_x = set_intro(size)
+    head_bottom = band_top - text_h
+
+    if illustration:
+        c.drawImage(illustration[0], draw_left, head_bottom, img_w, text_h)
+    title_y = band_top - title_size + 3
+    c.setFont(title_font, title_size)
+    c.setFillColor(colors.HexColor("#111111"))
+    c.drawString(text_x, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
+    c.setFont(body_font, size)
+    c.setFillColor(colors.HexColor("#555555"))
+    for n, text in enumerate(lines):
+        c.drawString(text_x, title_y - 8 - size - leading * n, text)
+
+    # The half-width Bottom Sail Bar row starts under the illustration +
+    # intro (it clears the taller Derived box); the full-width rows below it
+    # must start under the box.
+    body_top = head_bottom - 16
 
     # ---- part outline / notch / hole geometry (mm, part-local) -------------
     tb_n1, tb_n2 = _top_bar_notches(d)
@@ -862,32 +920,30 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
         }
 
-    # Column of horizontal bars/battens. The Bottom Sail Bar leads: it only
-    # uses about half the page width, so the assembly illustration hangs
-    # down beside it from the top-right corner. The full-width Top Sail Bar
-    # follows beneath the illustration, then the two battens.
-    head = prepare(bottom_bar)
-    full = prepare(top_bar)
-    rest = [prepare(sail_batten), prepare(non_sail_batten)]
-    column = [head, full, *rest]
-    corner = [prepare(strengthener), prepare(c_piece)]
+    # Rows, top to bottom: Bottom Sail Bar; the full-width Top Sail Bar;
+    # Sail Batten with the Joint Strengthener to its right; Non-sail Batten
+    # with the C End Piece to its right. Parts in a row share a baseline.
+    bars = [prepare(bottom_bar), prepare(top_bar)]
+    battens = [prepare(sail_batten), prepare(non_sail_batten)]
+    sides = [prepare(strengthener), prepare(c_piece)]
+    rows = [[bars[0]], [bars[1]], [battens[0], sides[0]], [battens[1], sides[1]]]
 
-    label_h = 12       # part title, above the shape
+    part_title_size = 6.5 * 1.2
+    label_h = 13       # part title, above the shape
     dim_h = 15         # dimension line + label, below the shape
     tier_h = 12        # spacing between stacked lateral dimension lines
-    row_gap = 14       # minimum vertical gap between stacked parts
+    row_gap = 14       # minimum vertical gap between rows
+    row_gap_max = 30   # rows spread into spare height, up to this gap
     left_pad = 34      # clearance for the left (height) dimension line
-    box_h, box_gap = 108.0, 10.0
-    box_w_min, box_w_max = 175.0, 220.0
-    img_max_h, img_pad = 115.0, 8.0
+    side_gap = 44      # batten end -> side part (room for its height dim)
 
-    # Lateral dimensions for the column parts, so the carpenter can mark
+    # Lateral dimensions for the bars and battens, so the carpenter can mark
     # every slot and hole along the board. Each feature is measured from the
     # NEARER end of the part (tape from that end): a slot gets an arrow to
     # its near edge chained to an arrow across its width, a hole an arrow to
     # its centre. Left-end and right-end dimensions share tiers (they never
     # overlap horizontally), nearest feature closest to the part.
-    for part in column:
+    for part in (*bars, *battens):
         w = part["eff_w"]
         features = []
         for wall in part["notches"]:
@@ -909,45 +965,43 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         part["lateral"] = dims
         part["tiers"] = max(len(left), len(right))
         part["dim_h"] = dim_h + tier_h * part["tiers"]
-    for part in corner:
+    for part in sides:
         part["dim_h"] = dim_h
 
     # ---- one shared mm -> pt scale + layout ------------------------------
     # Width-limited by the longest part (the top bar); every part is then
-    # drawn at that same scale so board thicknesses stay comparable. The
-    # scale is stepped down until the layout fits: the bottom-right block
-    # (Strengthener + C End Piece over the Input/Derived boxes) needs room
-    # beside the battens and beneath the full-width Top Sail Bar.
+    # drawn at that same scale so board thicknesses stay comparable. Stepped
+    # down if a batten + its side part would overrun the page width or the
+    # rows would overrun the height below the header band.
     ox = draw_left + left_pad
-    col_top = draw_top
     col_bottom = draw_bottom + 22
 
-    def row_h(part, s):
-        return label_h + part["eff_h"] * s + part["dim_h"]
+    def row_above(row, s):   # baseline -> top of the tallest title
+        return max(label_h + p["eff_h"] * s for p in row)
 
-    def plan(s):
-        region_left = ox + max(p["eff_w"] for p in rest) * s + 24
-        bw = min(box_w_max, (draw_right - region_left - box_gap) / 2)
-        if bw < box_w_min:
-            return None
-        corner_top = draw_bottom + box_h + row_gap + max(row_h(p, s) for p in corner)
-        # Top Sail Bar row top: no higher than just under the Bottom Sail Bar
-        # row, no lower than the battens + the corner block allow.
-        tb_max = col_top - row_h(head, s) - row_gap
-        tb_min = max(
-            col_bottom + row_h(full, s) + sum(row_h(p, s) + row_gap for p in rest),
-            corner_top + row_gap + row_h(full, s),
-        )
-        if tb_min > tb_max:
-            return None
-        return tb_min, tb_max, bw, region_left
+    def row_below(row):      # baseline -> bottom of the deepest dimensions
+        return max(p["dim_h"] for p in row)
 
-    scale = (draw_right - draw_left - left_pad - 6) / full["eff_w"]
-    layout = plan(scale)
-    while layout is None and scale > 0.2:
+    def fits(s):
+        for batten, side in zip(battens, sides):
+            if ox + (batten["eff_w"] + side["eff_w"]) * s + side_gap > draw_right:
+                return False
+        if ox + bars[0]["eff_w"] * s > draw_right - box_w - 12:
+            return False
+        return column_bottom(s, row_gap) >= col_bottom
+
+    # Bottom of the last row for a given scale and inter-row gap. The second
+    # row (the full-width Top Sail Bar) starts no higher than under the box.
+    def column_bottom(s, g):
+        y = body_top - row_above(rows[0], s) - row_below(rows[0]) - g
+        y = min(y, box_bottom - row_gap)
+        for row in rows[1:]:
+            y -= row_above(row, s) + row_below(row) + g
+        return y + g
+
+    scale = (draw_right - draw_left - left_pad - 6) / bars[1]["eff_w"]
+    while not fits(scale) and scale > 0.2:
         scale *= 0.97
-        layout = plan(scale)
-    tb_min, tb_max, box_w, region_left = layout
 
     # What fastener/shaft each hole takes, written beside it. Ø (U+00D8),
     # not ⌀ (U+2300): the Mulish body font has no ⌀ glyph.
@@ -961,7 +1015,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         return f"Ø{_ceil_mm(dia)}mm"
 
     def draw_part(part, ox, oy):
-        c.setFont(title_font, 6.5)
+        c.setFont(title_font, part_title_size)
         c.setFillColor(colors.HexColor("#222222"))
         c.drawString(ox, oy + part["eff_h"] * scale + 5, part["name"])
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.7)
@@ -991,68 +1045,21 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=5, label_side="left", rotate_label=True,
         )
 
-    # Assembly illustration, top-right, hanging down beside the Bottom Sail
-    # Bar row. As large as the space right of that bar and the rows below
-    # allow; the Top Sail Bar row starts just under it. Skipped if the image
-    # or Pillow is unavailable.
-    img_top = page_h - margin
-    tb_top = tb_max
-    illustration = _load_illustration()
-    if illustration is not None:
-        img_reader, (px_w, px_h) = illustration
-        # Clear of both the Bottom Sail Bar and the two subtitle lines.
-        subtitle_right = margin + max(c.stringWidth(t, body_font, 8) for t in subtitle)
-        beside_w = draw_right - max(ox + head["eff_w"] * scale, subtitle_right) - 16
-        img_h = min(img_max_h, img_top - img_pad - tb_min, beside_w * px_h / px_w / 2)
-        if img_h > 0:
-            img_w = img_h * px_w / px_h
-            c.drawImage(img_reader, draw_right - img_w, img_top - img_h, img_w, img_h)
-            tb_top = max(tb_min, min(tb_max, img_top - img_h - img_pad))
-
-    # Left-hand column: the Bottom Sail Bar sits at the bottom of its row
-    # (just above the Top Sail Bar, any slack goes above it), then the Top
-    # Sail Bar under the illustration, then the battens packed at row_gap.
-    draw_part(head, ox, tb_top + row_gap + head["dim_h"])
-    y = tb_top
-    for part in (full, *rest):
-        oy = y - label_h - part["eff_h"] * scale
-        draw_part(part, ox, oy)
-        y = oy - part["dim_h"] - row_gap
-
-    # Bottom-right block: Joint Strengthener and C End Piece side by side,
-    # above the Input variables and Derived dimensions boxes (also side by
-    # side), right of the battens and under the Top Sail Bar.
-    parts_oy = draw_bottom + box_h + row_gap + dim_h
-    cx0 = region_left + 16
-    for part in corner:
-        draw_part(part, cx0, parts_oy)
-        cx0 += max(part["eff_w"] * scale, c.stringWidth(part["name"], title_font, 6.5)) + 34
-
-    input_lines = [
-        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
-        f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Bottle height: {_ceil_mm(inputs.bottle_height)}mm",
-        f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
-        f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
-        f"Collar diameter: {_ceil_mm(inputs.collar_diameter)}mm",
-        f"Top tapper: {_ceil_mm(inputs.top_dome_height)}mm",
-        f"Bottom tapper: {_ceil_mm(inputs.bottom_dome_height)}mm",
-    ]
-    derived_lines = [
-        f"Battens {_ceil_mm(d.batten_height)} x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
-        f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
-        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm wide (fit the rails)",
-        f"Top sail bar {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm",
-        f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
-        f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
-        f"C end piece {_ceil_mm(d.c_piece_length)} x {_ceil_mm(d.c_piece_width)}mm",
-        f"Cage holes Ø{_ceil_mm(d.cage_mount_hole_diameter)} @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from foot",
-        f"Strengthener/batten M6 Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
-    ]
-    derived_x = draw_right - box_w
-    input_x = derived_x - box_gap - box_w
-    _rounded_rect_text(c, input_x, draw_bottom, box_w, box_h, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, derived_x, draw_bottom, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
+    # Rows packed from the top of the body, spreading any spare height into
+    # the gaps (widest gap up to row_gap_max that still fits).
+    gap = row_gap_max
+    while gap > row_gap and column_bottom(scale, gap) < col_bottom:
+        gap -= 1
+    y = body_top
+    for n, row in enumerate(rows):
+        if n == 1:
+            y = min(y, box_bottom - row_gap)
+        oy = y - row_above(row, scale)
+        px = ox
+        for part in row:
+            draw_part(part, px, oy)
+            px += part["eff_w"] * scale + side_gap
+        y = oy - row_below(row) - gap
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))

@@ -303,15 +303,16 @@ def _draw_top_edge_with_gaps(c, x0, y_top, x1, gaps):
         c.line(segments_start, y_top, x1, y_top)
 
 
-def _rounded_rect_text(c, x, y, w, h, title, lines, title_font, body_font):
+def _rounded_rect_text(c, x, y, w, h, title, lines, title_font, body_font, title_size=8):
     c.setStrokeColor(colors.HexColor("#aaaaaa"))
     c.setFillColor(colors.HexColor("#f8f8f8"))
     c.roundRect(x, y, w, h, 5, fill=1, stroke=1)
     c.setFillColor(colors.HexColor("#222222"))
-    c.setFont(title_font, 8)
-    c.drawString(x + 8, y + h - 13, title)
+    c.setFont(title_font, title_size)
+    title_y = y + h - 5 - title_size
+    c.drawString(x + 8, title_y, title)
     c.setFont(body_font, 6.5)
-    yy = y + h - 24
+    yy = title_y - 11
     for line in lines:
         c.drawString(x + 8, yy, line)
         yy -= 9
