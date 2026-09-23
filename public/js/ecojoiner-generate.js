@@ -772,6 +772,7 @@
              )
              .join("")}
          </ul>
+         <div class="eco-results__ready" id="eco-results-ready" hidden></div>
          <div class="eco-results__actions">
            <button type="button" class="button" id="eco-confirm">
              <i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i> ${esc(
@@ -786,15 +787,18 @@
     if (confirm) confirm.addEventListener("click", () => generate(confirm));
   };
 
+  // The downloads fill the slot renderPreview() left at the foot of the
+  // spec card, above its Generate/Done button, so preview and files read
+  // as one panel rather than two stacked cards.
   const renderDownloads = (data) => {
     const files = data.files || [];
-    appendResults(
-      `<div class="eco-results__card eco-results__card--done">
-         <h2 class="eco-results__title">
+    const slot = el("eco-results-ready");
+    const html = `
+         <h3 class="eco-results__subtitle">
            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> ${esc(
              s("gen_res_ready_title"),
            )}
-         </h2>
+         </h3>
          <p class="eco-results__lede">${esc(s("gen_res_ready_lede"))}</p>
          <ul class="eco-results__files">
            ${files
@@ -812,9 +816,14 @@
          ${(data.notices || [])
            .map((n) => `<p class="eco-results__notice">${esc(n)}</p>`)
            .join("")}
-         <p class="eco-results__notice">${esc(s("gen_res_retention"))}</p>
-       </div>`,
-    );
+         <p class="eco-results__notice">${esc(s("gen_res_retention"))}</p>`;
+    if (slot) {
+      slot.innerHTML = html;
+      slot.hidden = false;
+      slot.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else {
+      appendResults(`<div class="eco-results__card">${html}</div>`);
+    }
   };
 
   // Set after a successful generate and handed to saveWorkingDraft so it can
@@ -826,6 +835,7 @@
 
   const generate = async (button) => {
     const original = button.innerHTML;
+    let finished = false;
     setSpinning(button, s("gen_res_generating"));
     try {
       const { ok, status, body } = await withMinDuration(
@@ -840,8 +850,12 @@
         return;
       }
       lastGenerated = body.data;
+      // Once the files exist the button's job is over: it stays a
+      // non-clickable ghost "Done" and the download links become the
+      // primary (solid green) actions instead.
+      finished = true;
       setDone(button, s("gen_step_done"));
-      await new Promise((r) => setTimeout(r, MIN_STEP_MS));
+      button.classList.add("ghost");
       renderDownloads(body.data);
       // Autosave the working bottle profile + a draft design behind the
       // files just generated — passing the job/files along flips the
@@ -850,8 +864,10 @@
     } catch (error) {
       renderErrors(s("gen_res_err_network"), [error.message], { append: true });
     } finally {
-      button.disabled = false;
-      button.innerHTML = original;
+      if (!finished) {
+        button.disabled = false;
+        button.innerHTML = original;
+      }
     }
   };
 

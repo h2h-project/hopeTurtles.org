@@ -6632,6 +6632,28 @@ body.ocean-bg {
   justify-content: flex-end;
 }
 
+/* Downloads slot at the foot of the spec card, filled once the files are
+   generated (above the card's now-ghosted "Done" button). */
+.eco-results__ready {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(1, 121, 25, 0.2);
+}
+
+.eco-results__ready .eco-results__subtitle i {
+  color: var(--color-primary);
+}
+
+/* The finished "Done" button: a non-interactive ghost, so the green
+   download links read as the actions to take next. */
+.eco-results__actions .button.ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+  background: transparent;
+}
+
 /* Download list. */
 .eco-results__files {
   list-style: none;
@@ -6642,29 +6664,38 @@ body.ocean-bg {
   gap: 0.5rem;
 }
 
+/* Each download is a solid green button: green ground, white text, white
+   icon and a reversed (white-on-green → green-on-white) format pill. */
 .eco-results__files a {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid rgba(1, 121, 25, 0.2);
+  border: 1px solid var(--color-primary);
   border-radius: 0.75rem;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 600;
   text-decoration: none;
-  color: inherit;
   transition:
     border-color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .eco-results__files a:hover,
 .eco-results__files a:focus-visible {
   border-color: var(--color-accent);
-  background: rgba(35, 176, 83, 0.08);
+  background: var(--color-accent);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-elevated);
 }
 
 .eco-results__files a i {
   margin-left: auto;
-  color: var(--color-primary);
+  color: #fff;
 }
 
 .eco-results__format {
@@ -6672,8 +6703,8 @@ body.ocean-bg {
   font-size: 0.7rem;
   letter-spacing: 0.06em;
   font-weight: 600;
-  background: var(--color-primary);
-  color: #fff;
+  background: #fff;
+  color: var(--color-primary);
   border-radius: 0.4rem;
   padding: 0.15rem 0.45rem;
 }

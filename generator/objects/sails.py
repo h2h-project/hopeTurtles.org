@@ -105,6 +105,7 @@ TUNING = {
 TOP_BAR_WIDTH = 22.0                  # p_top_crossbar_w()
 TOP_BAR_SLOT_WIDTH = 10.0             # == BATTEN_THICKNESS
 TOP_BAR_SLOT_DEPTH = 11.0
+TOP_BAR_AXLE_SHAFT_D = 8.0             # p_axle_round_d() -- the shaft the axle hole takes (PDF label only)
 TOP_BAR_AXLE_HOLE_D = 8.2              # p_sail_bar_axle_hole_d() -- TB-08: round shaft + 0.2 mm
                                         # running clearance (was Ø12 for the retired hex corners)
 
@@ -878,7 +879,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     left_pad = 34      # clearance for the left (height) dimension line
     box_h, box_gap = 108.0, 10.0
     box_w_min, box_w_max = 175.0, 220.0
-    img_max_h, img_pad = 230.0, 8.0
+    img_max_h, img_pad = 115.0, 8.0
 
     # Lateral dimensions for the column parts, so the carpenter can mark
     # every slot and hole along the board. Each feature is measured from the
@@ -948,6 +949,17 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         layout = plan(scale)
     tb_min, tb_max, box_w, region_left = layout
 
+    # What fastener/shaft each hole takes, written beside it. Ø (U+00D8),
+    # not ⌀ (U+2300): the Mulish body font has no ⌀ glyph.
+    def hole_label(dia):
+        if abs(dia - BATTEN_CAGE_M6_HOLE_D) < 0.01:
+            return "M6"
+        if abs(dia - d.cage_mount_hole_diameter) < 0.01:
+            return "M3"
+        if abs(dia - d.top_bar_axle_hole_d) < 0.01:
+            return f"Ø{_ceil_mm(TOP_BAR_AXLE_SHAFT_D)}mm"
+        return f"Ø{_ceil_mm(dia)}mm"
+
     def draw_part(part, ox, oy):
         c.setFont(title_font, 6.5)
         c.setFillColor(colors.HexColor("#222222"))
@@ -959,6 +971,9 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             c.setStrokeColor(colors.HexColor("#999999"))
             c.setLineWidth(0.5)
             c.circle(ox + cx * scale, oy + cy * scale, (dia / 2) * scale, stroke=1, fill=0)
+            c.setFont(body_font, 5)
+            c.setFillColor(colors.HexColor("#333333"))
+            c.drawString(ox + cx * scale + (dia / 2) * scale + 1.5, oy + cy * scale - 1.8, hole_label(dia))
         for tier, x1, x2, text, ey1, ey2 in part.get("lateral", ()):
             ly = oy - tier_h * (tier + 1)
             _draw_dimension_line(
@@ -988,15 +1003,16 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         # Clear of both the Bottom Sail Bar and the two subtitle lines.
         subtitle_right = margin + max(c.stringWidth(t, body_font, 8) for t in subtitle)
         beside_w = draw_right - max(ox + head["eff_w"] * scale, subtitle_right) - 16
-        img_h = min(img_max_h, img_top - img_pad - tb_min, beside_w * px_h / px_w)
+        img_h = min(img_max_h, img_top - img_pad - tb_min, beside_w * px_h / px_w / 2)
         if img_h > 0:
             img_w = img_h * px_w / px_h
             c.drawImage(img_reader, draw_right - img_w, img_top - img_h, img_w, img_h)
             tb_top = max(tb_min, min(tb_max, img_top - img_h - img_pad))
 
-    # Left-hand column: Bottom Sail Bar at the top, then Top Sail Bar under
-    # the illustration, then the battens packed at row_gap.
-    draw_part(head, ox, col_top - label_h - head["eff_h"] * scale)
+    # Left-hand column: the Bottom Sail Bar sits at the bottom of its row
+    # (just above the Top Sail Bar, any slack goes above it), then the Top
+    # Sail Bar under the illustration, then the battens packed at row_gap.
+    draw_part(head, ox, tb_top + row_gap + head["dim_h"])
     y = tb_top
     for part in (full, *rest):
         oy = y - label_h - part["eff_h"] * scale
