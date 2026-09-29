@@ -132,8 +132,8 @@ BATTEN_CAGE_M6_HOLE_D = 6.4           # p_m6_clearance_d() -- the strengthener/b
 # M3 holes correctly -- these are downstream of lib/control_cage.scad and are
 # NOT affected by cap_diameter/collar_diameter/dome heights (only by
 # bottle_diameter, through the cage's own bottle-clearance chain).
-CAGE_TOTAL_HEIGHT = 50.0              # p_cage_total_h() native
-CAGE_SURFACE_THICKNESS = 6.0          # p_cage_roof_t()
+CAGE_TOTAL_HEIGHT = 48.0              # p_cage_total_h() native (44 skirt + 4 roof)
+CAGE_SURFACE_THICKNESS = 4.0          # p_cage_roof_t() (turtle_body v1.10.0: 6 -> 4)
 CAGE_PEAK_EXTENSION = 20.0            # p_cage_peak_extension()
 CAGE_LOWER_HOLE_FROM_TIP = 10.0       # p_cage_lower_hole_from_tip()
 CAGE_NOTCH_DEPTH = 3.7                # p_cage_notch_depth()
