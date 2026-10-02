@@ -149,7 +149,7 @@
 
   .phone-shell {
     width: 240px;
-    height: 500px;
+    height: 540px;
     background: var(--color-dark);
     border-radius: 32px;
     padding: 10px;
@@ -173,7 +173,11 @@
   }
   .phone-topbar .name { font-size: 12px; font-weight: 700; color: var(--color-dark); }
   .phone-topbar .status { font-size: 10px; color: var(--color-primary); font-weight: 700; }
-  .phone-body { padding: 12px; flex: 1; background-color: #fff; background-image: var(--topo-pattern-mockup); }
+  .phone-topbar .status.off { color: var(--color-text-muted); }
+  .phone-topbar .right { display: flex; align-items: center; gap: 8px; }
+  .phone-topbar .gear { width: 16px; height: 16px; stroke: var(--color-dark); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .phone-topbar .gear.active { stroke: var(--color-pink-dark); }
+  .phone-body { padding: 12px; flex: 1; min-height: 0; overflow: hidden; background-color: #fff; background-image: var(--topo-pattern-mockup); }
   .phone-heading { text-align: center; background: #fff; border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
   .phone-heading .big { font-family: var(--font-heading); font-size: 24px; font-weight: 700; color: var(--color-dark); }
   .phone-heading .small { font-size: 10px; color: var(--color-text-muted); margin-top: 2px; }
@@ -181,8 +185,8 @@
   .phone-metric { background: #fff; border: 1px solid var(--card-border); border-radius: 8px; padding: 8px; }
   .phone-metric .label { font-size: 9px; color: var(--color-text-muted); }
   .phone-metric .value { font-size: 14px; font-weight: 700; color: var(--color-dark); }
-  .phone-navbar { display: flex; border-top: 1px solid #eee; }
-  .phone-navbar div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; padding: 8px 0; font-size: 8px; color: var(--color-text-muted); }
+  .phone-navbar { display: flex; flex-shrink: 0; border-top: 1px solid #eee; padding: 0 10px 2px; }
+  .phone-navbar div { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; padding: 8px 0; font-size: 7.5px; min-width: 0; white-space: nowrap; color: var(--color-text-muted); }
   .phone-navbar div.active { color: var(--color-primary); font-weight: 700; }
   .phone-navbar div.active .nav-icon { color: var(--color-pink-dark); }
   .nav-icon { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -224,6 +228,16 @@
   }
   .phone-btn.pink { background: #fff; border: 1px solid var(--color-pink); color: var(--color-pink-dark); }
   .phone-btn.outline { background: #fff; border: 1px solid var(--color-light); color: var(--color-dark); }
+  .phone-btn.big { padding: 16px 0; font-size: 13px; border-radius: 10px; border-width: 2px; }
+  .phone-seg { display: flex; border: 1px solid var(--color-light); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+  .phone-seg span { flex: 1; text-align: center; font-size: 9px; padding: 4px 0; color: var(--color-text-muted); background: #fff; }
+  .phone-seg span.on { background: var(--color-primary); color: #fff; font-weight: 700; }
+  .phone-list .fail { color: var(--color-text-muted); font-style: italic; }
+  .phone-note { font-size: 8px; color: var(--color-text-muted); text-align: center; margin: 3px 0 0; }
+  .phone-empty { text-align: center; padding: 6px 4px 2px; }
+  .phone-empty .big-emoji { font-size: 30px; line-height: 1; }
+  .phone-empty p { font-size: 10px; color: var(--color-text); margin: 6px 0 0; }
+  .phone-empty p.phone-note { font-size: 8px; color: var(--color-text-muted); margin: 3px 0 0; }
   .phone-bar { height: 5px; background: #fff; border: 1px solid var(--color-pink); border-radius: 3px; overflow: hidden; margin-top: 4px; }
   .phone-bar .fill { height: 100%; background: repeating-linear-gradient(45deg, var(--color-pink) 0 3px, #fff 3px 6px); }
   .phone-list { font-size: 9px; display: flex; flex-direction: column; gap: 4px; }
@@ -247,7 +261,7 @@
 
   .steps {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
   .step {
@@ -282,7 +296,7 @@
   .benefit p { margin: 0; font-size: 15px; }
   .benefit strong { color: var(--color-dark); }
 
-  .scope-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .scope-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .scope-card {
     background: #fff;
     border: 1px solid var(--card-border);
@@ -321,6 +335,127 @@
   .vision-card h3 { margin: 0 0 6px; font-size: 17px; color: #fff; }
   .vision-card p { margin: 0; font-size: 14px; color: var(--color-light); }
 
+  .tech-eyebrow {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 6px;
+  }
+  h3.sub {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    color: var(--color-dark);
+    margin: 36px 0 12px;
+  }
+  code {
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 0.86em;
+    background: var(--color-background);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    overflow-wrap: anywhere;
+  }
+  section.alt code { background: #fff; }
+  .status-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -12px 0 28px;
+  }
+  .chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    background: #fff;
+    color: var(--color-dark);
+  }
+  .chip.done { border-color: var(--color-light); background: var(--color-background); color: var(--color-primary); }
+  .chip.todo { border-color: var(--color-pink); background: var(--color-pink-tint); color: var(--color-pink-dark); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--card-border); border-radius: 12px; background: #fff; }
+  table.tech {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 560px;
+  }
+  table.tech th, table.tech td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  table.tech tr:last-child td { border-bottom: none; }
+  table.tech th {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    background: var(--color-background);
+  }
+  table.tech td:first-child { font-weight: 600; color: var(--color-dark); white-space: nowrap; }
+  table.tech td.muted { color: var(--color-text-muted); }
+  table.tech code { white-space: nowrap; overflow-wrap: normal; }
+
+  .module-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .module {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .module h4 { margin: 0 0 6px; font-size: 15px; color: var(--color-dark); }
+  .module p { margin: 0; font-size: 14px; color: var(--color-text-muted); }
+
+  .note {
+    border-left: 3px solid var(--color-primary);
+    background: var(--color-background);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-size: 14px;
+    margin-top: 20px;
+  }
+  section.alt .note { background: #fff; }
+  .note strong { color: var(--color-dark); }
+
+  .repo-map {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .repo {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .repo.center { border: 2px solid var(--color-primary); }
+  .repo .repo-name { font-family: var(--font-heading); font-weight: 700; color: var(--color-dark); font-size: 15px; }
+  .repo .repo-path { font-size: 12px; color: var(--color-text-muted); margin-bottom: 8px; }
+  .repo p { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+  .link-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-align: center;
+    min-width: 84px;
+  }
+  .link-arrow .arrow { font-size: 20px; line-height: 1; }
+
+  ul.plain { margin: 0; padding-left: 20px; font-size: 15px; }
+  ul.plain li { margin-bottom: 8px; }
+
   footer {
     padding: 32px 0;
     text-align: center;
@@ -330,7 +465,10 @@
   }
 
   @media (max-width: 640px) {
-    .compare, .feature-grid, .steps, .benefits, .scope-grid, .vision-grid { grid-template-columns: 1fr; }
+    .compare, .feature-grid, .steps, .benefits, .scope-grid, .vision-grid, .module-grid { grid-template-columns: 1fr; }
+    .repo-map { grid-template-columns: 1fr; }
+    .link-arrow { flex-direction: row; gap: 8px; min-width: 0; }
+    .link-arrow .arrow { transform: rotate(90deg); }
     .hero h1 { font-size: 30px; }
   }
 </style>
@@ -347,21 +485,18 @@
     <circle cx="12" cy="12" r="9"/>
     <polygon points="14.5,9.5 13,14.5 9.5,13 11,8" fill="currentColor" stroke="none"/>
   </symbol>
+  <symbol id="i-gps" viewBox="0 0 24 24">
+    <path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/>
+    <circle cx="12" cy="10.5" r="2.2"/>
+  </symbol>
   <symbol id="i-diagnostics" viewBox="0 0 24 24">
     <line x1="6" y1="18" x2="14" y2="10"/>
     <circle cx="17" cy="7" r="3"/>
     <line x1="6" y1="18" x2="8" y2="20"/>
   </symbol>
   <symbol id="i-settings" viewBox="0 0 24 24">
+    <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
     <circle cx="12" cy="12" r="3"/>
-    <line x1="12" y1="3" x2="12" y2="5.5"/>
-    <line x1="12" y1="18.5" x2="12" y2="21"/>
-    <line x1="3" y1="12" x2="5.5" y2="12"/>
-    <line x1="18.5" y1="12" x2="21" y2="12"/>
-    <line x1="5.6" y1="5.6" x2="7.4" y2="7.4"/>
-    <line x1="16.6" y1="16.6" x2="18.4" y2="18.4"/>
-    <line x1="5.6" y1="18.4" x2="7.4" y2="16.6"/>
-    <line x1="16.6" y1="7.4" x2="18.4" y2="5.6"/>
   </symbol>
 </svg>
 
@@ -388,6 +523,7 @@
           <li>Checking battery, sail, GPS and heading means clicking through several separate screens, one at a time</li>
           <li>Setting a destination or starting a journey is a multi-step button sequence you have to remember</li>
           <li>Any control at all is impossible unless you're physically right beside the turtle, in the water</li>
+          <li>If a stamp or a command fails, the tiny screen is easy to miss — or it gives no reason at all</li>
         </ul>
       </div>
       <div class="card new">
@@ -398,6 +534,8 @@
           <li>Works from up to 5 metres away — no wading in beside the hull</li>
           <li>Battery, sail, heading, and position all visible together, at a glance</li>
           <li>Setting a destination or starting a journey is a couple of taps from a distance</li>
+          <li>Manual GPS stamps are one big button — and the turtle tells you straight away if one didn't take</li>
+          <li>Every command gets an answer: done, or exactly why not</li>
         </ul>
       </div>
     </div>
@@ -407,7 +545,7 @@
 <section class="alt">
   <div class="wrap">
     <h2>What the app actually does</h2>
-    <p class="lead">Four simple areas, each replacing a part of what the on-hull screen does today — just easier to read and easier to use.</p>
+    <p class="lead">Four simple tabs plus a settings page, each replacing a part of what the on-hull screen does today — just easier to read and easier to use. Every button in the app does something the turtle's own button can already do, so nothing is lost when a phone isn't around.</p>
     <div class="feature-grid">
       <div class="feature">
         <div class="icon">📊</div>
@@ -420,6 +558,11 @@
         <p>Set where the turtle should head, start or end a test run, and see how far off-course it currently is — all with taps instead of button-click codes.</p>
       </div>
       <div class="feature">
+        <div class="icon">📍</div>
+        <h3>GPS stamps</h3>
+        <p>Switch the turtle to manual logging and record its position with one big tap — each stamp is confirmed, counted, and tracked until it reaches the website.</p>
+      </div>
+      <div class="feature">
         <div class="icon">🔧</div>
         <h3>Diagnostics</h3>
         <p>Run a quick sail test to find the wind, and check at a glance that every sensor on board — compass, battery monitor, GPS — is healthy before launch.</p>
@@ -429,6 +572,11 @@
         <h3>Settings</h3>
         <p>Hand the turtle its WiFi details and adjust how often it reports home — no laptop or cable required in the field.</p>
       </div>
+      <div class="feature">
+        <div class="icon">🔒</div>
+        <h3>Safe for real voyages</h3>
+        <p>You sign in with your Buwana account first, and the app only opens turtles you look after. Pairing still needs a 6-digit code shown on the turtle itself, and before a real mission Bluetooth can be switched off completely.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -436,8 +584,33 @@
 <section>
   <div class="wrap">
     <h2>What it could look like</h2>
-    <p class="lead">Early sketches of all four screens — this is what you'd see when you open the app near a turtle and move through each area.</p>
+    <p class="lead">Early sketches: signing in, the four main tabs, the settings page (behind the gear in the top corner), and what you'd see when none of your turtles are in range.</p>
     <div class="mockup-grid">
+
+      <div class="mockup-item">
+        <p class="mockup-label">Sign in</p>
+        <div class="phone-shell">
+          <div class="phone-screen">
+            <div class="phone-topbar">
+              <span class="name">Turtle Wrangler</span>
+              <div class="right"><span class="status off">○ Signed out</span></div>
+            </div>
+            <div class="phone-body">
+              <div class="phone-card phone-empty">
+                <div class="big-emoji">🐢</div>
+                <p><strong>Welcome to Turtle Wrangler</strong></p>
+                <p>Sign in to see the turtles you look after.</p>
+                <button class="phone-btn pink">Log in with Buwana</button>
+                <p class="phone-note">the same account you use on hopeturtles.org</p>
+              </div>
+              <div class="phone-card">
+                <p class="card-label">Why sign in?</p>
+                <p class="card-sub">Only your turtles show up here. After the first sign-in you stay signed in, even at a shoreline with no signal.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="mockup-item">
         <p class="mockup-label">Dashboard</p>
@@ -445,7 +618,7 @@
           <div class="phone-screen">
             <div class="phone-topbar">
               <span class="name">🐢 Hope Turtle #3</span>
-              <span class="status">● Connected</span>
+              <div class="right"><span class="status">● Connected</span><svg class="gear"><use href="#i-settings"/></svg></div>
             </div>
             <div class="phone-body">
               <div class="phone-card">
@@ -490,8 +663,8 @@
             <div class="phone-navbar">
               <div class="active"><svg class="nav-icon"><use href="#i-dashboard"/></svg>Dashboard</div>
               <div><svg class="nav-icon"><use href="#i-navigate"/></svg>Navigate</div>
+              <div><svg class="nav-icon"><use href="#i-gps"/></svg>GPS</div>
               <div><svg class="nav-icon"><use href="#i-diagnostics"/></svg>Diagnostics</div>
-              <div><svg class="nav-icon"><use href="#i-settings"/></svg>Settings</div>
             </div>
           </div>
         </div>
@@ -503,7 +676,7 @@
           <div class="phone-screen">
             <div class="phone-topbar">
               <span class="name">🐢 Hope Turtle #3</span>
-              <span class="status">● Connected</span>
+              <div class="right"><span class="status">● Connected</span><svg class="gear"><use href="#i-settings"/></svg></div>
             </div>
             <div class="phone-body">
               <div class="phone-card">
@@ -514,7 +687,8 @@
               <div class="phone-card">
                 <p class="card-label">Destination</p>
                 <p class="card-sub">31.350N, 34.270E · Al Mawasi</p>
-                <button class="phone-btn outline">Set on map</button>
+                <button class="phone-btn outline">Set to the turtle's position</button>
+                <p class="phone-note">or pick a point on the map</p>
               </div>
               <div class="phone-card">
                 <p class="card-label">Route</p>
@@ -535,8 +709,46 @@
             <div class="phone-navbar">
               <div><svg class="nav-icon"><use href="#i-dashboard"/></svg>Dashboard</div>
               <div class="active"><svg class="nav-icon"><use href="#i-navigate"/></svg>Navigate</div>
+              <div><svg class="nav-icon"><use href="#i-gps"/></svg>GPS</div>
               <div><svg class="nav-icon"><use href="#i-diagnostics"/></svg>Diagnostics</div>
-              <div><svg class="nav-icon"><use href="#i-settings"/></svg>Settings</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-item">
+        <p class="mockup-label">GPS stamps</p>
+        <div class="phone-shell">
+          <div class="phone-screen">
+            <div class="phone-topbar">
+              <span class="name">🐢 Hope Turtle #3</span>
+              <div class="right"><span class="status">● Connected</span><svg class="gear"><use href="#i-settings"/></svg></div>
+            </div>
+            <div class="phone-body">
+              <div class="phone-card">
+                <p class="card-label">Logging mode</p>
+                <div class="phone-seg"><span>Off</span><span>Auto</span><span class="on">Manual</span></div>
+              </div>
+              <div class="phone-card">
+                <p class="card-sub">Turtle is at 31.3621N, 34.2913E · 7 sats</p>
+                <button class="phone-btn pink big">Stamp position</button>
+                <p class="phone-note">Logged this session: 14</p>
+              </div>
+              <div class="phone-card">
+                <p class="card-label">This session</p>
+                <div class="phone-list">
+                  <div class="row"><span>14:36 · 31.3621N</span><span class="ok">stamped</span></div>
+                  <div class="row"><span>14:33 · 31.3617N</span><span class="ok">sent</span></div>
+                  <div class="row"><span>14:31 · no GPS fix</span><span class="fail">not stamped</span></div>
+                </div>
+                <p class="card-sub" style="margin-top:6px;">3 waiting to send · last sent 14:34</p>
+              </div>
+            </div>
+            <div class="phone-navbar">
+              <div><svg class="nav-icon"><use href="#i-dashboard"/></svg>Dashboard</div>
+              <div><svg class="nav-icon"><use href="#i-navigate"/></svg>Navigate</div>
+              <div class="active"><svg class="nav-icon"><use href="#i-gps"/></svg>GPS</div>
+              <div><svg class="nav-icon"><use href="#i-diagnostics"/></svg>Diagnostics</div>
             </div>
           </div>
         </div>
@@ -548,7 +760,7 @@
           <div class="phone-screen">
             <div class="phone-topbar">
               <span class="name">🐢 Hope Turtle #3</span>
-              <span class="status">● Connected</span>
+              <div class="right"><span class="status">● Connected</span><svg class="gear"><use href="#i-settings"/></svg></div>
             </div>
             <div class="phone-body">
               <div class="phone-card">
@@ -576,8 +788,8 @@
             <div class="phone-navbar">
               <div><svg class="nav-icon"><use href="#i-dashboard"/></svg>Dashboard</div>
               <div><svg class="nav-icon"><use href="#i-navigate"/></svg>Navigate</div>
+              <div><svg class="nav-icon"><use href="#i-gps"/></svg>GPS</div>
               <div class="active"><svg class="nav-icon"><use href="#i-diagnostics"/></svg>Diagnostics</div>
-              <div><svg class="nav-icon"><use href="#i-settings"/></svg>Settings</div>
             </div>
           </div>
         </div>
@@ -589,25 +801,18 @@
           <div class="phone-screen">
             <div class="phone-topbar">
               <span class="name">🐢 Hope Turtle #3</span>
-              <span class="status">● Connected</span>
+              <div class="right"><span class="status">● Connected</span><svg class="gear active"><use href="#i-settings"/></svg></div>
             </div>
             <div class="phone-body">
               <div class="phone-card">
-                <p class="card-label">Device</p>
-                <div class="phone-list">
-                  <div class="row"><span>Name</span><span>Hope Turtle #3</span></div>
-                  <div class="row"><span>Home</span><span>Istanbul</span></div>
-                  <div class="row"><span>Firmware</span><span>turtleOS 2.4</span></div>
-                  <div class="row"><span>Device ID</span><span>xiao-0031</span></div>
-                </div>
+                <p class="card-label">Bluetooth</p>
+                <p class="card-sub">Open to phones · 9:42 left · paired</p>
+                <button class="phone-btn outline">Turn off for the voyage</button>
               </div>
               <div class="phone-card">
-                <p class="card-label">Telemetry</p>
-                <div class="toggle-row">
-                  <span class="toggle-label">Report to shore</span>
-                  <div class="mini-toggle on"><div class="knob"></div></div>
-                </div>
-                <p class="card-sub">every 120s · last sent 2 min ago</p>
+                <p class="card-label">Reporting to shore</p>
+                <div class="phone-seg"><span>Off</span><span class="on">Auto</span><span>Manual</span></div>
+                <p class="card-sub" style="margin-top:4px;">every 120s · last sent 2 min ago</p>
               </div>
               <div class="phone-card">
                 <p class="card-label">Shore WiFi</p>
@@ -623,8 +828,37 @@
             <div class="phone-navbar">
               <div><svg class="nav-icon"><use href="#i-dashboard"/></svg>Dashboard</div>
               <div><svg class="nav-icon"><use href="#i-navigate"/></svg>Navigate</div>
+              <div><svg class="nav-icon"><use href="#i-gps"/></svg>GPS</div>
               <div><svg class="nav-icon"><use href="#i-diagnostics"/></svg>Diagnostics</div>
-              <div class="active"><svg class="nav-icon"><use href="#i-settings"/></svg>Settings</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mockup-item">
+        <p class="mockup-label">No turtles nearby</p>
+        <div class="phone-shell">
+          <div class="phone-screen">
+            <div class="phone-topbar">
+              <span class="name">Turtle Wrangler</span>
+              <div class="right"><span class="status off">○ Not connected</span><svg class="gear"><use href="#i-settings"/></svg></div>
+            </div>
+            <div class="phone-body">
+              <div class="phone-card phone-empty">
+                <div class="big-emoji">🐢</div>
+                <p>None of your turtles are in Bluetooth range right now.</p>
+                <button class="phone-btn outline">Scan again</button>
+                <p class="phone-note">Is its Bluetooth window open? Visit the turtle's Bluetooth screen.</p>
+              </div>
+              <div class="phone-card">
+                <p class="card-label">Your turtles at sea</p>
+                <div class="phone-list">
+                  <div class="row"><span>Hope Turtle #3</span><span>14:20 · 78%</span></div>
+                  <div class="row"><span>Hope Turtle #5</span><span>13:55 · 64%</span></div>
+                  <div class="row"><span>Hope Turtle #8</span><span>yesterday</span></div>
+                </div>
+                <p class="card-sub" style="margin-top:6px;">via hopeturtles.org · last reports</p>
+              </div>
             </div>
           </div>
         </div>
@@ -640,18 +874,23 @@
     <div class="steps">
       <div class="step">
         <div class="num">1</div>
-        <h3>Walk up with your phone</h3>
-        <p>Open the app anywhere within about 5 metres of the turtle — no WiFi network or internet connection needed.</p>
+        <h3>Sign in once</h3>
+        <p>Log in with your Buwana account, the same one you use on hopeturtles.org. The app loads the turtles you look after and remembers them, so it keeps working out at the shore with no signal.</p>
       </div>
       <div class="step">
         <div class="num">2</div>
-        <h3>It connects automatically</h3>
-        <p>The app finds the turtle over Bluetooth (the same short-range wireless a pair of headphones uses) and connects on its own.</p>
+        <h3>Walk up with your phone</h3>
+        <p>Open the app anywhere within about 5 metres of the turtle. No WiFi network or internet connection is needed at this point.</p>
       </div>
       <div class="step">
         <div class="num">3</div>
+        <h3>It finds your turtle</h3>
+        <p>The app finds the turtle over Bluetooth (the same short-range wireless a pair of headphones uses) and checks that it's one of yours. The first time, you pair by typing the 6-digit code the turtle shows on its own screen.</p>
+      </div>
+      <div class="step">
+        <div class="num">4</div>
         <h3>See it, tap it, done</h3>
-        <p>Live readings appear immediately. Any change you make — a new destination, a sail test — reaches the turtle in under a second.</p>
+        <p>Live readings appear immediately. Any change you make — a new destination, a GPS stamp, a sail test — reaches the turtle in under a second, and the turtle answers back: done, or exactly why not.</p>
       </div>
     </div>
   </div>
@@ -666,6 +905,8 @@
       <div class="benefit"><span class="dot"></span><p><strong>Easier to train new team members.</strong> A phone app is familiar; a button-code sequence on a 1-inch screen is not.</p></div>
       <div class="benefit"><span class="dot"></span><p><strong>Better diagnostics before launch.</strong> One screen confirms every sensor is healthy before a turtle goes in the water.</p></div>
       <div class="benefit"><span class="dot"></span><p><strong>No extra hardware.</strong> Any Android phone works — nothing new to buy or carry.</p></div>
+      <div class="benefit"><span class="dot"></span><p><strong>No silent failures.</strong> Every tap gets a clear answer from the turtle — "no GPS fix yet", "clock not set" — instead of a screen that just doesn't change.</p></div>
+      <div class="benefit"><span class="dot"></span><p><strong>Locked down.</strong> You sign in before you see any turtle, Bluetooth only opens for a few minutes at a time, pairing needs the code on the hull, and it can be switched off entirely for a real mission.</p></div>
       <div class="benefit"><span class="dot"></span><p><strong>Doesn't replace the shore tracking system.</strong> This is for hands-on fieldwork; the existing website tracking stays exactly as is.</p></div>
     </div>
   </div>
@@ -674,18 +915,206 @@
 <section class="alt">
   <div class="wrap">
     <h2>What building this involves</h2>
-    <p class="lead">Two pieces of work, one on each side of the connection.</p>
+    <p class="lead">Three pieces of work, all needed for the first version: one on each side of the Bluetooth connection, and a small one on the website.</p>
     <div class="scope-grid">
       <div class="scope-card">
-        <span class="effort">Turtle side</span>
-        <h3>A small firmware update</h3>
-        <p>The turtle's onboard computer needs to learn how to broadcast its data over Bluetooth and accept a small set of commands — an addition to the existing system, not a rebuild of it.</p>
+        <span class="effort">Turtle side · built</span>
+        <h3>A firmware update</h3>
+        <p>Done: the turtle now broadcasts its data over Bluetooth and accepts commands, as an addition to the existing system rather than a rebuild of it. What's left is testing it on real turtles from the app.</p>
       </div>
       <div class="scope-card">
         <span class="effort">Phone side</span>
         <h3>A new Android app</h3>
-        <p>Built from scratch, but a well-understood kind of app — the four screens sketched above, talking to the turtle over Bluetooth.</p>
+        <p>Built from scratch, but a well-understood kind of app — the screens sketched above, talking to the turtle over Bluetooth.</p>
       </div>
+      <div class="scope-card">
+        <span class="effort">Website side · needed first</span>
+        <h3>Sign-in and turtle lists</h3>
+        <p>A small, read-only addition to hopeturtles.org. The app signs in with Buwana, gets the list of turtles you look after, and shows their latest shore reports when they're out of Bluetooth range.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <span class="tech-eyebrow">Technical · Turtle side</span>
+    <h2>The turtleOS firmware update</h2>
+    <p class="lead">turtleOS (v2.4.1, MicroPython 1.28 on the XIAO ESP32-S3) gains a Bluetooth Low Energy <em>peripheral</em> role: the turtle advertises, a phone connects, live readings go out as notifications, and commands come in as writes that each return a result. It sits alongside the existing WiFi telemetry to hopeturtles.org. That pipeline doesn't change.</p>
+    <div class="status-row">
+      <span class="chip done">✓ Phases 0–7 built</span>
+      <span class="chip done">✓ Pairing tested on turtle 18</span>
+      <span class="chip todo">On-device command tests: waiting for the app</span>
+    </div>
+
+    <h3 class="sub">What's new in the firmware</h3>
+    <div class="module-grid">
+      <div class="module">
+        <h4><code>src/net/ble_service.py</code></h4>
+        <p>Owns the radio: switching it on and off, advertising under the turtle's name, tracking the connection, pairing, and the "wrangle window". The Bluetooth interrupt handler only records events. All real work happens on the main loop's background tick.</p>
+      </div>
+      <div class="module">
+        <h4><code>src/net/ble_telemetry.py</code></h4>
+        <p>Packs eight live characteristics (position, nav, targets, sail, power, IMU, status, shore sync) from data the firmware already holds. Values are sent only when they change and only while a phone is connected.</p>
+      </div>
+      <div class="module">
+        <h4><code>src/net/ble_commands.py</code></h4>
+        <p>Runs the command channel: 21 opcodes, one command at a time, and exactly one final result per command. 33,000 fuzzed writes produced zero crashes.</p>
+      </div>
+      <div class="module">
+        <h4><code>src/app/actions.py</code></h4>
+        <p>One shared action layer. Each OLED button gesture and its Bluetooth command call the same function, so the app and the hull can never drift apart in behaviour.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">The contract between turtle and phone</h3>
+    <p style="margin-top:0; font-size:15px;">Both sides build against <strong>GATT contract v1</strong>, documented in turtleOS at <code>docs/wrangler/README.md</code>. It has three services:</p>
+    <div class="table-scroll">
+      <table class="tech">
+        <thead><tr><th>Service</th><th>UUID</th><th>What it carries</th></tr></thead>
+        <tbody>
+          <tr><td>Turtle</td><td><code>26d00001-…</code></td><td>Contract version, turtle name, and eight read + notify characteristics for live state. Readable by any nearby phone.</td></tr>
+          <tr><td>Command</td><td><code>26d00002-…</code></td><td>A <em>Command</em> write (<code>opcode, seq, payload</code>) and a <em>Result</em> notify (<code>opcode, seq, code, payload</code>). This covers journeys, destinations, GPS stamps, sail sweeps, WiFi credentials, sleep and reboot.</td></tr>
+          <tr><td>Device Information</td><td><code>0x180A</code></td><td>The standard Bluetooth service: manufacturer, model, firmware version and serial (<code>device_id</code>).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ul class="plain" style="margin-top:16px;">
+      <li><strong>Compact binary on the wire.</strong> Values are little-endian <code>struct</code> packs, scaled integers stand in for floats (heading × 10, lat/lon × 10⁷), and every value fits in 20 bytes.</li>
+      <li><strong>Missing data is explicit.</strong> No GPS fix sends a sentinel (e.g. <code>0x7FFFFFFF</code>), never a fake zero.</li>
+      <li><strong>Forward-compatible.</strong> Firmware can add fields or opcodes without breaking older apps. Only a breaking change bumps the contract version.</li>
+    </ul>
+
+    <h3 class="sub">Security and power</h3>
+    <ul class="plain">
+      <li><strong>Commands need a paired phone.</strong> Pairing uses LE Secure Connections: the turtle shows a 6-digit code on its OLED and you type it into the phone. You have to be standing at the hull to see the code. Live readings stay open to any phone.</li>
+      <li><strong>Pairing only works while the turtle's Bluetooth screen is open.</strong> Bonds are saved in <code>/ble_bonds.json</code> and survive a reboot.</li>
+      <li><strong>Wrangle window.</strong> The turtle advertises for 10 minutes after boot or wake, or when the Bluetooth screen is opened, then goes quiet. Before a mission voyage, Bluetooth can be switched off entirely, and only the turtle's button can turn it back on.</li>
+    </ul>
+
+    <div class="note">
+      <strong>Still to do on the turtle side:</strong> run the deferred on-device test checklist (best done from the Wrangler app itself), measure current draw on battery to settle the 10-minute window default, and add a cross-track-error calculation (the Nav characteristic sends "no data" for it today).
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <span class="tech-eyebrow">Technical · Phone side</span>
+    <h2>Building the Android app</h2>
+    <p class="lead">Wrangler gets its own repository, <code>h2hproject/wrangler</code>, with an independent codebase and release cycle. It still depends on two other projects: turtleOS defines how the app talks to a turtle, and hopeturtles.org (through Buwana) decides who you are and which turtles are yours.</p>
+
+    <div class="repo-map">
+      <div class="repo">
+        <div class="repo-name">turtleOS</div>
+        <div class="repo-path">firmware · MicroPython</div>
+        <p>Owns the GATT contract (<code>docs/wrangler/README.md</code>). Any change to it starts there.</p>
+      </div>
+      <div class="link-arrow"><span class="arrow">⇄</span>Bluetooth LE<br>contract v1</div>
+      <div class="repo center">
+        <div class="repo-name">wrangler</div>
+        <div class="repo-path">h2hproject/wrangler · Kotlin</div>
+        <p>The Android app: scanning, pairing, the screens, and a local field notebook.</p>
+      </div>
+      <div class="link-arrow"><span class="arrow">⇄</span>HTTPS · JSON<br>Buwana login</div>
+      <div class="repo">
+        <div class="repo-name">hopeturtles.org</div>
+        <div class="repo-path">Node · Express · MySQL</div>
+        <p>Turtle records, missions and shore telemetry. Buwana provides the user's identity.</p>
+      </div>
+    </div>
+
+    <h3 class="sub">Languages and stack</h3>
+    <p style="margin-top:0; font-size:15px;">The app is written entirely in <strong>Kotlin</strong>, with the UI in <strong>Jetpack Compose</strong> and the build in Gradle's Kotlin DSL. There is no Java and no XML layouts. We're going native instead of using Flutter or React Native because Bluetooth is the core of this app, and Android's BLE quirks are where the bugs live: one GATT operation at a time, bonding, MTU and reconnects. A cross-platform plugin would add a layer exactly there. An iPhone version (v2.0) would be a Swift / Core Bluetooth app either way.</p>
+    <div class="table-scroll">
+      <table class="tech">
+        <thead><tr><th>Layer</th><th>Choice</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>Language</td><td>Kotlin, with coroutines + Flow</td><td class="muted">A live connection is a stream of values. <code>StateFlow&lt;TurtleTelemetry&gt;</code> feeds the screens directly.</td></tr>
+          <tr><td>UI</td><td>Jetpack Compose, Material 3</td><td class="muted">Card-and-tab layout as sketched above, themed with the hopeturtles.org palette and Aleo / Mulish.</td></tr>
+          <tr><td>Architecture</td><td>MVVM, Hilt for DI</td><td class="muted">Screens never touch <code>BluetoothGatt</code>. They go through <code>TurtleConnection</code> and a <code>CommandClient</code> that suspends until the matching Result arrives.</td></tr>
+          <tr><td>Bluetooth</td><td>Android's own <code>BluetoothLeScanner</code> / <code>BluetoothGatt</code></td><td class="muted">Wrapped in a serial operation queue, with MTU 185 requested on connect. <code>minSdk 31</code> (Android 12) keeps permissions simple.</td></tr>
+          <tr><td>Local database</td><td>Room (SQLite)</td><td class="muted">See below.</td></tr>
+          <tr><td>Settings &amp; secrets</td><td>DataStore + Android Keystore</td><td class="muted">App preferences in DataStore. Login tokens encrypted with a Keystore-held key, never in plain prefs.</td></tr>
+          <tr><td>Networking</td><td>Retrofit + OkHttp + kotlinx.serialization</td><td class="muted">A plain JSON client for hopeturtles.org, kept completely separate from the Bluetooth code.</td></tr>
+          <tr><td>Login</td><td>AppAuth-Android (PKCE)</td><td class="muted">Buwana OIDC through a Custom Tab. Same identity as the website, with Wrangler registered as its own Buwana app.</td></tr>
+          <tr><td>Maps</td><td>MapLibre Native <em>(to confirm)</em></td><td class="muted">Open source with no Google Play Services dependency, which suits field phones. Also the route to offline tiles later.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Yes, a local database — as a field notebook</h3>
+    <p style="margin-top:0; font-size:15px;">The phone is often offline at the shoreline, so Wrangler keeps a small <strong>Room</strong> database. It is a cache and a log, not a second source of truth. The turtle still delivers its own telemetry to hopeturtles.org, and the app never uploads readings on the turtle's behalf.</p>
+    <div class="table-scroll">
+      <table class="tech">
+        <thead><tr><th>Table</th><th>Holds</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><code>turtles</code></td><td>Your turtles from hopeturtles.org (turtle_id, name, mission), plus Bluetooth address, paired?, last connected</td><td class="muted">Deciding which nearby turtles you may open, with or without signal. Refreshed on every online launch.</td></tr>
+          <tr><td><code>snapshots</code></td><td>The last full telemetry reading per turtle</td><td class="muted">The "last seen 14:02" view when the turtle is out of range.</td></tr>
+          <tr><td><code>stamps</code></td><td>Each GPS stamp: time, position, journey, result, delivered?</td><td class="muted">The GPS session log, reviewable after a field day.</td></tr>
+          <tr><td><code>command_log</code></td><td>Opcode, time, result code</td><td class="muted">Debugging field issues ("the sweep failed at 10:14, ERR_WRONG_STATE").</td></tr>
+          <tr><td><code>shore_cache</code></td><td>Latest shore report per turtle from hopeturtles.org</td><td class="muted">The "your turtles at sea" list. Always labelled "via hopeturtles.org".</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">Login first: Buwana before any turtle data</h3>
+    <p style="margin-top:0; font-size:15px;">The app opens on a Buwana sign-in screen. Nothing about any turtle shows until you're signed in. After that, the app only connects to, and shows, turtles you manage (<code>turtles_tb.turtle_manager</code>), or every turtle if you're an admin. That's the same rule the website's my-turtle page uses.</p>
+    <ul class="plain">
+      <li><strong>Matching a turtle to your account.</strong> A turtle's Bluetooth serial number (Device Information <code>0x180A</code>) is its <code>turtle_id</code>, so the app checks it against your downloaded turtle list right after connecting. Turtles that aren't yours are listed as "not on your account" and don't open.</li>
+      <li><strong>Works without signal after the first sign-in.</strong> Shorelines often have no coverage, so the first sign-in needs internet and later sessions don't. The app keeps a long-lived, revocable session token in the Keystore and caches your turtle list in Room, refreshing both whenever it's online.</li>
+      <li><strong>What login does and doesn't protect.</strong> Login gates the <em>app</em>. The turtle's radio is a separate matter: live Bluetooth readings are open to any nearby scanner by design, and commands are protected by passkey pairing at the hull. If readings should be private too, turtleOS can require pairing for reads as well. That is a small firmware change (marking the characteristics encrypted-read) plus a contract update, at the cost of every phone having to pair before it sees anything. Also, the website already publishes turtle positions openly through its public endpoints, so app login alone doesn't make that data private.</li>
+      <li><strong>Accountability.</strong> Knowing who is signed in means commands sent from the app (journey started, destination changed, WiFi pushed) can later be logged against a person.</li>
+    </ul>
+
+    <h3 class="sub">New APIs, not fixes to old ones</h3>
+    <p style="margin-top:0; font-size:15px;">The existing APIs are fine for what they do, and none of them need changing. They just serve different callers:</p>
+    <ul class="plain">
+      <li><strong>Device API</strong> (<code>/api/v1/*</code>) authenticates as a <em>turtle</em> using that turtle's device key. It stays turtle-only: putting device keys in an APK would let anyone post telemetry as that turtle.</li>
+      <li><strong>Website endpoints</strong> for your own turtles rely on a 15-minute browser session cookie, which doesn't fit a phone app that has to work offline for days.</li>
+    </ul>
+    <p style="font-size:15px;">So the work is a new, small, read-only namespace in this repository, <code>/api/app/v1</code>, behind a new bearer-token middleware (<code>middleware/appAuth.js</code>). It reuses the existing models and access rules rather than duplicating them.</p>
+    <div class="table-scroll">
+      <table class="tech">
+        <thead><tr><th>Endpoint</th><th>Does</th></tr></thead>
+        <tbody>
+          <tr><td><code>POST /api/app/v1/session</code></td><td>The app sends the ID token it got from Buwana. The server verifies it against Buwana's JWKS (as the website login does), upserts the user, and returns a revocable app token. Only a hash of the token is stored, using the same pattern as turtle device keys.</td></tr>
+          <tr><td><code>DELETE /api/app/v1/session</code></td><td>Sign out and revoke the token.</td></tr>
+          <tr><td><code>GET /api/app/v1/me</code></td><td>The signed-in user: name, role and earthling emoji.</td></tr>
+          <tr><td><code>GET /api/app/v1/turtles</code></td><td>Turtles you manage (all for admins): turtle_id, name, mission and status, which the app uses to match nearby turtles.</td></tr>
+          <tr><td><code>GET /api/app/v1/turtles/:id/latest</code></td><td>The newest shore report: position, battery, heading and last-seen time.</td></tr>
+          <tr><td><code>GET /api/app/v1/turtles/:id/telemetry?since=</code></td><td>Track history. Not needed for v1; it powers the voyage-track map later.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:15px;">Supporting changes:</p>
+    <ul class="plain">
+      <li><strong>Small tweaks to existing code:</strong> one migration for an app-sessions table, and letting <code>validateIdToken</code> accept Wrangler's client ID as an audience alongside the website's.</li>
+      <li><strong>On Buwana:</strong> register Wrangler as its own public client (PKCE, no secret), with redirect <code>org.hopeturtles.wrangler:/oauth2redirect</code>.</li>
+      <li><strong>Open questions for Buwana:</strong> does <code>authorize.php</code> accept a custom-scheme redirect? If not, an https App Link on hopeturtles.org can hand off to the app. Does Buwana issue refresh tokens? If it doesn't, the server-issued app token is what keeps users signed in offline.</li>
+    </ul>
+
+    <h3 class="sub">Keeping three repositories in step</h3>
+    <ul class="plain">
+      <li><strong>Contract first.</strong> Any change to the Bluetooth format lands in turtleOS's contract doc before either side's code changes. The app reads the contract version on every connect and goes read-only if the turtle is newer than it understands.</li>
+      <li><strong>Shared test vectors.</strong> Wrangler's decoder tests use the same captured byte strings that turtleOS's <code>tests/ble_decode.py</code> understands, so a packing change on one side fails a test on the other.</li>
+      <li><strong>No hardware needed to start.</strong> Early app work can test against an nRF Connect server profile or a small <code>bleak</code> script on a laptop, though the real firmware is already available.</li>
+    </ul>
+
+    <h3 class="sub">Build order</h3>
+    <div class="table-scroll">
+      <table class="tech">
+        <thead><tr><th>Phase</th><th>Delivers</th></tr></thead>
+        <tbody>
+          <tr><td>0 · Decisions</td><td>Map provider, internal distribution (sideloaded APK / Play internal track), app ID and login redirect scheme reserved, Wrangler registered on Buwana.</td></tr>
+          <tr><td>0b · Server</td><td><em>In this repo, in parallel:</em> <code>/api/app/v1</code> session, me, turtles and latest, plus <code>appAuth</code> middleware and the sessions migration. This is on the critical path, since login-first means the app can't open a turtle without it.</td></tr>
+          <tr><td>1 · Core</td><td>Buwana sign-in, turtle list sync, scan, connect, ownership check, pair, contract check, operation queue, CommandClient, Room schema, "none of your turtles nearby" screen.</td></tr>
+          <tr><td>2–6 · Screens</td><td>Dashboard → Navigate → GPS stamps → Diagnostics → Settings, each wired to its characteristics and commands.</td></tr>
+          <tr><td>7 · Resilience</td><td>Auto-reconnect, stale-bond recovery, error states, branding pass.</td></tr>
+          <tr><td>8 · Turtles at sea</td><td>The shore list of your turtles out of range, with their latest reports. Small now that login and the API exist from Phase 1.</td></tr>
+          <tr><td>9 · Field test</td><td>Full command set on real turtles, including the firmware's deferred test checklist.</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
@@ -696,6 +1125,11 @@
     <h2 style="margin-top:12px;">Down the road...</h2>
     <p class="lead">Once the first version is out and proven in the field, here's the vision for where Turtle Wrangler could go next. None of this is committed work — it's the shape of a second phase, once the core app has earned its keep.</p>
     <div class="vision-grid">
+      <div class="vision-card">
+        <div class="icon">🌊</div>
+        <h3>Full voyage tracks</h3>
+        <p>Version 1 shows each of your turtles' latest shore report. Next: its whole track on a map, journey by journey, straight from the website. Still view-only, since steering happens beside the turtle.</p>
+      </div>
       <div class="vision-card">
         <div class="icon">🍏</div>
         <h3>iOS version</h3>
@@ -714,7 +1148,7 @@
       <div class="vision-card">
         <div class="icon">🐢</div>
         <h3>Multi-turtle fleet view</h3>
-        <p>One screen showing every turtle nearby at once, for the day a launch involves more than one hull at a time.</p>
+        <p>One screen showing every turtle nearby over Bluetooth at once, for the day a launch involves more than one hull at a time.</p>
       </div>
       <div class="vision-card">
         <div class="icon">🏬</div>

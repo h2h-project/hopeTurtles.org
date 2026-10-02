@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Sail_Apparatus.scad
-//  Turtle Body version 4.0.0
+//  Turtle Body version 4.1.2
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -223,7 +223,8 @@ function p_cage_pocket_depth() = 4;   //   "        "     "
 function p_cage_bearing_d()  = 9;     // hemispherical bearing bump
 function p_cage_bearing_count() = 8;
 function p_cage_bearing_pcd() = p_cap_disk_d() - p_cage_bearing_d() + 0.5;          // 91.5
-function p_cage_top_hole_d() = 18;    // central button / access hole through the roof
+function p_cage_top_hole_d() = 22;    // button / access hole through the roof (was 18; +2 mm radius so it
+                                       // opens onto the hub and exposes the set-screw face)
 function p_cage_mount_hole_d() = 3.2; // two M3 clearance holes per batten / groove
 function p_cage_mount_pitch()  = 32;  // vertical pitch of the pair
 function p_cage_lower_hole_from_tip() = 10;
@@ -234,7 +235,15 @@ function p_cage_lower_hole_from_tip() = 10;
 // point (typical M3-into-rigid-plastic self-tap pilots run 2.5-2.8 mm) --
 // verify real thread engagement and tapping torque before relying on it.
 function p_cage_setscrew_pilot_d() = 2.5;
-function p_cage_setscrew_angle()   = 0;    // radial angle of the lock screw around the hub
+// Flat-floored access recess around the set screw, cut into the hub face the
+// roof button opening uncovers, running the hub's full height (roof top down
+// through the hub bottom). Width is tangential, depth is radial (inward from
+// the opening's inner edge).
+function p_cage_setscrew_recess_w()     = 5;
+function p_cage_setscrew_recess_depth() = 3;
+// Set-screw angle is no longer a separate parameter: control_cage() aims it
+// at the centre of the roof button opening (button_angle) so a hex key can
+// reach it through that opening.
 // 45-deg outward chamfer on the roof-top outer edge (0 = sharp). The cage
 // prints roof-face-down, so this bevel flares OUT from the bed and stays
 // printable; it runs the full perimeter, batten grooves included. See
@@ -991,7 +1000,9 @@ module control_cage(inner_d       = p_cage_inner_d(),
                     roof_bevel    = p_cage_roof_bevel(),
                     wave_segments = p_cage_wave_segments(),
                     setscrew_pilot_d = p_cage_setscrew_pilot_d(),  // TB-08: locks the shaft to the cage
-                    setscrew_angle   = p_cage_setscrew_angle(),
+                    setscrew_angle   = undef,  // undef = aim at the button opening (button_angle)
+                    setscrew_recess_w     = p_cage_setscrew_recess_w(),
+                    setscrew_recess_depth = p_cage_setscrew_recess_depth(),
                     fn            = undef) {
     nn  = fn == undef ? p_fn_plastic() : fn;
     eps = p_eps();
@@ -1011,9 +1022,15 @@ module control_cage(inner_d       = p_cage_inner_d(),
     lower_hole_z    = wall_tip_z + lower_hole_from_tip;
     cut_start       = ri - m3_d;
     cut_length      = ro - cut_start + 2 * eps;
-    // Set-screw hole: centred in the hub's own Z span so it clears both the
-    // hub floor and the roof top with margin either side.
+    // Set-screw hole: aimed radially at the centre of the roof button
+    // opening, and centred in the height of the access recess (which runs
+    // the hub's full height, hub bottom -> roof top), so it can be reached
+    // with a hex key through the opening.
+    ss_angle        = is_undef(setscrew_angle) ? button_angle : setscrew_angle;
     setscrew_z      = (cage_hub_bottom + cage_top) / 2;
+    // access recess: starts at the opening's inner edge, cut inward
+    button_inner_r  = button_r - button_d / 2;
+    recess_floor_r  = button_inner_r - setscrew_recess_depth;
 
     // four identical rounded crests: max wall height at 0/90/180/270
     function edge_z(a) = wall_tip_z + (scallops ?
@@ -1041,7 +1058,12 @@ module control_cage(inner_d       = p_cage_inner_d(),
         assert(pocket_floor <= 6.5 && cage_top > 10.2,
                "control_cage: keep the shaft / clip axial clearances.");
     }
-    assert(button_r - button_d / 2 > hub_d / 2 && button_r + button_d / 2 < ri);
+    // The button opening intentionally bites into the hub, uncovering the
+    // face the set screw enters through -- but it must stop short of the bore.
+    assert(button_r - button_d / 2 < hub_d / 2
+           && button_r - button_d / 2 > shaft_hole_d / 2 + 2
+           && button_r + button_d / 2 < ri,
+           "control_cage: button opening must uncover the hub face but keep 2 mm to the shaft bore.");
     assert(button_r + button_d / 2 < bump_pcd / 2 - bump_d / 2,
            "control_cage: button must clear the bearings at every angle.");
     assert(lower_hole_z - m3_d / 2 > edge_z(hole_edge_angle) + 2,
@@ -1053,6 +1075,9 @@ module control_cage(inner_d       = p_cage_inner_d(),
     assert(setscrew_z - setscrew_pilot_d / 2 > cage_hub_bottom
            && setscrew_z + setscrew_pilot_d / 2 < cage_top,
            "control_cage: set screw hole must stay inside the hub's own height.");
+    assert(setscrew_recess_depth >= 0 && setscrew_recess_w > setscrew_pilot_d
+           && recess_floor_r > shaft_hole_d / 2 + 2,
+           "control_cage: set-screw recess must be wider than the pilot and keep 2 mm to the shaft bore.");
     // FABRICATION: roof prints face-down. Bevel is chamfered off that face,
     // must leave a flat central landing, and must not undercut.
     assert(roof_bevel >= 0 && roof_bevel < roof_t,
@@ -1126,10 +1151,18 @@ module control_cage(inner_d       = p_cage_inner_d(),
         // TB-08: single radial set screw, drilled from the hub's outer
         // surface in past the centre so it always reaches the shaft hole
         // regardless of shaft_hole_d.
-        rotate([0, 0, setscrew_angle])
+        rotate([0, 0, ss_angle])
             translate([-eps, 0, setscrew_z])
                 rotate([0, 90, 0])
                     cylinder(d = setscrew_pilot_d, h = hub_d / 2 + 2 * eps, $fn = 32);
+        // Flat-floored key-access recess around the screw, running the full
+        // hub height (roof top through the hub bottom). Open end to end, so
+        // the roof-down print has no overhang here.
+        if (setscrew_recess_depth > 0)
+            rotate([0, 0, ss_angle])
+                translate([recess_floor_r, -setscrew_recess_w / 2, cage_hub_bottom - eps])
+                    cube([setscrew_recess_depth + 2, setscrew_recess_w,
+                          cage_top - cage_hub_bottom + 2 * eps]);
         if (top_pocket)
             translate([0, 0, pocket_floor])
                 cylinder(d = pocket_d, h = pocket_depth + eps);
@@ -1146,7 +1179,8 @@ module control_cage(inner_d       = p_cage_inner_d(),
     echo("CAGE: groove w / d = ", notch_w, notch_depth,
          " | M3 dia / pitch = ", m3_d, mount_hole_z - lower_hole_z);
     echo("CAGE: shaft hole = ", shaft_hole_d,
-         " | set-screw pilot dia / angle = ", setscrew_pilot_d, setscrew_angle);
+         " | set-screw pilot dia / angle = ", setscrew_pilot_d, ss_angle,
+         " | recess w / depth / floor r = ", setscrew_recess_w, setscrew_recess_depth, recess_floor_r);
     echo("CAGE: prints ROOF-FACE-DOWN (flat top on the bed). roof_bevel = ",
          roof_bevel, " mm, a 45-deg OUTWARD chamfer (printable). Any new ",
          "roof-top feature must be self-supporting in that pose -- no undercut, ",
@@ -1483,7 +1517,7 @@ module sail_frame(
     // TB-08: plain round shaft bore through the hub (was a hex bore).
     cage_shaft_hole_diameter = p_axle_shaft_hole_d();
 
-    cage_top_hole_diameter = 18;
+    cage_top_hole_diameter = p_cage_top_hole_d();
     cage_top_hole_angle = cage_button_angle;
 
     cage_bearing_diameter = 9;
@@ -1581,7 +1615,9 @@ module sail_frame(
     assert(cage_hub_diameter > cage_shaft_hole_diameter,
            "Shaft hub must clear the shaft bore.");
     assert(cage_top_hole_radial_position - cage_top_hole_diameter/2
-           > cage_hub_diameter/2);
+           < cage_hub_diameter/2
+           && cage_top_hole_radial_position - cage_top_hole_diameter/2
+           > cage_shaft_hole_diameter/2 + 2);  // opening uncovers the hub's set-screw face
     assert(cage_top_hole_radial_position + cage_top_hole_diameter/2
            < cage_bearing_pcd/2 - cage_bearing_diameter/2);
     assert(round_shaft_extension_above_cap + shaft_upper_length

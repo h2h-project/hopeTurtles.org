@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Rear_Fin.scad
-//  Turtle Body version 4.0.0
+//  Turtle Body version 4.1.2
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -223,7 +223,8 @@ function p_cage_pocket_depth() = 4;   //   "        "     "
 function p_cage_bearing_d()  = 9;     // hemispherical bearing bump
 function p_cage_bearing_count() = 8;
 function p_cage_bearing_pcd() = p_cap_disk_d() - p_cage_bearing_d() + 0.5;          // 91.5
-function p_cage_top_hole_d() = 18;    // central button / access hole through the roof
+function p_cage_top_hole_d() = 22;    // button / access hole through the roof (was 18; +2 mm radius so it
+                                       // opens onto the hub and exposes the set-screw face)
 function p_cage_mount_hole_d() = 3.2; // two M3 clearance holes per batten / groove
 function p_cage_mount_pitch()  = 32;  // vertical pitch of the pair
 function p_cage_lower_hole_from_tip() = 10;
@@ -234,7 +235,15 @@ function p_cage_lower_hole_from_tip() = 10;
 // point (typical M3-into-rigid-plastic self-tap pilots run 2.5-2.8 mm) --
 // verify real thread engagement and tapping torque before relying on it.
 function p_cage_setscrew_pilot_d() = 2.5;
-function p_cage_setscrew_angle()   = 0;    // radial angle of the lock screw around the hub
+// Flat-floored access recess around the set screw, cut into the hub face the
+// roof button opening uncovers, running the hub's full height (roof top down
+// through the hub bottom). Width is tangential, depth is radial (inward from
+// the opening's inner edge).
+function p_cage_setscrew_recess_w()     = 5;
+function p_cage_setscrew_recess_depth() = 3;
+// Set-screw angle is no longer a separate parameter: control_cage() aims it
+// at the centre of the roof button opening (button_angle) so a hex key can
+// reach it through that opening.
 // 45-deg outward chamfer on the roof-top outer edge (0 = sharp). The cage
 // prints roof-face-down, so this bevel flares OUT from the bed and stays
 // printable; it runs the full perimeter, batten grooves included. See
