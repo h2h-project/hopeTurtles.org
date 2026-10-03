@@ -6750,3 +6750,249 @@ body.ocean-bg {
     justify-content: center;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Build-your-own-turtle tutorial (/turtles/build). Reuses the generator's
+   banner and .eco-panel accordions; these are only the tutorial's extras.
+   ────────────────────────────────────────────────────────────────────────── */
+.build-page .generate-banner .generate-intro {
+  gap: 0.9rem;
+}
+
+.build-banner__cta {
+  background: #facc15;
+  color: var(--color-forest, #1f3b22);
+}
+
+.build-banner__cta:hover {
+  background: #fde68a;
+  color: var(--color-forest, #1f3b22);
+}
+
+.build-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.build-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+  border: 1px solid rgba(1, 121, 25, 0.15);
+  border-radius: 0.9rem;
+}
+
+.build-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.build-table caption {
+  padding: 0.85rem 1rem 0.5rem;
+  text-align: left;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.build-table th,
+.build-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid rgba(1, 121, 25, 0.1);
+  line-height: 1.5;
+}
+
+.build-table thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  background: rgba(1, 121, 25, 0.06);
+}
+
+.build-table tbody th {
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.build-table tbody th i {
+  color: var(--color-primary);
+  margin-right: 0.35rem;
+}
+
+.build-file-badge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.build-stars {
+  display: inline-flex;
+  gap: 0.15rem;
+  color: #f59e0b;
+  white-space: nowrap;
+}
+
+.build-stars .fa-regular {
+  color: rgba(245, 158, 11, 0.45);
+}
+
+.build-sections section + section {
+  margin-top: 0.25rem;
+}
+
+.build-sections h3 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.build-sections h3 i {
+  color: var(--color-primary);
+  margin-right: 0.35rem;
+}
+
+.build-list {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.build-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-accent);
+  border-radius: 0.5rem;
+  background: rgba(1, 121, 25, 0.05);
+  line-height: 1.55;
+}
+
+.build-list li > span:last-child {
+  flex-basis: 100%;
+  color: var(--color-muted);
+}
+
+.build-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.build-chips {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.build-chips li {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--color-mint, #c0e3cb);
+  color: var(--color-forest, #1f3b22);
+  font-size: 0.9rem;
+}
+
+.eco-panel__text p.build-callout {
+  padding: 1rem 1.25rem;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(1, 121, 25, 0.3);
+  background: rgba(1, 121, 25, 0.07);
+}
+
+.build-outro {
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0 2rem;
+}
+
+.build-outro h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  color: var(--color-text);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Control bottle generator (/turtles/generate_control_bottle). Reuses the
+   generator's banner, panels and toggles; these are only its extras.
+   ────────────────────────────────────────────────────────────────────────── */
+.cbgen-hint {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.92rem;
+  color: var(--color-muted);
+}
+
+.cbgen-hint i {
+  color: var(--color-primary);
+}
+
+.eco-field__hint {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+
+.cbgen-clearance {
+  max-width: 22rem;
+  margin-bottom: 1.25rem;
+}
+
+.cbgen-option--soon {
+  opacity: 0.7;
+}
+
+.cbgen-option--soon .eco-fab-option__title {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cbgen-login__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.cbgen-login__points li {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  color: var(--color-text);
+}
+
+.cbgen-login__points i {
+  width: 1.1rem;
+  color: var(--color-primary);
+}
+
+.generate-login p.cbgen-login__back {
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+}

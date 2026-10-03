@@ -1,0 +1,290 @@
+<%- include('partials/header', { pageTitle, theme, lang, direction, bodyClass }) %>
+<%- include('partials/nav') %>
+<%
+  // Only what the page script needs to prefill Panels 1-2 from a saved profile.
+  const profileData = profiles.map((p) => ({
+    profile_id: p.profile_id,
+    brand: p.brand,
+    volume_ml: p.volume_ml,
+    diameter_mm: p.diameter_mm,
+    height_mm: p.height_mm,
+    cap_mm: p.cap_mm,
+    collar_mm: p.collar_mm,
+    top_tapper_mm: p.top_tapper_mm,
+    cap_height_mm: p.cap_height_mm,
+    bottle_photo_url: p.bottle_photo_url,
+  }));
+  const components = [
+    { key: 'cage', title: t.cbgen_part_cage, desc: t.cbgen_part_cage_desc },
+    { key: 'cap', title: t.cbgen_part_cap, desc: t.cbgen_part_cap_desc },
+    { key: 'mold', title: t.cbgen_part_mold, desc: t.cbgen_part_mold_desc },
+    { key: 'shaft', title: t.cbgen_part_shaft, desc: t.cbgen_part_shaft_desc },
+    { key: 'servo', title: t.cbgen_part_servo, desc: t.cbgen_part_servo_desc, comingSoon: true },
+  ];
+%>
+<main id="main" class="layout generate-page">
+  <div class="generate-banner">
+    <div class="generate-banner__inner">
+      <div class="generate-banner__content">
+        <div class="generate-banner__intro">
+          <div class="eco-dev-notice eco-dev-notice--top" role="status">
+            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+            <span>
+              <strong><%= t.cbgen_notice_title %></strong>
+              <%= t.cbgen_notice_body %>
+            </span>
+          </div>
+
+          <div class="generate-intro">
+            <h1><%= t.cbgen_title %></h1>
+            <p><%= t.cbgen_hero_blurb %></p>
+          </div>
+
+          <div class="eco-fields eco-profile-picker-row generate-banner__fields">
+            <label class="eco-field eco-field--start">
+              <i class="fa-solid fa-arrow-right eco-field__start-icon" aria-hidden="true"></i>
+              <select id="cb-profile-picker" name="profileId" class="is-pulsing" data-cb-profile-picker>
+                <option value="" disabled selected><%= t.cbgen_start_placeholder %></option>
+                <option value="new"><%= t.cbgen_start_new %></option>
+                <% if (profiles.length) { %>
+                <optgroup label="<%= t.cbgen_start_saved_group %>">
+                  <% profiles.forEach((profile) => { %>
+                  <option value="<%= profile.profile_id %>"><%= profile.label %></option>
+                  <% }) %>
+                </optgroup>
+                <% } %>
+              </select>
+            </label>
+            <label class="eco-field eco-field--lang">
+              <span class="eco-field__label"><%= t.cbgen_turtle_version %></span>
+              <select id="cb-turtle-version" name="turtleVersion">
+                <option value="v1" selected><%= t.cbgen_version_v1 %></option>
+                <option value="" disabled><%= t.cbgen_version_more %></option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <figure class="generate-banner__media">
+          <img src="/images/turtle-banner-background.webp" alt="" loading="lazy" />
+        </figure>
+      </div>
+    </div>
+  </div>
+
+  <form class="eco-generate" id="cb-generate" novalidate>
+    <div class="eco-panels">
+
+      <!-- Panel 1 — Select your bottle -->
+      <details class="eco-panel" data-panel="bottle" open>
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">1</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title"><%= t.cbgen_p1_title %></span>
+            <span class="eco-panel__desc"><%= t.cbgen_p1_desc %></span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <p><%= t.cbgen_p1_body %></p>
+              <% if (!profiles.length) { %>
+              <p class="cbgen-hint"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> <%= t.cbgen_no_profiles %></p>
+              <% } %>
+              <div class="eco-fields">
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_brand %></span>
+                  <input type="text" id="cb-brand" name="brand" placeholder="<%= t.gen_field_brand_ph %>" autocomplete="off" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_volume %> <span class="eco-field__unit"><%= t.gen_unit_ml %></span></span>
+                  <input type="number" id="cb-volume" name="volume" inputmode="numeric" min="0" step="10" placeholder="<%= t.gen_field_volume_ph %>" />
+                </label>
+                <label class="eco-field eco-field--full">
+                  <span class="eco-field__label"><%= t.cbgen_field_photo %></span>
+                  <div class="eco-photo-field">
+                    <div class="eco-photo-preview" data-cb-photo-preview hidden>
+                      <img data-cb-photo-preview-img alt="" />
+                    </div>
+                    <input type="file" id="cb-bottle-photo" name="bottlePhoto" accept="image/*" />
+                  </div>
+                </label>
+              </div>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/chose_bottle.webp" alt="<%= t.gen_p1_alt %>" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 2 — Bottle specs -->
+      <details class="eco-panel" data-panel="specs">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">2</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title"><%= t.cbgen_p2_title %></span>
+            <span class="eco-panel__desc"><%= t.cbgen_p2_desc %></span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content">
+            <div class="eco-panel__text">
+              <%# Carries <strong> emphasis on the unit, so it renders unescaped. %>
+              <p><%- t.cbgen_p2_body %></p>
+              <%# Placeholders follow turtle_body's reference bottle (p_bottle_* in params.json). %>
+              <div class="eco-fields eco-fields--grid">
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_diameter %></span>
+                  <input type="number" id="cb-diameter" name="diameter" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_diameter_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.cbgen_field_wall %></span>
+                  <input type="number" id="cb-wall" name="wallThickness" inputmode="decimal" min="0" step="0.05" placeholder="<%= t.cbgen_field_wall_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_height %></span>
+                  <input type="number" id="cb-height" name="height" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_height_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_cap %></span>
+                  <input type="number" id="cb-cap" name="cap" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_collar %></span>
+                  <input type="number" id="cb-collar" name="collar" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_collar_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_cap_height %></span>
+                  <input type="number" id="cb-cap-height" name="capHeight" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_cap_height_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.gen_field_top_tapper %></span>
+                  <input type="number" id="cb-top-tapper" name="topTapper" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.gen_field_top_tapper_ph %>" />
+                </label>
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.cbgen_field_cut_height %></span>
+                  <input type="number" id="cb-cut-height" name="cutHeight" inputmode="decimal" min="0" step="0.1" placeholder="<%= t.cbgen_field_cut_height_ph %>" aria-describedby="cb-cut-height-hint" />
+                  <span class="eco-field__hint" id="cb-cut-height-hint"><%= t.cbgen_field_cut_height_hint %></span>
+                </label>
+              </div>
+            </div>
+            <figure class="eco-panel__figure">
+              <img src="/images/ecojoiners/bottle_keys.webp" alt="<%= t.gen_p2_alt %>" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 3 — Components -->
+      <details class="eco-panel" data-panel="components">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">3</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title"><%= t.cbgen_p3_title %></span>
+            <span class="eco-panel__desc"><%= t.cbgen_p3_desc %></span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content eco-panel__content--single">
+            <div class="eco-panel__text">
+              <p><%= t.cbgen_p3_body %></p>
+              <ul class="eco-fab-list">
+                <% components.forEach((part) => { %>
+                <li class="eco-fab-option<%= part.comingSoon ? ' eco-fab-option--unavailable cbgen-option--soon' : '' %>">
+                  <span class="eco-fab-option__info">
+                    <span class="eco-fab-option__title">
+                      <%= part.title %>
+                      <% if (part.comingSoon) { %><span class="build-badge"><%= t.cbgen_coming_soon %></span><% } %>
+                    </span>
+                    <span class="eco-fab-option__desc"><%= part.desc %></span>
+                  </span>
+                  <label class="ht-toggle">
+                    <input
+                      type="checkbox"
+                      id="cb-part-<%= part.key %>"
+                      name="components"
+                      value="<%= part.key %>"
+                      aria-label="<%= part.title %>"
+                      <%= part.comingSoon ? 'disabled' : 'checked' %>
+                    />
+                    <span class="ht-toggle__slider" aria-hidden="true"></span>
+                  </label>
+                </li>
+                <% }) %>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Panel 4 — Print options -->
+      <details class="eco-panel" data-panel="print">
+        <summary class="eco-panel__head">
+          <span class="eco-panel__step">4</span>
+          <span class="eco-panel__heading">
+            <span class="eco-panel__title"><%= t.cbgen_p4_title %></span>
+            <span class="eco-panel__desc"><%= t.cbgen_p4_desc %></span>
+          </span>
+          <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="eco-panel__body">
+          <div class="eco-panel__content eco-panel__content--single">
+            <div class="eco-panel__text">
+              <p><%= t.cbgen_p4_body %></p>
+              <div class="eco-fields cbgen-clearance">
+                <label class="eco-field">
+                  <span class="eco-field__label"><%= t.cbgen_field_clearance %></span>
+                  <select id="cb-clearance" name="clearance">
+                    <option value="0.15"><%= t.cbgen_clearance_tight %></option>
+                    <option value="0.25" selected><%= t.cbgen_clearance_standard %></option>
+                    <option value="0.4"><%= t.cbgen_clearance_loose %></option>
+                  </select>
+                </label>
+              </div>
+              <ul class="eco-fab-list">
+                <li class="eco-fab-option">
+                  <span class="eco-fab-option__info">
+                    <span class="eco-fab-option__title"><%= t.cbgen_fmt_stl %></span>
+                    <span class="eco-fab-option__desc"><%= t.cbgen_fmt_stl_desc %></span>
+                  </span>
+                  <label class="ht-toggle">
+                    <input type="checkbox" id="cb-fmt-stl" name="formats" value="stl" aria-label="STL" checked />
+                    <span class="ht-toggle__slider" aria-hidden="true"></span>
+                  </label>
+                </li>
+                <li class="eco-fab-option">
+                  <span class="eco-fab-option__info">
+                    <span class="eco-fab-option__title"><%= t.cbgen_fmt_scad %></span>
+                    <span class="eco-fab-option__desc"><%= t.cbgen_fmt_scad_desc %></span>
+                  </span>
+                  <label class="ht-toggle">
+                    <input type="checkbox" id="cb-fmt-scad" name="formats" value="scad" aria-label="SCAD" />
+                    <span class="ht-toggle__slider" aria-hidden="true"></span>
+                  </label>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </details>
+
+    </div>
+
+    <div class="eco-actions">
+      <button type="submit" class="button" id="cb-generate-btn">
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.cbgen_submit %>
+      </button>
+    </div>
+    <div class="eco-dev-notice" data-cb-pending hidden role="status">
+      <i class="fa-solid fa-flask" aria-hidden="true"></i>
+      <span><%= t.cbgen_submit_pending %></span>
+    </div>
+  </form>
+</main>
+<%# `<` is escaped so a string containing markup cannot close this tag early. %>
+<script id="cb-profiles" type="application/json"><%- JSON.stringify(profileData).replace(/</g, '\\u003c') %></script>
+<%- include('partials/footer', { pageScripts: ['/js/control-bottle-generate.js'] }) %>

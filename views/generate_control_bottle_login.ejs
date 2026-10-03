@@ -1,0 +1,38 @@
+<%- include('partials/header', { pageTitle, theme, lang, direction }) %>
+<%- include('partials/nav') %>
+<main id="main" class="generate-login">
+  <div class="generate-login__content">
+    <div class="generate-login__inner">
+      <span class="generate-login__eyebrow">🐢 <%= t.cbgen_login_eyebrow %></span>
+      <h1><%= t.cbgen_login_title %></h1>
+      <p><%= t.cbgen_login_body %></p>
+      <ul class="cbgen-login__points">
+        <li><i class="fa-solid fa-bottle-water" aria-hidden="true"></i> <%= t.cbgen_login_point1 %></li>
+        <li><i class="fa-solid fa-cube" aria-hidden="true"></i> <%= t.cbgen_login_point2 %></li>
+        <li><i class="fa-solid fa-download" aria-hidden="true"></i> <%= t.cbgen_login_point3 %></li>
+      </ul>
+      <div class="generate-login__actions">
+        <a class="button" href="<%= loginUrl %>">
+          <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i>
+          <%= t.cbgen_login_cta %>
+        </a>
+        <a
+          class="button ghost"
+          href="https://buwana.ecobricks.org/en/signup-1.php?app=hope_8fc3caabded4"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+          <%= t.nav_signup || 'Signup' %>
+        </a>
+      </div>
+      <p class="cbgen-login__back">
+        <a href="/turtles/build#build-step-3">&larr; <%= t.cbgen_login_back %></a>
+      </p>
+    </div>
+  </div>
+  <div class="generate-login__media">
+    <img src="/images/repo--body-preview.webp" alt="" loading="lazy" />
+  </div>
+</main>
+<%- include('partials/footer') %>

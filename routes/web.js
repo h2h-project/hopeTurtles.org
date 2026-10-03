@@ -18,6 +18,7 @@ import missionsModel from "../models/missionsModel.js";
 import turtlesModel from "../models/turtlesModel.js";
 import componentsModel from "../models/componentsModel.js";
 import commissionsModel from "../models/commissionsModel.js";
+import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
 import { renderManagementPage } from "../controllers/usersController.js";
 
 const router = Router();
@@ -109,6 +110,41 @@ router.get("/turtles/generate", (req, res) => {
     metaDescription:
       "Generate the engineering files to make an ecojoiner for your choice of bottle.  Build furniture, structures or just set a turtle free.",
     ogImage: "/images/ecojoiner-spec-hero.webp",
+  });
+});
+
+router.get("/turtles/build", (req, res) => {
+  res.render("build", {
+    pageTitle: res.locals.t.build_page_title,
+    bodyClass: "ocean-bg",
+    metaDescription:
+      "A step-by-step tutorial for building your own open-source Hope Turtle — anywhere, for under 100 euros.",
+    ogImage: "/images/full_turtle-preview-777px.webp",
+  });
+});
+
+// Form layout only so far — not yet wired to turtle_body's SCAD sources.
+// Logged-out visitors get a dedicated login page (same URL, so the login's
+// returnTo brings them straight back) since the form runs off their saved
+// bottle profiles.
+router.get("/turtles/generate_control_bottle", async (req, res) => {
+  if (!req.session?.user) {
+    return res.render("generate_control_bottle_login", {
+      pageTitle: res.locals.t.cbgen_page_title,
+    });
+  }
+  let profiles = [];
+  try {
+    profiles = await ecojoinerProfilesModel.getForUser(req.session.user.buwanaId);
+  } catch (error) {
+    // A saved-profile list failing to load isn't fatal — the form still
+    // works for a new bottle.
+    console.error("Failed to load bottle profiles for control bottle page", error);
+  }
+  return res.render("generate_control_bottle", {
+    pageTitle: res.locals.t.cbgen_page_title,
+    bodyClass: "ocean-bg",
+    profiles,
   });
 });
 

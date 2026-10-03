@@ -1,0 +1,417 @@
+<%- include('partials/header', { pageTitle, theme, lang, direction, metaDescription, ogImage, bodyClass }) %>
+<%- include('partials/nav') %>
+<%
+  // Step 1's chart. `stars` is the recommendation out of 5.
+  const blueprintRows = [
+    { method: t.build_s1_row_carpentry, file: 'PDF', icon: 'fa-hammer', use: t.build_s1_row_carpentry_use, stars: 5 },
+    { method: t.build_s1_row_cnc, file: 'DXF', icon: 'fa-gears', use: t.build_s1_row_cnc_use, stars: 4 },
+    { method: t.build_s1_row_laser, file: 'SVG', icon: 'fa-bolt', use: t.build_s1_row_laser_use, stars: 2 },
+    { method: t.build_s1_row_3d, file: 'SCAD', icon: 'fa-cube', use: t.build_s1_row_3d_use, stars: 1 },
+  ];
+  const fabrication = [
+    { title: t.build_s2_carpentry_title, body: t.build_s2_carpentry_body, icon: 'fa-hammer' },
+    { title: t.build_s2_cnc_title, body: t.build_s2_cnc_body, icon: 'fa-gears' },
+    { title: t.build_s2_laser_title, body: t.build_s2_laser_body, icon: 'fa-bolt' },
+    { title: t.build_s2_3d_title, body: t.build_s2_3d_body, icon: 'fa-cube' },
+  ];
+  const controlParts = [
+    { title: t.build_s3_cage_title, body: t.build_s3_cage_body },
+    { title: t.build_s3_cap_title, body: t.build_s3_cap_body },
+    { title: t.build_s3_mold_title, body: t.build_s3_mold_body },
+    { title: t.build_s3_shaft_title, body: t.build_s3_shaft_body },
+    { title: t.build_s3_gear_title, body: t.build_s3_gear_body, comingSoon: true },
+  ];
+  const foods = ['rice', 'lentils', 'flour', 'sugar', 'oats', 'pasta', 'coffee', 'milk', 'nuts', 'spices'];
+%>
+<main id="main" class="layout generate-page build-page">
+  <div class="generate-banner">
+    <div class="generate-banner__inner">
+      <div class="generate-banner__content">
+        <div class="generate-banner__intro">
+          <div class="eco-dev-notice eco-dev-notice--top" role="status">
+            <i class="fa-solid fa-flask" aria-hidden="true"></i>
+            <span>
+              <strong><%= t.build_notice_title %></strong>
+              <%= t.build_notice_body %>
+            </span>
+          </div>
+
+          <div class="generate-intro">
+            <h1><%= t.build_hero_title %></h1>
+            <p><%= t.build_hero_p1 %></p>
+            <p><%= t.build_hero_p2 %></p>
+          </div>
+
+          <div>
+            <a class="button build-banner__cta" href="#build-step-1" data-build-open="build-step-1">
+              <i class="fa-solid fa-arrow-down" aria-hidden="true"></i> <%= t.build_hero_cta %>
+            </a>
+          </div>
+        </div>
+
+        <figure class="generate-banner__media">
+          <img src="/images/turtle-banner-background.webp" alt="" loading="lazy" />
+        </figure>
+      </div>
+    </div>
+  </div>
+
+  <div class="eco-panels">
+
+    <!-- Step 1 — Generate your blueprints -->
+    <details class="eco-panel" id="build-step-1" open>
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">1</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s1_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s1_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <p><%= t.build_s1_p1 %></p>
+            <%# Carries an inline link, so it renders unescaped. %>
+            <p><%- t.build_s1_p2 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/ecojoiners/chose_bottle.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-table-wrap">
+          <table class="build-table">
+            <caption><%= t.build_s1_table_caption %></caption>
+            <thead>
+              <tr>
+                <th scope="col"><%= t.build_s1_col_method %></th>
+                <th scope="col"><%= t.build_s1_col_file %></th>
+                <th scope="col"><%= t.build_s1_col_use %></th>
+                <th scope="col"><%= t.build_s1_col_rec %></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% blueprintRows.forEach((row) => { %>
+              <tr>
+                <th scope="row">
+                  <i class="fa-solid <%= row.icon %>" aria-hidden="true"></i> <%= row.method %>
+                </th>
+                <td><span class="build-file-badge"><%= row.file %></span></td>
+                <td><%= row.use %></td>
+                <td>
+                  <span class="build-stars" role="img" aria-label="<%= t.build_s1_stars_aria.replace('{n}', row.stars) %>">
+                    <% for (let i = 1; i <= 5; i++) { %><i class="<%= i <= row.stars ? 'fa-solid' : 'fa-regular' %> fa-star" aria-hidden="true"></i><% } %>
+                  </span>
+                </td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <div class="build-actions">
+          <a class="button" href="/turtles/generate">
+            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.build_s1_cta %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 2 — Fabrication -->
+    <details class="eco-panel" id="build-step-2">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">2</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s2_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s2_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text build-sections">
+            <% fabrication.forEach((item) => { %>
+            <section>
+              <h3><i class="fa-solid <%= item.icon %>" aria-hidden="true"></i> <%= item.title %></h3>
+              <p><%= item.body %></p>
+            </section>
+            <% }) %>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/wood-ecojoiner.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 3 — Build your control bottle -->
+    <details class="eco-panel" id="build-step-3">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">3</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s3_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s3_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <%# Carries an inline link, so it renders unescaped. %>
+            <p><%- t.build_s3_p1 %></p>
+            <ul class="build-list">
+              <% controlParts.forEach((part) => { %>
+              <li>
+                <strong><%= part.title %></strong>
+                <% if (part.comingSoon) { %><span class="build-badge"><%= t.build_s3_coming_soon %></span><% } %>
+                <span><%= part.body %></span>
+              </li>
+              <% }) %>
+            </ul>
+            <p><%= t.build_s3_p2 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/repo--body-preview.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-actions">
+          <a class="button" href="/turtles/generate_control_bottle">
+            <i class="fa-solid fa-cube" aria-hidden="true"></i> <%= t.build_s3_cta %>
+          </a>
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_body" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.cbgen_github %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 4 — Assemble your circuits -->
+    <details class="eco-panel" id="build-step-4">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">4</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s4_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s4_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <%# Carries <strong> emphasis, so it renders unescaped. %>
+            <p><%- t.build_s4_p1 %></p>
+            <p><%= t.build_s4_p2 %></p>
+            <ul class="build-list">
+              <li>
+                <strong><%= t.build_s4_opt1_title %></strong>
+                <span class="build-badge"><%= t.build_s3_coming_soon %></span>
+                <span><%= t.build_s4_opt1_body %></span>
+              </li>
+              <li>
+                <strong><%= t.build_s4_opt2_title %></strong>
+                <span><%= t.build_s4_opt2_body %></span>
+              </li>
+            </ul>
+            <p><%= t.build_s4_p3 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/shell-v1.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-actions">
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_shells" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.build_s4_cta %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 5 — Put it all together -->
+    <details class="eco-panel" id="build-step-5">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">5</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s5_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s5_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <%# These carry <strong> emphasis, so they render unescaped. %>
+            <p><%- t.build_s5_p1 %></p>
+            <p><%- t.build_s5_p2 %></p>
+            <p><%- t.build_s5_p3 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/turtle-floating.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 6 — Set up TurtleOS -->
+    <details class="eco-panel" id="build-step-6">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">6</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s6_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s6_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <%# These carry <strong> emphasis, so they render unescaped. %>
+            <p><%- t.build_s6_p1 %></p>
+            <p><%- t.build_s6_p2 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/repo--turtleos-preview.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-actions">
+          <% if (currentUser) { %>
+          <a class="button" href="/dashboard">
+            <i class="fa-solid fa-house" aria-hidden="true"></i> <%= t.build_s6_cta_dashboard %>
+          </a>
+          <% } else { %>
+          <a class="button" href="<%= loginUrl %>">
+            <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> <%= t.build_s6_cta_login %>
+          </a>
+          <% } %>
+          <a class="button ghost" href="/turtleos">
+            <i class="fa-solid fa-terminal" aria-hidden="true"></i> <%= t.build_s6_cta_os %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 7 — Pack your food bottles -->
+    <details class="eco-panel" id="build-step-7">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">7</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s7_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s7_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <p><%= t.build_s7_p1 %></p>
+            <p><%= t.build_s7_p2 %></p>
+            <ul class="build-chips">
+              <% foods.forEach((food) => { %><li><%= t['build_s7_food_' + food] %></li><% }) %>
+            </ul>
+            <%# Carries <strong> emphasis, so it renders unescaped. %>
+            <p class="build-callout"><%- t.build_s7_p3 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/help-food.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 8 — Download the Turtle Wrangler -->
+    <details class="eco-panel" id="build-step-8">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">8</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s8_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s8_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-dev-notice" role="status">
+          <i class="fa-brands fa-google-play" aria-hidden="true"></i>
+          <span><strong><%= t.build_s8_coming_soon %></strong></span>
+        </div>
+        <div class="eco-panel__content eco-panel__content--single">
+          <div class="eco-panel__text">
+            <p><%= t.build_s8_p1 %></p>
+            <%# Carries <strong> emphasis, so it renders unescaped. %>
+            <p><%- t.build_s8_p2 %></p>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 9 — Deploy or deliver -->
+    <details class="eco-panel" id="build-step-9">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">9</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s9_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s9_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text build-sections">
+            <section>
+              <h3><i class="fa-solid fa-wind" aria-hidden="true"></i> <%= t.build_s9_deploy_title %></h3>
+              <p><%= t.build_s9_deploy_body %></p>
+            </section>
+            <section>
+              <h3><i class="fa-solid fa-box" aria-hidden="true"></i> <%= t.build_s9_deliver_title %></h3>
+              <%# Carries <em> emphasis, so it renders unescaped. %>
+              <p><%- t.build_s9_deliver_body %></p>
+            </section>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/kayak_turtle.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-actions">
+          <a class="button ghost" href="/missions">
+            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> <%= t.build_s9_cta %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+    <!-- Step 10 — Track its progress -->
+    <details class="eco-panel" id="build-step-10">
+      <summary class="eco-panel__head">
+        <span class="eco-panel__step">10</span>
+        <span class="eco-panel__heading">
+          <span class="eco-panel__title"><%= t.build_s10_title %></span>
+          <span class="eco-panel__desc"><%= t.build_s10_desc %></span>
+        </span>
+        <i class="fa-solid fa-chevron-down eco-panel__chevron" aria-hidden="true"></i>
+      </summary>
+      <div class="eco-panel__body">
+        <div class="eco-panel__content">
+          <div class="eco-panel__text">
+            <p><%= t.build_s10_p1 %></p>
+          </div>
+          <figure class="eco-panel__figure">
+            <img src="/images/landing-arrival.webp" alt="" loading="lazy" />
+          </figure>
+        </div>
+        <div class="build-actions">
+          <a class="button" href="/dashboard">
+            <i class="fa-solid fa-house" aria-hidden="true"></i> <%= t.build_s10_cta_dashboard %>
+          </a>
+          <a class="button ghost" href="/missions">
+            <i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> <%= t.build_s10_cta_missions %>
+          </a>
+        </div>
+      </div>
+    </details>
+
+  </div>
+
+  <div class="generate-intro build-outro">
+    <p>───🐢───</p>
+    <h2><%= t.build_footer_title %></h2>
+    <p><%= t.build_footer_body %></p>
+  </div>
+</main>
+<%- include('partials/footer', { pageScripts: ['/js/build.js'] }) %>
