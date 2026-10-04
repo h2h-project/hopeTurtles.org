@@ -50,7 +50,7 @@ DEFAULTS = {
 # Mirrors turtle_body lib/params.scad p_screw_side_offset() and
 # p_m6_clearance_d() -- the Ecojoiner-frame mounting-hole geometry the core
 # slat's M6 hole must align with, not board/bottle-specific tuning.
-MOUNT_HOLE_SCREW_SIDE_OFFSET = 25.0
+MOUNT_HOLE_SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 MOUNT_HOLE_DIAMETER = 6.4
 
 # Everything after the foundation-variable assignments, which build_scad()

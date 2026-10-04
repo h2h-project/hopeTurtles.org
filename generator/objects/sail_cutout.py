@@ -344,6 +344,12 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
 
     c = canvas.Canvas(str(path), pagesize=(page_w, page_h))
     c.setTitle(f"Flatpack Sail Cutout v{DESIGN_VERSION}")
+    # /ViewerPreferences /PrintScaling /None: asks the viewer's print dialog
+    # to default to "Actual size" instead of "Fit to printable area", which
+    # silently shrinks a 1:1 pattern by a few percent. Acrobat and most
+    # desktop viewers honour it; browsers' built-in viewers may not, hence
+    # the printed warning + 100mm check bar below.
+    c.setViewerPreference("PrintScaling", "None")
 
     def mmx(v):
         return v * MM
@@ -415,6 +421,7 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
                     mmx(_A3_MARGIN_MM), page_h - mmx(_A3_MARGIN_MM + 22),
                     f"Overlap {_A3_OVERLAP_MM:g}mm on each shared edge - align the numbered grid crosses, then tape.",
                 )
+            _draw_print_warning(c, page_w, page_h, title_font, body_font)
 
             c.setFont(body_font, 6)
             c.setFillColor(colors.HexColor("#777777"))
@@ -427,6 +434,50 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             c.showPage()
 
     c.save()
+
+
+_WARN_BOX_W_MM = 120.0
+_WARN_BOX_H_MM = 21.0
+_WARN_BAR_MM = 100.0
+
+
+def _draw_print_warning(c, page_w: float, page_h: float, title_font: str, body_font: str) -> None:
+    """Black-and-white "print at 100%" box in the header's top-right corner,
+    with a 100mm check bar so the printed sheet can be verified with a ruler.
+    Pure black on white so it survives greyscale/mono printers. Sits inside
+    the _A3_HEADER_MM band, clear of the clipped pattern area."""
+    from reportlab.lib.units import mm as MM
+
+    x = page_w - (_A3_MARGIN_MM + _WARN_BOX_W_MM) * MM
+    top = page_h - _A3_MARGIN_MM * MM
+    y = top - _WARN_BOX_H_MM * MM
+    pad = 3 * MM
+
+    c.saveState()
+    c.setStrokeColor(colors.black)
+    c.setFillColor(colors.white)
+    c.setLineWidth(1.5)
+    c.rect(x, y, _WARN_BOX_W_MM * MM, _WARN_BOX_H_MM * MM, stroke=1, fill=1)
+
+    c.setFillColor(colors.black)
+    c.setFont(title_font, 10)
+    c.drawString(x + pad, top - pad - 8, "! PRINT AT 100% / ACTUAL SIZE")
+    c.setFont(body_font, 6.5)
+    c.drawString(x + pad, top - pad - 17,
+                 "Turn OFF 'Fit to page', 'Shrink oversized pages' and any printer auto-fit.")
+
+    # 100mm check bar, with 10mm ticks.
+    bar_y = y + pad + 2
+    bar_x0 = x + pad
+    bar_x1 = bar_x0 + _WARN_BAR_MM * MM
+    c.setLineWidth(0.8)
+    c.line(bar_x0, bar_y, bar_x1, bar_y)
+    for n in range(int(_WARN_BAR_MM / 10) + 1):
+        tx = bar_x0 + n * 10 * MM
+        c.line(tx, bar_y, tx, bar_y + (5 if n % 5 == 0 else 2.5))
+    c.setFont(body_font, 6)
+    c.drawString(bar_x0, bar_y + 7, f"Check: this bar must measure exactly {_WARN_BAR_MM:g}mm")
+    c.restoreState()
 
 
 def _grid_lines(origin: float, span: float):

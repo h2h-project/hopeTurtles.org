@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Bottom_Ballast_Fin.scad
-//  Turtle Body version 4.1.2
+//  Turtle Body version 4.2.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -95,7 +95,7 @@ function p_insert_shaft_d()  = p_bottle_socket_d()
 // ---- wooden stock -----------------------------------------------------
 function p_wood_t()          = 12;    // shared board / slat thickness
 function p_fin_board_w()     = 93;    // shared fin-system stock width
-function p_screw_side_offset() = 25;  // mounting-hole inset from a John end
+function p_screw_side_offset() = 17;  // mounting-hole inset from a John end (was 25 until v4.2.0)
 
 // ---- Ecojoiner port --------------------------------------------------
 // A port must swallow the bottle's tapered top (the top dome) plus a seating
@@ -264,7 +264,7 @@ function p_rear_fin_tab_width() = 15;
 function p_rear_shaft_width()   = 59;
 // TB-07: the green-slat mounting hole follows the mating Ecojoiner John, not a
 // fixed 50 mm. Derived from the install transform; the john_length/2 terms
-// cancel, leaving a pure function of the shared contract (= 103 at defaults).
+// cancel, leaving a pure function of the shared contract (= 113 at defaults).
 function p_rear_shaft_hole_from_front() =
     p_rear_shaft_len() - p_screw_side_offset() - p_bottle_h()
     + p_bottle_cap_h() + p_port_height();
@@ -355,7 +355,7 @@ function bl_core_slot_z0() = bl_lower_lobe();
 function bl_core_slot_z1() = bl_core_slot_z0() + bl_core_slot_h();
 function bl_lower_full_return() = bl_core_slot_z1() + bl_upper_lobe();
 function bl_lower_neck_start()  = bl_lower_full_return() + bl_shoulder_step();
-function bl_mount_hole_from_top() = p_port_length() + bl_t() - p_screw_side_offset();  // 69
+function bl_mount_hole_from_top() = p_port_length() + bl_t() - p_screw_side_offset();  // 77
 function bl_mount_hole_x()  = bl_core_w() / 2;
 function bl_mount_hole_y()  = bl_core_h() - bl_mount_hole_from_top();
 

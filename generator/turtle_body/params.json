@@ -25,7 +25,7 @@
   "p_insert_shaft_d": 81,
   "p_wood_t": 12,
   "p_fin_board_w": 93,
-  "p_screw_side_offset": 25,
+  "p_screw_side_offset": 17,
   "p_port_allowance": 20,
   "p_port_length": 82,
   "p_port_height": 84,
@@ -127,7 +127,7 @@
   "p_rear_half_lap_engagement": 42,
   "p_rear_fin_tab_width": 15,
   "p_rear_shaft_width": 59,
-  "p_rear_shaft_hole_from_front": 105,
+  "p_rear_shaft_hole_from_front": 113,
   "p_ballast_core_w": 60,
   "p_ballast_core_len": 360,
   "p_ballast_slat_gap": 84,
@@ -160,5 +160,5 @@
     0.26,
     0.17
   ],
-  "version": "4.1.2"
+  "version": "4.2.0"
 }

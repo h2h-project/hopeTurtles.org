@@ -51,7 +51,7 @@ TUNING = {
 # hole inset from a John's outer end, shared by the Ecojoiner, ballast and
 # rear-fin interfaces. Not a TUNING/CLI knob: it is the fixed geometry of the
 # Ecojoiner frame this fin bolts to, not a rear-fin-specific choice.
-SCREW_SIDE_OFFSET = 25.0
+SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 
 
 def default_shaft_hole_from_front(p: dict[str, float]) -> float:

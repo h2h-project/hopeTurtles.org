@@ -206,9 +206,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "yuva {value}mm",
     },
     "from_side_label": {
-        "en": "25mm from side",
-        "id": "25mm dari sisi",
-        "tr": "kenardan 25mm",
+        "en": "{value}mm from side",
+        "id": "{value}mm dari sisi",
+        "tr": "kenardan {value}mm",
     },
     "through_hole_label": {
         "en": "M6 through-hole: ⌀{value}mm",
@@ -449,8 +449,9 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
     little_end_span = port_length + slat
     little_center_span = port_height
 
-    # M6 clearance holes: centered vertically, fixed 25mm from side edges.
-    screw_side_offset = 25.0
+    # M6 clearance holes: centered vertically, fixed 17mm from side edges
+    # (lib/params.scad p_screw_side_offset(); was 25 until turtle_body v4.2.0).
+    screw_side_offset = 17.0
     screw_y_center = john_height / 2
 
     # Final Keys replace Saddlers in v3.2.
@@ -803,7 +804,7 @@ long_end_span = port_length;
 long_center_span = port_height + 2 * slat_thickness;
 little_end_span = port_length + slat_thickness;
 little_center_span = port_height;
-screw_side_offset = 25;
+screw_side_offset = 17;
 screw_y_center = john_height / 2;
 final_key_length = port_height + 4 * slat_thickness;
 final_key_width = 2 * slat_thickness;
@@ -1181,7 +1182,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         )
         if include_screw_holes:
             _draw_dimension_line(
-                c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label"), body_font, 6.5,
+                c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label", value=f"{d.screw_side_offset:g}"), body_font, 6.5,
                 ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
             )
         _draw_dimension_line(
