@@ -137,7 +137,7 @@
   "p_rear_shaft_len": 418,
   "p_rear_half_lap_engagement": 42,
   "p_rear_fin_tab_width": 15,
-  "p_rear_shaft_width": 59,
+  "p_rear_shaft_width": 60,
   "p_rear_shaft_hole_from_front": 113,
   "p_ballast_core_w": 60,
   "p_ballast_core_len": 360,
@@ -171,5 +171,5 @@
     0.26,
     0.17
   ],
-  "version": "5.3.0"
+  "version": "5.4.1"
 }

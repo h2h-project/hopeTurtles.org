@@ -25,7 +25,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
-    DESIGN_VERSION,
     LICENSE_ID,
     DEFAULT_PORT_ALLOWANCE_MM,
     GeneratedFile,
@@ -56,6 +55,7 @@ from common import (
     canvas,
     ezdxf,
 )
+from objects.ecojoiner_6fc import _fit_connection_label  # same Panel 5 step names as the 6FC sheet
 from bottom_ballast_fin_generator import (
     DEFAULTS as _BALLAST_DEFAULTS,
     build_scad as _ballast_build_scad,
@@ -63,6 +63,10 @@ from bottom_ballast_fin_generator import (
     MOUNT_HOLE_DIAMETER as _BALLAST_MOUNT_HOLE_DIAMETER,
     MOUNT_HOLE_EDGE_INSET as _BALLAST_MOUNT_HOLE_EDGE_INSET,
 )
+
+# The Bottom Ballast Fin's own design version, matched to the Ecojoiner and
+# Back Fin v3.3 (2026-10-10). common.DESIGN_VERSION stays 3.2 for the sails.
+DESIGN_VERSION = "3.3"
 
 PART_QUANTITIES = {
     "Ballast Bottom Board": 1,
@@ -90,9 +94,13 @@ class BallastInputs:
     cap_diameter: float = _BALLAST_DEFAULTS["cap_diameter"]
     fin_board_width: float = _BALLAST_DEFAULTS["fin_board_width"]
 
-    taper_height: Optional[float] = 60.0
+    taper_height: Optional[float] = 62.0  # turtle_body p_top_dome_h() (was 60, drift)
     port_length: Optional[float] = None
     port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM
+    # "Adjust connection" (generator form Panel 5), mm added to the bottle
+    # diameter to give the Ecojoiner PORT height (negative = tighter). The
+    # green slats bolt flush against the Little Johns cut to that height.
+    port_fit_mm: float = 0.0
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
@@ -187,7 +195,8 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> BallastInputs:
 
     return BallastInputs(
         **kwargs,
-        taper_height=_to_float(get("taper_height"), 60.0),
+        taper_height=_to_float(get("taper_height"), 62.0),
+        port_fit_mm=_to_float(get("port_fit_mm"), 0.0),
         port_length=_to_float(get("port_length"), None),
         port_allowance=_to_float(get("port_allowance"), DEFAULT_PORT_ALLOWANCE_MM),
         bottle_brand=str(get("bottle_brand", "generic") or "generic"),
@@ -208,20 +217,24 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     if port_length is None:
         port_length = (inputs.taper_height or 0.0) + inputs.port_allowance
 
-    slat_width = bd - 2 * t
+    # Slats follow the fit-adjusted PORT height (same as the 6FC Johns they
+    # bolt against): width == John height, inner-face gap == port height.
+    # Bottle-clearance cuts and overall proportions stay on the measured bd.
+    ph = bd + inputs.port_fit_mm
+    slat_width = ph - 2 * t
     slat_height = bh - ch + 6.0 * t
     lower_lobe_height = 2 * t
     upper_lobe_height = 2 * t
     slot_height = t
     slot_depth = slat_width / 2
-    neck_width = bd - 3 * t
+    neck_width = ph - 3 * t
     shoulder_step = slat_width - neck_width
-    # The shoulder cut begins one PORT HEIGHT (== bottle diameter, the
-    # opening the slat passes through) below the slat top -- NOT one
+    # The shoulder cut begins one PORT HEIGHT (the opening the slat passes
+    # through, fit offset included) below the slat top -- NOT one
     # port_length (the port's axial insertion depth, which only equals
     # bottle_diameter by coincidence at the reference bottle's defaults).
     # port_length instead governs the M5 mount-hole pair below.
-    upper_diagonal_start_z = slat_height - bd
+    upper_diagonal_start_z = slat_height - ph
     upper_neck_start_z = upper_diagonal_start_z - shoulder_step
     slot_z0 = lower_lobe_height
     slot_z1 = slot_z0 + slot_height
@@ -243,8 +256,11 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     ballast_slot_depth = fw / 3
     center_ballast_slot_depth = bd / 2
     center_slot_center = ballast_bottom_length / 2
-    left_slot_center = center_slot_center - bd / 2
-    right_slot_center = center_slot_center + bd / 2
+    # Slat slots: centres one port height + one stock apart, so the slats'
+    # inner faces are one port height apart (turtle_body bl_slat_spacing()).
+    # Was +-bd/2 (84 mm apart), leaving 72 mm between the slats.
+    left_slot_center = center_slot_center - (ph + t) / 2
+    right_slot_center = center_slot_center + (ph + t) / 2
     end_slot_edge_offset = 2 * t
     left_end_slot_x0 = end_slot_edge_offset
     right_end_slot_x0 = ballast_bottom_length - end_slot_edge_offset - ballast_slot_width
@@ -345,6 +361,8 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
         errors.append("Provide either a port length or a top tapper height.")
     if inputs.port_allowance < 0:
         errors.append("Port allowance must be zero or greater.")
+    if not -10 <= inputs.port_fit_mm <= 10:
+        errors.append("Connection fit offset must be between -10 and 10 mm.")
 
     if errors:
         # Downstream geometry (derive_dimensions) assumes every field above
@@ -357,7 +375,7 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
 
     checks = [
         (
-            inputs.bottle_diameter > 3 * t,
+            inputs.bottle_diameter + inputs.port_fit_mm > 3 * t,
             "Bottle diameter must be greater than 3x the wood thickness, so the core slat's neck width stays positive.",
         ),
         (
@@ -400,7 +418,7 @@ def make_job_slug(inputs: BallastInputs, derived: BallastDerived) -> str:
 
 def write_scad(path: Path, inputs: BallastInputs, d: BallastDerived) -> None:
     overrides = {key: getattr(inputs, key) for key in _BALLAST_DEFAULTS}
-    path.write_text(_ballast_build_scad(overrides, d.port_length), encoding="utf-8")
+    path.write_text(_ballast_build_scad(overrides, d.port_length, inputs.port_fit_mm), encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -725,15 +743,23 @@ def _slat_annotations(d: BallastDerived):
             {"ext1": (d.slat_width, d.mount_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
         ),
         # The pair's inset from the slat's long edge (both holes mirror it).
+        # Drawn ABOVE the holes: the top 45-degree shoulder cut starts only a
+        # few mm below them, so a line below would run into it.
         (
-            (0, d.mount_hole_y - 8), (d.mount_hole_xs[0], d.mount_hole_y - 8),
+            (0, d.mount_hole_y + 8), (d.mount_hole_xs[0], d.mount_hole_y + 8),
             f"{_ceil_mm(d.mount_hole_xs[0])}mm",
             {"ext1": (0, d.mount_hole_y), "ext2": (d.mount_hole_xs[0], d.mount_hole_y)},
         ),
     ]
+    # Hole size written BESIDE each hole (not on it), on the side facing the
+    # other hole of the pair -- the clear wood between them -- with the ⌀
+    # symbol (drawn in the symbol font; the body font has no ⌀ glyph).
+    # Matches the Back Fin sheet.
+    side = d.mount_hole_diameter / 2 + 6
+    hole_text = f"⌀{_ceil_mm(d.mount_hole_diameter)}"
     labels = [
-        ((d.mount_hole_xs[0], d.mount_hole_y), "M5"),
-        ((d.mount_hole_xs[1], d.mount_hole_y), "M5"),
+        ((d.mount_hole_xs[0] + side, d.mount_hole_y), hole_text),
+        ((d.mount_hole_xs[1] - side, d.mount_hole_y), hole_text),
         (
             (d.shoulder_step + 8, (d.upper_diagonal_start_z + d.upper_neck_start_z) / 2),
             "45°",
@@ -883,17 +909,17 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
-    title_font, body_font, _mono_font = _register_fonts(font_dir)
+    title_font, body_font, symbol_font = _register_fonts(font_dir)
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle("Flatpack Bottom Ballast Fin v2.0")
+    c.setTitle(f"Flatpack Bottom Ballast Fin v{DESIGN_VERSION}")
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, "Flatpack Bottom Ballast Fin v2.0")
+    c.drawString(margin, title_y, f"Flatpack Bottom Ballast Fin v{DESIGN_VERSION}")
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
@@ -1076,7 +1102,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
                 text, font=body_font, size=5.5, **line_kwargs,
             )
         for p, text in part["labels"]:
-            c.setFont(body_font, 5.5)
+            c.setFont(symbol_font if "⌀" in text else body_font, 5.5)
             c.setFillColor(colors.HexColor("#333333"))
             c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 
@@ -1128,6 +1154,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
         f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
         f"Board width: {_ceil_mm(inputs.fin_board_width)}mm",
+        f"Fit connection: {_fit_connection_label('en', inputs.port_fit_mm)}",
     ]
     derived_lines = [
         f"Port length: {_ceil_mm(d.port_length)}mm",

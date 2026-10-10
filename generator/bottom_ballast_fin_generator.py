@@ -75,8 +75,18 @@ $fn = 64;
 // GREEN CORE SLAT — DERIVED DIMENSIONS
 // ============================================================================
 
+// The green slats bolt flush against the Ecojoiner's Little Johns and clamp
+// the bottle between them, so they follow the PORT height: bottle diameter +
+// the generator form's "Adjust connection" offset (port_fit_mm, negative =
+// tighter) -- the same height the 6FC cuts its Johns to. Slat width == John
+// height (turtle_body bl_core_w()); slat gap == port height. Cuts that only
+// need to CLEAR the bottle (the yellow fin's seat, board/fin proportions)
+// stay on the measured bottle_diameter.
+port_height =
+    bottle_diameter + port_fit_mm;
+
 slat_width =
-    bottle_diameter - 2 * wood_thickness;
+    port_height - 2 * wood_thickness;
 
 slat_height =
     bottle_height
@@ -92,18 +102,18 @@ slot_depth =
     slat_width / 2;
 
 neck_width =
-    bottle_diameter - 3 * wood_thickness;
+    port_height - 3 * wood_thickness;
 
 shoulder_step =
     slat_width - neck_width;
 
-// The shoulder cut begins one PORT_HEIGHT (== bottle_diameter, the opening
-// the slat passes through) below the slat top -- NOT one port_length (the
+// The shoulder cut begins one PORT_HEIGHT (the opening the slat passes
+// through) below the slat top -- NOT one port_length (the
 // port's axial insertion depth, a different quantity that only happens to
 // equal bottle_diameter at the reference bottle's defaults). port_length
 // instead governs the M5 mount-hole pair below.
 upper_diagonal_start_z =
-    slat_height - bottle_diameter;
+    slat_height - port_height;
 
 upper_neck_start_z =
     upper_diagonal_start_z - shoulder_step;
@@ -160,16 +170,19 @@ center_ballast_slot_depth =
 
 // Three slots from the FRONT long edge.
 // Center slot is centered on the whole board.
-// Left and right slots are one bottle diameter apart in total,
-// with the center slot exactly midway between them.
+// Left and right slots hold the two green slats: their centres are one port
+// height + one stock thickness apart, so the slats' INNER faces are one port
+// height apart -- exactly the bottle gap (turtle_body bl_slat_spacing()).
+// Until 2026-10-10 these sat one bare bottle diameter apart (84 mm), which
+// left only 72 mm between the slats for an 84 mm bottle.
 center_slot_center =
     ballast_bottom_length / 2;
 
 left_slot_center =
-    center_slot_center - bottle_diameter / 2;
+    center_slot_center - (port_height + wood_thickness) / 2;
 
 right_slot_center =
-    center_slot_center + bottle_diameter / 2;
+    center_slot_center + (port_height + wood_thickness) / 2;
 
 
 // Two slots from the REAR long edge.
@@ -309,7 +322,7 @@ assert(ballast_fin_upper_cut_z0 < ballast_fin_height,
 assert(ballast_fin_front_chamfer < ballast_fin_height,
        "Yellow front chamfer is too large for the fin height.");
 
-assert(slat_height - bottle_diameter - wood_thickness > 6 * wood_thickness,
+assert(slat_height - port_height - wood_thickness > 6 * wood_thickness,
        "Ballast: slat shoulders overlap.");
 assert(mount_hole_diameter > 0
        && mount_hole_pair_offset + mount_hole_diameter / 2 < slat_width / 2,
@@ -719,7 +732,7 @@ def ask(label: str, default: float) -> float:
     return default if not raw else positive_number(raw)
 
 
-def build_scad(overrides: dict[str, float], port_length: float) -> str:
+def build_scad(overrides: dict[str, float], port_length: float, port_fit_mm: float = 0.0) -> str:
     """Build the full SCAD source: a foundation-dimensions header generated
     from DEFAULTS/overrides, plus the derived `port_length` (not a raw
     dimension - see the module docstring), followed by SCAD_BODY."""
@@ -730,6 +743,7 @@ def build_scad(overrides: dict[str, float], port_length: float) -> str:
     lines = ["/* [Foundation dimensions] */"]
     lines.extend(f"{k} = {p[k]:.12g};" for k in DEFAULTS)
     lines.append(f"port_length = {port_length:.12g};")
+    lines.append(f"port_fit_mm = {port_fit_mm:.12g};  // Adjust connection offset (negative = tighter)")
     lines.append(f"screw_side_offset = {MOUNT_HOLE_SCREW_SIDE_OFFSET:.12g};")
     lines.append(f"mount_hole_diameter = {MOUNT_HOLE_DIAMETER:.12g};")
     lines.append(f"mount_hole_edge_inset = {MOUNT_HOLE_EDGE_INSET:.12g};")
@@ -747,6 +761,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--cap-diameter", type=positive_number)
     p.add_argument("--port-length", type=positive_number)
     p.add_argument("--fin-board-width", type=positive_number)
+    p.add_argument("--port-fit-mm", type=float, default=0.0,
+                   help="Adjust-connection offset in mm added to the bottle diameter (negative = tighter).")
     p.add_argument(
         "--output",
         default="turtle_ballast_generated.scad",
@@ -825,7 +841,9 @@ def main() -> None:
 
     validate(mapping, port_length)
 
-    scad = build_scad(mapping, port_length)
+    if not -10 <= args.port_fit_mm <= 10:
+        raise SystemExit("--port-fit-mm must be between -10 and 10 mm.")
+    scad = build_scad(mapping, port_length, args.port_fit_mm)
 
     output = Path(args.output).expanduser()
     output.write_text(scad)
@@ -836,7 +854,7 @@ def main() -> None:
     ch = mapping["cap_height"]
     fw = mapping["fin_board_width"]
 
-    green_width = bd - 2 * t
+    green_width = bd + args.port_fit_mm - 2 * t   # John height at the fit-adjusted port
     green_height = bh - ch + 6.0 * t
     green_slot_depth = green_width / 2
     mount_hole_from_top = port_length + t - MOUNT_HOLE_SCREW_SIDE_OFFSET

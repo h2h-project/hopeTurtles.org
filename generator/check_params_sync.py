@@ -50,6 +50,7 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
     import back_fin_generator as bf_ref
     import bottom_ballast_fin_generator as bal_ref
     from objects import ecojoiner_6fc as eco, sails
+    from objects import ballast as bal_obj
 
     eco_in = eco.EcojoinerInputs()
     eco_derived = eco.derive_dimensions(eco.EcojoinerInputs())
@@ -102,6 +103,12 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
          bf_ref.dimensions({**bf, **bft})["shaft_length"]),
         ("p_rear_shaft_hole_from_front", "fin dimensions(DEFAULTS+TUNING)['shaft_hole_from_front']",
          bf_ref.dimensions({**bf, **bft})["shaft_hole_from_front"]),
+        # rear-fin shaft width == John height  -- p_rear_shaft_width() (60 since v5.4.0)
+        ("p_rear_shaft_width", "fin default_shaft_width(DEFAULTS)", bf_ref.default_shaft_width({**bf, **bft})),
+        # ballast core slats follow the John  -- p_ballast_core_w() / p_ballast_slat_spacing()
+        ("p_ballast_core_w", "ballast derive_dimensions().slat_width", bal_obj.derive_dimensions(bal_obj.BallastInputs()).slat_width),
+        ("p_ballast_slat_spacing", "ballast derive_dimensions() slot centre spacing",
+         (lambda dd: dd.right_slot_center - dd.left_slot_center)(bal_obj.derive_dimensions(bal_obj.BallastInputs()))),
         # M5 clamp hardware drawn on the 6FC PDF  -- p_m5_*()
         ("p_m5_bolt_d", "6fc HW_BOLT_D", eco.HW_BOLT_D),
         ("p_m5_bolt_len", "6fc HW_BOLT_LEN", eco.HW_BOLT_LEN),

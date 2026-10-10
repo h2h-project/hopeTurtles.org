@@ -54,6 +54,7 @@ from back_fin_generator import (
     TUNING as _BF_TUNING,
     build_scad as _bf_build_scad,
     default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
+    default_shaft_width as _bf_default_shaft_width,
     shaft_hole_pair_offset as _bf_shaft_hole_pair_offset,
 )
 
@@ -91,7 +92,10 @@ class BackFinInputs:
 
     half_lap_clearance: float = _BF_TUNING["half_lap_clearance"]
     solar_slot_clearance: float = _BF_TUNING["solar_slot_clearance"]
-    shaft_width: float = _BF_TUNING["shaft_width"]
+    # None (the TUNING default) = derive: the Ecojoiner John height, so the
+    # shaft is as wide as the John it bolts flush against. Resolved to a
+    # number in __post_init__ so every caller sees a real width.
+    shaft_width: Optional[float] = _BF_TUNING["shaft_width"]
     shaft_hole_diameter: float = _BF_TUNING["shaft_hole_diameter"]
     # None (the TUNING default) means "derive via TB-07" -- see
     # BackFinDerived.shaft_hole_from_front / default_shaft_hole_from_front()
@@ -107,6 +111,14 @@ class BackFinInputs:
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
     job_id: str = ""
     lang: str = "en"
+
+    def __post_init__(self):
+        if self.shaft_width is None:
+            object.__setattr__(self, "shaft_width", _bf_default_shaft_width({
+                "bottle_diameter": self.bottle_diameter,
+                "port_fit_mm": self.port_fit_mm,
+                "wood_thickness": self.wood_thickness,
+            }))
 
 
 @dataclass(frozen=True)
@@ -556,9 +568,14 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
             {"ext1": (hole_x, hole_y_lo), "ext2": (hole_x, hole_y_hi)},
         ),
     ]
+    # Hole size written BESIDE each hole (not on it), on the side facing the
+    # other hole of the pair -- the clear wood between them -- with the ⌀
+    # symbol (drawn in the symbol font; the body font has no ⌀ glyph).
+    side = inputs.shaft_hole_diameter / 2 + 5
+    hole_text = f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"
     labels = [
-        ((hole_x, hole_y_lo), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
-        ((hole_x, hole_y_hi), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
+        ((hole_x, hole_y_lo + side), hole_text),
+        ((hole_x, hole_y_hi - side), hole_text),
         ((n_u0 + n_w / 2, n_v0 + n_h / 2), f"{_ceil_mm(n_h)}mm wide"),
     ]
     return dims, labels
@@ -689,7 +706,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
-    title_font, body_font, _mono_font = _register_fonts(font_dir)
+    title_font, body_font, symbol_font = _register_fonts(font_dir)
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
@@ -870,7 +887,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
                 text, font=body_font, size=5.5, **line_kwargs,
             )
         for p, text in part["labels"]:
-            c.setFont(body_font, 5.5)
+            c.setFont(symbol_font if "⌀" in text else body_font, 5.5)
             c.setFillColor(colors.HexColor("#333333"))
             c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 

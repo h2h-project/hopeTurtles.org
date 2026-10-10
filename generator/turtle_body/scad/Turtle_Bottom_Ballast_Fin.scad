@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Bottom_Ballast_Fin.scad
-//  Turtle Body version 5.3.0
+//  Turtle Body version 5.4.1
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -299,7 +299,11 @@ function p_rear_shaft_len() = p_bottle_h()
                             + p_rear_shaft_rear_x();                            // 418 (334 until v5.3.0)
 function p_rear_half_lap_engagement() = 42;   // green/yellow interlock depth
 function p_rear_fin_tab_width() = 15;
-function p_rear_shaft_width()   = 59;
+// v5.4.0: the green shaft is as wide as the Ecojoiner John it bolts flush
+// against (John height = port height - 2 x stock), so their edges and M5 pair
+// line up. Was a fixed 59 -- 1 mm narrower than the 60 mm John, and the M5
+// pair (centred on it) sat 11.5 mm in from its edges instead of 12.
+function p_rear_shaft_width()   = p_port_height() - 2 * p_wood_t();            // 60
 // TB-07: the green-slat mounting hole follows the mating Ecojoiner John, not a
 // fixed 50 mm. Derived from the install transform; the john_length/2 terms
 // cancel, leaving a pure function of the shared contract (= 113 at defaults).
@@ -311,10 +315,10 @@ function p_rear_shaft_hole_from_front() =
     - p_bottle_h() + p_bottle_cap_h() + p_port_height();
 
 // ---- ballast attachment (CLAUDE.md s12) ---------------------
-function p_ballast_core_w()   = p_bottle_d() - 2 * p_wood_t();                  // 58
+function p_ballast_core_w()   = p_port_height() - 2 * p_wood_t();               // 60 == John height
 function p_ballast_core_len() = p_bottle_h() - p_bottle_cap_h() + 6 * p_wood_t();  // 360
-function p_ballast_slat_gap() = p_bottle_d();          // clear inner-face gap
-function p_ballast_slat_spacing() = p_bottle_d() + p_wood_t();                  // 94
+function p_ballast_slat_gap() = p_port_height();       // clear inner-face gap
+function p_ballast_slat_spacing() = p_port_height() + p_wood_t();               // 96
 function p_ballast_board_len() = 3.5 * p_bottle_d();   // 287
 function p_ballast_fin_len()   = 3 * p_bottle_d();     // 246
 function p_ballast_lock_w()    = 5 * p_wood_t();       // 60
@@ -382,13 +386,18 @@ module hex_prism_af(across_flats, h, center = false) {
 // [bundle] end   <util.scad>
 
 function bl_t()            = p_wood_t();
-function bl_core_w()       = p_bottle_d() - 2 * bl_t();                          // 58
+// The green core slats bolt flush against the Ecojoiner's Little Johns and
+// clamp the bottle between them, so they follow the PORT height (== bottle
+// diameter here; the HopeTurtles.org generator adds the form's fit offset):
+// width == John height, inner-face gap == port height. v5.4.1: written in
+// p_port_height() terms (same values) to make that tie explicit.
+function bl_core_w()       = p_port_height() - 2 * bl_t();                       // 60 == John height
 function bl_core_h()       = p_bottle_h() - p_bottle_cap_h() + 6.0 * bl_t();     // 360
 function bl_lower_lobe()   = 2 * bl_t();
 function bl_upper_lobe()   = 2 * bl_t();
 function bl_core_slot_h()  = bl_t();
 function bl_core_slot_depth() = bl_core_w() / 2;
-function bl_neck_w()       = p_bottle_d() - 3 * bl_t();                          // 46
+function bl_neck_w()       = p_port_height() - 3 * bl_t();                       // 48
 function bl_shoulder_step()   = bl_core_w() - bl_neck_w();                       // 12
 function bl_upper_diag_start() = bl_core_h() - p_port_height();
 function bl_upper_neck_start() = bl_upper_diag_start() - bl_shoulder_step();
@@ -406,7 +415,7 @@ function bl_board_slot_w() = bl_t();
 function bl_board_slot_depth()  = p_fin_board_w() / 3;
 function bl_center_slot_depth() = p_bottle_d() / 2;
 function bl_center_slot()  = bl_board_len() / 2;
-function bl_slat_spacing() = p_bottle_d() + bl_t();                             // 94
+function bl_slat_spacing() = p_port_height() + bl_t();                          // 96
 function bl_left_slot()    = bl_center_slot() - bl_slat_spacing() / 2;
 function bl_right_slot()   = bl_center_slot() + bl_slat_spacing() / 2;
 function bl_end_slot_offset() = 2 * bl_t();

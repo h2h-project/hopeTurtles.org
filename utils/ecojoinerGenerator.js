@@ -342,7 +342,10 @@ const mapBallastFields = (body = {}) => {
   const optional = {};
   for (const [field, target] of [
     ['portAllowance', 'port_allowance'],
-    ['portLength', 'port_length']
+    ['portLength', 'port_length'],
+    // "Adjust connection" (Panel 5): the green slats bolt against the
+    // Little Johns, cut to bottle diameter + this offset.
+    ['portFitMm', 'port_fit_mm']
   ]) {
     const parsed = toNumber(body[field]);
     if (parsed === null) continue;
