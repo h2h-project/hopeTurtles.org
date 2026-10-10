@@ -97,6 +97,11 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         ("p_m5_hole_d", "6fc EcojoinerInputs.screw_diameter", eco_in.screw_diameter),
         ("p_m5_hole_d", "fin TUNING['shaft_hole_diameter']", bft["shaft_hole_diameter"]),
         ("p_m5_hole_d", "ballast MOUNT_HOLE_DIAMETER", bal_ref.MOUNT_HOLE_DIAMETER),
+        # rear-fin shaft length  -- p_rear_shaft_len() (418 since v5.3.0)
+        ("p_rear_shaft_len", "fin dimensions(DEFAULTS+TUNING)['shaft_length']",
+         bf_ref.dimensions({**bf, **bft})["shaft_length"]),
+        ("p_rear_shaft_hole_from_front", "fin dimensions(DEFAULTS+TUNING)['shaft_hole_from_front']",
+         bf_ref.dimensions({**bf, **bft})["shaft_hole_from_front"]),
         # M5 clamp hardware drawn on the 6FC PDF  -- p_m5_*()
         ("p_m5_bolt_d", "6fc HW_BOLT_D", eco.HW_BOLT_D),
         ("p_m5_bolt_len", "6fc HW_BOLT_LEN", eco.HW_BOLT_LEN),

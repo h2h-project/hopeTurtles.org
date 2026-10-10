@@ -175,10 +175,13 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     fin_width = inputs.fin_board_width + inputs.fin_rear_tab_width
     fin_height = 3 * inputs.bottle_diameter
     fin_diagonal_rise = fin_diagonal_run = 2 * inputs.bottle_diameter / 3
+    # turtle_body v5.3.0 p_rear_shaft_len(): + the fin overlap (fin_width -
+    # 2t = 84) so the bottle base abuts the fin's front edge. 418 at defaults.
     shaft_length = (
         inputs.bottle_height
         + (2 / 3) * (inputs.fin_board_width - 2 * t)
         - inputs.cap_height
+        + (fin_width - 2 * t)
     )
     solar_holder_length = inputs.solar_panel_width
     solar_holder_height = 3 * t

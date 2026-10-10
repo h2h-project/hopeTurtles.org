@@ -70,10 +70,12 @@ def shaft_hole_pair_offset(p: dict[str, float]) -> float:
 def default_shaft_hole_from_front(p: dict[str, float]) -> float:
     """TB-07: turtle_body's p_rear_shaft_hole_from_front(), simplified.
 
-    p_rear_shaft_hole_from_front() = p_rear_shaft_len() - screw_side_offset
-        - bottle_h + cap_h + port_height, and p_rear_shaft_len() = bottle_h
-        + (2/3)*(fin_board_w - 2*t) - cap_h, so bottle_h and cap_h cancel and
-        (with port_height == bottle_diameter) this reduces to:
+    p_rear_shaft_hole_from_front() = p_rear_shaft_len() - shaft_rear_x
+        - screw_side_offset - bottle_h + cap_h + port_height, and (v5.3.0)
+        p_rear_shaft_len() = bottle_h + (2/3)*(fin_board_w - 2*t) - cap_h
+        + shaft_rear_x, so shaft_rear_x, bottle_h and cap_h all cancel and
+        (with port_height == bottle_diameter) this reduces to the same value
+        as before the shafts were lengthened:
     """
     t = p["wood_thickness"]
     return (2 / 3) * (p["fin_board_width"] - 2 * t) - SCREW_SIDE_OFFSET + p["bottle_diameter"]
@@ -93,8 +95,12 @@ fin_height = 3*bottle_diameter;
 fin_diagonal_rise = 2*bottle_diameter/3;
 fin_diagonal_run = fin_diagonal_rise;
 
-// Keep the user's approved formula: 305 + (2/3)*(93-24) - 17 = 334.
-shaft_length = bottle_height + (2/3)*(fin_board_width-2*t) - cap_height;
+// turtle_body v5.3.0 (p_rear_shaft_len()): the approved 305 + (2/3)*(93-24)
+// - 17 = 334, PLUS the 84 mm green/yellow overlap (shaft_rear_x below), so the
+// bottle base abuts the fin's front edge (X=0) instead of sitting 84 mm into
+// the fin. The shaft front and its John hole pair do not move. = 418.
+shaft_length = bottle_height + (2/3)*(fin_board_width-2*t) - cap_height
+             + (fin_width-2*t);
 solar_holder_length = solar_panel_width;
 solar_holder_height = 3*t; // WOODEN holder height, not panel height
 solar_holder_thickness = t; // WOOD thickness, not panel thickness
@@ -272,7 +278,8 @@ def dimensions(p: dict[str, float]) -> dict[str, float]:
     t = p["wood_thickness"]
     width = p["fin_board_width"] + p["fin_rear_tab_width"]
     rear = width-2*t
-    length = p["bottle_height"]+(2/3)*(p["fin_board_width"]-2*t)-p["cap_height"]
+    # + rear (the 84 mm fin overlap): turtle_body v5.3.0 p_rear_shaft_len()
+    length = p["bottle_height"]+(2/3)*(p["fin_board_width"]-2*t)-p["cap_height"]+rear
     upper = 3*p["bottle_diameter"]-3*t
     hole_from_front = p.get("shaft_hole_from_front")
     if hole_from_front is None:

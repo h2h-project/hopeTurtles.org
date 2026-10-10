@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Bottom_Ballast_Fin.scad
-//  Turtle Body version 5.2.0
+//  Turtle Body version 5.3.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -284,18 +284,31 @@ function p_c_piece_color()    = [1.0, 0.52, 0.20];  // orange, retained
 function p_solar_panel_w() = 148;
 function p_solar_panel_h() = 223;
 function p_solar_panel_t() = 2.5;    // real panel, independent of wood thickness
+// The green shafts overlap the yellow fin over X = 0..p_rear_shaft_rear_x()
+// (the half-lap zone, 84 mm). v5.3.0: the bottle base must ABUT the fin's
+// front edge (X = 0) so the fin holds the bottle in its port -- previously
+// the full turtle seated the bottle base at the shafts' rear end, putting the
+// first 84 mm of the fin inside the bottle. The shaft front (and its John
+// hole pair) stays where it was, so the shafts grow by exactly that overlap:
+//   334 (old approved formula) + 84 = 418.
+function p_rear_shaft_rear_x() = p_fin_board_w() + p_rear_fin_tab_width()
+                               - 2 * p_wood_t();                               // 84
 function p_rear_shaft_len() = p_bottle_h()
                             + (2/3) * (p_fin_board_w() - 2 * p_wood_t())
-                            - p_bottle_cap_h();                                 // 334
+                            - p_bottle_cap_h()
+                            + p_rear_shaft_rear_x();                            // 418 (334 until v5.3.0)
 function p_rear_half_lap_engagement() = 42;   // green/yellow interlock depth
 function p_rear_fin_tab_width() = 15;
 function p_rear_shaft_width()   = 59;
 // TB-07: the green-slat mounting hole follows the mating Ecojoiner John, not a
 // fixed 50 mm. Derived from the install transform; the john_length/2 terms
 // cancel, leaving a pure function of the shared contract (= 113 at defaults).
+// v5.3.0: the install now seats the bottle base at fin X = 0 (not at the
+// shaft rear, X = p_rear_shaft_rear_x()), so that overlap is subtracted back
+// out -- the hole stays 113 mm from the (unmoved) shaft front.
 function p_rear_shaft_hole_from_front() =
-    p_rear_shaft_len() - p_screw_side_offset() - p_bottle_h()
-    + p_bottle_cap_h() + p_port_height();
+    p_rear_shaft_len() - p_rear_shaft_rear_x() - p_screw_side_offset()
+    - p_bottle_h() + p_bottle_cap_h() + p_port_height();
 
 // ---- ballast attachment (CLAUDE.md s12) ---------------------
 function p_ballast_core_w()   = p_bottle_d() - 2 * p_wood_t();                  // 58
