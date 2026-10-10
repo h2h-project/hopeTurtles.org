@@ -318,7 +318,7 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 |---|---|
 | `generator/generate_exports.py` | CLI dispatcher — the only script Node runs. `OBJECT_MODULES` maps `object_type` (`6fc`, `fin`, `ballast`, `sails`) to an object module. No geometry. |
 | `generator/common.py` | Shared SVG/DXF/PDF primitives, fonts, slugify, `GeneratedFile`, `DESIGN_VERSION`. |
-| `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×5, Master John ×1 — the deeper-slotted John fitted last — Final Key ×4, Presser ×12). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
+| `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×5, Master John ×1 — the deeper-slotted John fitted last — Final Key ×4; since turtle_body v5.0.0 no Presser — each Little/Master John end has two Ø5.2 M5 bite holes for black cap-screw + acorn-nut clamps (no nut since v5.1.0), 24 hardware sets). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
 | `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
 | `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. Full SCAD/SVG/DXF/PDF, same as the other objects. |

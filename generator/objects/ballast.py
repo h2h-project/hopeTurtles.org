@@ -61,6 +61,7 @@ from bottom_ballast_fin_generator import (
     build_scad as _ballast_build_scad,
     MOUNT_HOLE_SCREW_SIDE_OFFSET as _BALLAST_SCREW_SIDE_OFFSET,
     MOUNT_HOLE_DIAMETER as _BALLAST_MOUNT_HOLE_DIAMETER,
+    MOUNT_HOLE_EDGE_INSET as _BALLAST_MOUNT_HOLE_EDGE_INSET,
 )
 
 PART_QUANTITIES = {
@@ -122,6 +123,13 @@ class BallastDerived:
     mount_hole_x: float
     mount_hole_y: float
     mount_hole_from_top: float
+    # turtle_body v5.0.0: M5 hole PAIR at mount_hole_x +- this offset.
+    mount_hole_pair_offset: float
+
+    @property
+    def mount_hole_xs(self) -> Tuple[float, float]:
+        return (self.mount_hole_x - self.mount_hole_pair_offset,
+                self.mount_hole_x + self.mount_hole_pair_offset)
 
     # Orange ballast-bottom board
     ballast_bottom_length: float
@@ -212,7 +220,7 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     # opening the slat passes through) below the slat top -- NOT one
     # port_length (the port's axial insertion depth, which only equals
     # bottle_diameter by coincidence at the reference bottle's defaults).
-    # port_length instead governs the M6 mount hole below.
+    # port_length instead governs the M5 mount-hole pair below.
     upper_diagonal_start_z = slat_height - bd
     upper_neck_start_z = upper_diagonal_start_z - shoulder_step
     slot_z0 = lower_lobe_height
@@ -220,12 +228,14 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     lower_full_width_return_z = slot_z1 + upper_lobe_height
     lower_neck_start_z = lower_full_width_return_z + shoulder_step
 
-    # M6 hole bolting this slat to the Ecojoiner Little John it replaces a
-    # Presser on (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*()).
+    # M5 hole pair bolting this slat to the Ecojoiner Little John's clamp
+    # pair (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*() +
+    # p_eco_screw_pair_offset()); mount_hole_x is the pair's centre.
     mount_hole_diameter = _BALLAST_MOUNT_HOLE_DIAMETER
     mount_hole_from_top = port_length + t - _BALLAST_SCREW_SIDE_OFFSET
     mount_hole_x = slat_width / 2
     mount_hole_y = slat_height - mount_hole_from_top
+    mount_hole_pair_offset = slat_width / 2 - _BALLAST_MOUNT_HOLE_EDGE_INSET
 
     ballast_bottom_length = 3.5 * bd
     ballast_bottom_width = fw
@@ -281,6 +291,7 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
         mount_hole_x=mount_hole_x,
         mount_hole_y=mount_hole_y,
         mount_hole_from_top=mount_hole_from_top,
+        mount_hole_pair_offset=mount_hole_pair_offset,
         ballast_bottom_length=ballast_bottom_length,
         ballast_bottom_width=ballast_bottom_width,
         ballast_slot_width=ballast_slot_width,
@@ -363,7 +374,12 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
         ),
         (
             d.mount_hole_diameter / 2 < d.mount_hole_from_top < d.slat_height - d.mount_hole_diameter / 2,
-            "The port length leaves the M6 mount hole outside the core slat - try a different top tapper height or port length.",
+            "The port length leaves the M5 mount holes outside the core slat - try a different top tapper height or port length.",
+        ),
+        (
+            d.mount_hole_pair_offset + d.mount_hole_diameter / 2 < d.slat_width / 2
+            and d.mount_hole_pair_offset > d.mount_hole_diameter,
+            "The bottle diameter leaves no room for the core slat's two M5 mount holes.",
         ),
     ]
     for ok, message in checks:
@@ -483,7 +499,8 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
     def slat_group(y, name):
         body = _polygon(_slat_outline(d))
-        body += _circle(d.mount_hole_x, d.mount_hole_y, d.mount_hole_diameter)
+        for hx in d.mount_hole_xs:
+            body += _circle(hx, d.mount_hole_y, d.mount_hole_diameter)
         return group(y, name, body)
 
     def board_group(y, name):
@@ -548,7 +565,8 @@ def write_dxf(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
     def slat_group(y, name):
         _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _slat_outline(d)], DXF_CUT_LAYER)
-        _dxf_circle(msp, d.mount_hole_x, y + d.mount_hole_y, d.mount_hole_diameter, DXF_CUT_LAYER)
+        for hx in d.mount_hole_xs:
+            _dxf_circle(msp, hx, y + d.mount_hole_y, d.mount_hole_diameter, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
     def board_group(y, name):
@@ -666,7 +684,7 @@ def _slat_annotations(d: BallastDerived):
         # where it starts, measured from the top edge (the reference a
         # carpenter marks from) and drawn outside the shape. The depth
         # callout sits just below the cut, in the neck's own cut-away space,
-        # rather than above it where it would crowd the nearby M6 mount
+        # rather than above it where it would crowd the nearby M5 mount
         # hole. The cut's own angle is marked directly beside it so the
         # bottom-edge-referenced end point (formerly a separate "265mm"
         # dimension to the lower cut) is no longer needed.
@@ -706,9 +724,16 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.mount_hole_from_top)}mm",
             {"ext1": (d.slat_width, d.mount_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
         ),
+        # The pair's inset from the slat's long edge (both holes mirror it).
+        (
+            (0, d.mount_hole_y - 8), (d.mount_hole_xs[0], d.mount_hole_y - 8),
+            f"{_ceil_mm(d.mount_hole_xs[0])}mm",
+            {"ext1": (0, d.mount_hole_y), "ext2": (d.mount_hole_xs[0], d.mount_hole_y)},
+        ),
     ]
     labels = [
-        ((d.mount_hole_x, d.mount_hole_y), "M6"),
+        ((d.mount_hole_xs[0], d.mount_hole_y), "M5"),
+        ((d.mount_hole_xs[1], d.mount_hole_y), "M5"),
         (
             (d.shoulder_step + 8, (d.upper_diagonal_start_z + d.upper_neck_start_z) / 2),
             "45°",
@@ -918,7 +943,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "rotate": False,
             "edges": _closed_edges(_slat_outline(d)),
             "notches": [],
-            "circles": [(d.mount_hole_x, d.mount_hole_y, d.mount_hole_diameter)],
+            "circles": [(hx, d.mount_hole_y, d.mount_hole_diameter) for hx in d.mount_hole_xs],
             "dims": slat_dims,
             "labels": slat_labels,
         },
@@ -1110,7 +1135,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
         f"Board: {_ceil_mm(d.ballast_bottom_length)} x {_ceil_mm(d.ballast_bottom_width)}mm",
         f"Lock foot: {_ceil_mm(d.red_piece_width)} x {_ceil_mm(d.red_piece_height)}mm",
         f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
-        f"Slat M6 hole from top: {_ceil_mm(d.mount_hole_from_top)}mm",
+        f"Slat M5 hole pair from top: {_ceil_mm(d.mount_hole_from_top)}mm",
     ]
     # Spans column 2's full width, flush with the board diagram's own left
     # edge (ox2) and right edge (col_right_pad in from col2's right side) --

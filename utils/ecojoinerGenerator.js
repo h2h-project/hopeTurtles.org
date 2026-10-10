@@ -31,8 +31,9 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'long_john', part: 'Long John', quantity: 6 },
     { key: 'little_john', part: 'Little John', quantity: 5 },
     { key: 'master_john', part: 'Master John', quantity: 1 },
-    { key: 'final_key', part: 'Final Key', quantity: 4 },
-    { key: 'presser', part: 'Presser', quantity: 12 }
+    { key: 'final_key', part: 'Final Key', quantity: 4 }
+    // turtle_body v5.0.0: the 12 Pressers are gone -- each Little/Master John
+    // end is clamped by two M5 wing bolts + acorn nuts (hardware, not cut).
   ],
   fin: [
     { key: 'rear_fin', part: 'Rear Fin', quantity: 1 },

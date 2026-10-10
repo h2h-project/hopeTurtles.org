@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Bottom_Ballast_Fin.scad
-//  Turtle Body version 4.2.0
+//  Turtle Body version 5.1.1
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -113,6 +113,34 @@ function p_m6_clearance_d()  = 6.4;   // M6 clearance hole
 function p_m6_bolt_shaft_d() = 6;     // visual placeholder only
 function p_m6_bolt_head_d()  = 12;
 function p_m6_bolt_head_t()  = 4;
+
+// ---- Ecojoiner bottle clamp: M5 cap screws + acorn nuts (v5.0.0/v5.1.0) --
+// Replaces the M6 bolt + 12 mm presser disk. Each John port end carries TWO
+// black M5 x 30 socket-head cap screws, stacked across the John height (one
+// above, one below the centreline). v5.1.0: no nut -- each screw BITES into
+// a 5.2 mm hole in the wood (builder's research; not verified here), so the
+// screw itself holds its position and is adjusted with a hex key from
+// outside. A black acorn (cap) nut, run fully onto the tip, bears on the
+// bottle. Hardware sizes are ISO 4762 / DIN 1587 nominals for visual and
+// stack checks only -- measure the hardware you buy.
+// Bite-fit hole (was 5.5 clearance in v5.0.0). NOTE it is slightly LARGER
+// than the 5 mm nominal major diameter: the hold relies on wood fibre
+// springback around the thread, per the builder's own tests -- unverified
+// here, and likely to vary with species, moisture and drill quality.
+function p_m5_hole_d()           = 5.2;
+function p_m5_bolt_d()           = 5;     // visual shank (plain cylinder)
+function p_m5_bolt_len()         = 30;    // shank length under the head
+function p_m5_head_d()           = 8.5;   // ISO 4762 socket head
+function p_m5_head_h()           = 5;
+function p_m5_acorn_af()         = 8;
+function p_m5_acorn_h()          = 10;    // overall, hex base to dome tip
+function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt bottoms
+// Pair layout, shared by the John holes and every board bolted through them
+// (rear-fin shafts, ballast core slats): each bolt sits this far in from a
+// John long edge, i.e. +-p_eco_screw_pair_offset() from the John centreline.
+function p_eco_screw_edge_inset()  = 10;
+function p_eco_screw_pair_offset() =
+    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 20
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
@@ -397,10 +425,12 @@ module bl_assert_valid() {
     t = bl_t();
     assert(p_bottle_h() > p_bottle_cap_h() && t > 0 && p_bottle_d() > 3 * t);
     assert(bl_core_h() - p_bottle_d() - t > 6 * t, "ballast: slat shoulders overlap.");
-    assert(p_m6_clearance_d() > 0 && p_m6_clearance_d() < p_bottle_d() - 2 * t);
-    assert(bl_mount_hole_from_top() > p_m6_clearance_d() / 2
-           && bl_mount_hole_from_top() < p_bottle_d() - p_m6_clearance_d() / 2,
-           "ballast: mount hole misses the upper slat end.");
+    assert(p_m5_hole_d() > 0
+           && p_eco_screw_pair_offset() + p_m5_hole_d() / 2 < bl_core_w() / 2,
+           "ballast: M5 hole pair runs off the core slat edges.");
+    assert(bl_mount_hole_from_top() > p_m5_hole_d() / 2
+           && bl_mount_hole_from_top() < p_bottle_d() - p_m5_hole_d() / 2,
+           "ballast: mount holes miss the upper slat end.");
     assert(p_fin_board_w() > max(4.5 * t, p_bottle_d() / 2), "ballast: fin board too narrow.");
     assert(bl_core_w() == p_port_height() - 2 * t,
            "ballast: slat width must use the shared bottle diameter.");
@@ -429,8 +459,10 @@ module ballast_core_slat_part(colored = true)
     wood_color([0.12, 0.38, 0.20], colored, p_wood_shade_ballast())
         linear_extrude(height = bl_t()) difference() {
             bl_core_profile_2d();
-            translate([bl_mount_hole_x(), bl_mount_hole_y()])
-                circle(d = p_m6_clearance_d(), $fn = 48);
+            // M5 pair, matching the Little John's clamp pair (v5.0.0)
+            for (dx = [-p_eco_screw_pair_offset(), p_eco_screw_pair_offset()])
+                translate([bl_mount_hole_x() + dx, bl_mount_hole_y()])
+                    circle(d = p_m5_hole_d(), $fn = 16);
         }
 
 module ballast_bottom_board_part(colored = true) {
@@ -522,7 +554,7 @@ module local_ballast_assembly(inspection_pullout = 0, colored = true) {
 
     echo("BALLAST: slat w/len/t = ", bl_core_w(), bl_core_h(), bl_t(),
          " | inner-face gap = ", bl_slat_spacing() - bl_t(),
-         " | M6 from slat top = ", bl_mount_hole_from_top());
+         " | M5 pair from slat top = ", bl_mount_hole_from_top());
 }
 // [bundle] end   <../../lib/ballast_fin.scad>
 

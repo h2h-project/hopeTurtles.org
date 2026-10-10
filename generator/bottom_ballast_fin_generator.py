@@ -25,8 +25,9 @@ Example:
 kind of derived value as the 6FC ecojoiner's port_length (taper_height +
 port_allowance, or a direct override), not a raw board/bottle measurement,
 so build_scad() takes it as its own argument rather than through `overrides`.
-It governs the M6 mounting-hole position (how far the slat is bolted to the
-Ecojoiner Little John's own hole) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET below.
+It governs the M5 mounting-hole pair position (how far the slat is bolted to
+the Ecojoiner Little John's own hole pair) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET
+below.
 It is NOT the same thing as bottle_diameter/port_height, which separately
 governs where the slat's shoulder cut begins (see upper_diagonal_start_z);
 those two used to be conflated here because they are numerically equal at
@@ -47,11 +48,15 @@ DEFAULTS = {
     "fin_board_width": 93,
 }
 
-# Mirrors turtle_body lib/params.scad p_screw_side_offset() and
-# p_m6_clearance_d() -- the Ecojoiner-frame mounting-hole geometry the core
-# slat's M6 hole must align with, not board/bottle-specific tuning.
+# Mirrors turtle_body lib/params.scad p_screw_side_offset(),
+# p_m5_hole_d() and p_eco_screw_edge_inset() -- the Ecojoiner-frame
+# mounting-hole geometry the core slat's M5 hole PAIR must align with, not
+# board/bottle-specific tuning. Since turtle_body v5.0.0 the John carries two
+# M5 bolts per port end (was one M6 + Presser): on the slat they sit
+# MOUNT_HOLE_EDGE_INSET in from each long edge (slat width == John height).
 MOUNT_HOLE_SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
-MOUNT_HOLE_DIAMETER = 6.4
+MOUNT_HOLE_DIAMETER = 5.2            # M5 bite hole (v5.1.0); 5.5 in v5.0.0, 6.4 (M6) before
+MOUNT_HOLE_EDGE_INSET = 10.0
 
 # Everything after the foundation-variable assignments, which build_scad()
 # generates dynamically from DEFAULTS/overrides (plus the derived
@@ -96,7 +101,7 @@ shoulder_step =
 // the slat passes through) below the slat top -- NOT one port_length (the
 // port's axial insertion depth, a different quantity that only happens to
 // equal bottle_diameter at the reference bottle's defaults). port_length
-// instead governs the M6 mount hole below.
+// instead governs the M5 mount-hole pair below.
 upper_diagonal_start_z =
     slat_height - bottle_diameter;
 
@@ -112,8 +117,9 @@ lower_full_width_return_z =
 lower_neck_start_z =
     lower_full_width_return_z + shoulder_step;
 
-// M6 hole bolting this slat to the Ecojoiner Little John it replaces a
-// Presser on (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*()).
+// M5 hole pair bolting this slat to the Ecojoiner Little John's clamp pair
+// (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*() +
+// p_eco_screw_pair_offset()). mount_hole_x is the pair's centre.
 mount_hole_from_top =
     port_length + wood_thickness - screw_side_offset;
 
@@ -122,6 +128,9 @@ mount_hole_x =
 
 mount_hole_y =
     slat_height - mount_hole_from_top;
+
+mount_hole_pair_offset =
+    slat_width / 2 - mount_hole_edge_inset;
 
 
 // ============================================================================
@@ -302,8 +311,9 @@ assert(ballast_fin_front_chamfer < ballast_fin_height,
 
 assert(slat_height - bottle_diameter - wood_thickness > 6 * wood_thickness,
        "Ballast: slat shoulders overlap.");
-assert(mount_hole_diameter > 0 && mount_hole_diameter < bottle_diameter - 2 * wood_thickness,
-       "Mount hole diameter must fit within the slat width.");
+assert(mount_hole_diameter > 0
+       && mount_hole_pair_offset + mount_hole_diameter / 2 < slat_width / 2,
+       "M5 mount-hole pair must fit within the slat width.");
 assert(mount_hole_from_top > mount_hole_diameter / 2
        && mount_hole_from_top < slat_height - mount_hole_diameter / 2,
        "Mount hole must fall within the slat's own height.");
@@ -336,8 +346,9 @@ module ballast_core_slat() {
         linear_extrude(height = wood_thickness)
             difference() {
                 ballast_core_profile_2d();
-                translate([mount_hole_x, mount_hole_y])
-                    circle(d = mount_hole_diameter, $fn = 48);
+                for (dx = [-mount_hole_pair_offset, mount_hole_pair_offset])
+                    translate([mount_hole_x + dx, mount_hole_y])
+                        circle(d = mount_hole_diameter, $fn = 16);
             }
 }
 
@@ -721,6 +732,7 @@ def build_scad(overrides: dict[str, float], port_length: float) -> str:
     lines.append(f"port_length = {port_length:.12g};")
     lines.append(f"screw_side_offset = {MOUNT_HOLE_SCREW_SIDE_OFFSET:.12g};")
     lines.append(f"mount_hole_diameter = {MOUNT_HOLE_DIAMETER:.12g};")
+    lines.append(f"mount_hole_edge_inset = {MOUNT_HOLE_EDGE_INSET:.12g};")
     return "\n".join(lines) + "\n" + SCAD_BODY
 
 
@@ -777,7 +789,7 @@ def validate(values: dict[str, float], port_length: float) -> None:
     mount_hole_from_top = port_length + t - MOUNT_HOLE_SCREW_SIDE_OFFSET
     if not (MOUNT_HOLE_DIAMETER / 2 < mount_hole_from_top < slat_height - MOUNT_HOLE_DIAMETER / 2):
         raise SystemExit(
-            "Port length leaves the M6 mount hole outside the core slat "
+            "Port length leaves the M5 mount holes outside the core slat "
             f"(slat height {slat_height:g} mm, hole would sit {mount_hole_from_top:g} mm from the top)."
         )
 
@@ -844,7 +856,8 @@ def main() -> None:
     print(f"  Green slat width: {green_width:g} mm")
     print(f"  Green slat height: {green_height:g} mm")
     print(f"  Green lower slot depth: {green_slot_depth:g} mm")
-    print(f"  Green M6 mount hole from top: {mount_hole_from_top:g} mm (Ø{MOUNT_HOLE_DIAMETER:g}mm)")
+    print(f"  Green M5 mount-hole pair from top: {mount_hole_from_top:g} mm, "
+          f"{MOUNT_HOLE_EDGE_INSET:g} mm in from each long edge (Ø{MOUNT_HOLE_DIAMETER:g}mm)")
     print(f"  Orange board length: {orange_length:g} mm")
     print(f"  Orange center slot depth: {orange_center_slot_depth:g} mm")
     print(f"  Red foot size: {red_piece_size:g} × {red_piece_size:g} mm")

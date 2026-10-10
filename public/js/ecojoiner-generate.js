@@ -77,8 +77,7 @@
       gen_dim_slot_width: "Slot width",
       gen_dim_slot_depth_std: "Standard slot depth",
       gen_dim_final_key: "Final Key",
-      gen_dim_presser: "Presser diameter",
-      gen_dim_screw: "Screw pilot hole",
+      gen_dim_screw: "M5 bite holes (2 per John end)",
       gen_save_profile_btn: "Save bottle profile",
       gen_save_profile_saving: "Saving…",
       gen_save_profile_success: "Bottle profile saved.",
@@ -734,8 +733,7 @@
               s("gen_dim_final_key"),
               `${mm(d.final_key_length)} × ${mm(d.final_key_width)}`,
             ],
-            [s("gen_dim_presser"), mm(d.presser_diameter)],
-            [s("gen_dim_screw"), mm(d.presser_through_hole_diameter)],
+            [s("gen_dim_screw"), mm(d.screw_hole_diameter)],
           ];
 
     const component = componentName(data.object_type);

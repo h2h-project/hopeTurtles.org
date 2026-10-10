@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Rear_Fin.scad
-//  Turtle Body version 4.2.0
+//  Turtle Body version 5.1.1
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -41,7 +41,7 @@ fn = 96;
 //  Shaft length keeps the approved formula 305 + (2/3)(93-24) - 17 = 334.
 //  Half-lap and solar-joint clearances are 0.2 mm TOTAL, centred on the
 //  12 mm board (slot opening 12.2 mm, not 12.4). TB-07: the green-slat
-//  mounting hole is p_rear_shaft_hole_from_front() (103 mm at defaults),
+//  M5 mounting-hole pair is p_rear_shaft_hole_from_front() (113 mm at defaults),
 //  matching the assembled Turtle -- not the old fixed 50 mm.
 //
 //  Definitions only. Geometry is emitted by rear_fin_assembly() or the
@@ -125,6 +125,34 @@ function p_m6_clearance_d()  = 6.4;   // M6 clearance hole
 function p_m6_bolt_shaft_d() = 6;     // visual placeholder only
 function p_m6_bolt_head_d()  = 12;
 function p_m6_bolt_head_t()  = 4;
+
+// ---- Ecojoiner bottle clamp: M5 cap screws + acorn nuts (v5.0.0/v5.1.0) --
+// Replaces the M6 bolt + 12 mm presser disk. Each John port end carries TWO
+// black M5 x 30 socket-head cap screws, stacked across the John height (one
+// above, one below the centreline). v5.1.0: no nut -- each screw BITES into
+// a 5.2 mm hole in the wood (builder's research; not verified here), so the
+// screw itself holds its position and is adjusted with a hex key from
+// outside. A black acorn (cap) nut, run fully onto the tip, bears on the
+// bottle. Hardware sizes are ISO 4762 / DIN 1587 nominals for visual and
+// stack checks only -- measure the hardware you buy.
+// Bite-fit hole (was 5.5 clearance in v5.0.0). NOTE it is slightly LARGER
+// than the 5 mm nominal major diameter: the hold relies on wood fibre
+// springback around the thread, per the builder's own tests -- unverified
+// here, and likely to vary with species, moisture and drill quality.
+function p_m5_hole_d()           = 5.2;
+function p_m5_bolt_d()           = 5;     // visual shank (plain cylinder)
+function p_m5_bolt_len()         = 30;    // shank length under the head
+function p_m5_head_d()           = 8.5;   // ISO 4762 socket head
+function p_m5_head_h()           = 5;
+function p_m5_acorn_af()         = 8;
+function p_m5_acorn_h()          = 10;    // overall, hex base to dome tip
+function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt bottoms
+// Pair layout, shared by the John holes and every board bolted through them
+// (rear-fin shafts, ballast core slats): each bolt sits this far in from a
+// John long edge, i.e. +-p_eco_screw_pair_offset() from the John centreline.
+function p_eco_screw_edge_inset()  = 10;
+function p_eco_screw_pair_offset() =
+    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 20
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
@@ -385,7 +413,9 @@ module rf_assert_valid(half_lap, solar_clear, hole_from_front, hole_d) {
     assert(solar_clear < t && rf_solar_notch_x0() > solar_clear / 2);
     assert(2 * rf_solar_chamfer() + t + solar_clear < rf_solar_holder_len(),
            "rear_fin: panel width leaves too little red-board material beside the slot.");
-    assert(hole_d > 0 && rf_shaft_width() > hole_d);
+    assert(hole_d > 0
+           && 2 * p_eco_screw_pair_offset() + hole_d < rf_shaft_width(),
+           "rear_fin: M5 hole pair runs off the shaft edges.");
     assert(hole_from_front > hole_d / 2
            && rf_shaft_front_x() + hole_from_front + hole_d / 2 < 0,
            "rear_fin: shaft hole must stay in the forward, unjointed portion.");
@@ -418,12 +448,14 @@ module bottle_holder_shaft(z0 = 0, half_lap = p_fit_clearance(),
     t = rf_t(); eps = p_eps();
     nn  = fn == undef ? p_fn_wood() : fn;
     hff = hole_from_front == undef ? p_rear_shaft_hole_from_front() : hole_from_front;
-    hd  = hole_d == undef ? p_m6_clearance_d() : hole_d;
+    hd  = hole_d == undef ? p_m5_hole_d() : hole_d;
     wood_color([0.2, 0.38, 0.05], colored, p_wood_shade_rear_fin()) difference() {
         translate([rf_shaft_front_x(), -rf_shaft_width() / 2, z0])
             cube([rf_shaft_length(), rf_shaft_width(), t]);
-        translate([rf_shaft_front_x() + hff, 0, z0 - eps])
-            cylinder(d = hd, h = t + 2 * eps, $fn = nn);
+        // M5 pair across the shaft width, matching the John clamp pair (v5.0.0)
+        for (dy = [-p_eco_screw_pair_offset(), p_eco_screw_pair_offset()])
+            translate([rf_shaft_front_x() + hff, dy, z0 - eps])
+                cylinder(d = hd, h = t + 2 * eps, $fn = 16);
         translate([rf_joint_meet_x() - half_lap / 2, -(t + half_lap) / 2, z0 - eps])
             cube([rf_shaft_rear_x() - rf_joint_meet_x() + half_lap / 2 + eps,
                   t + half_lap, t + 2 * eps]);
@@ -450,7 +482,7 @@ module solar_panel_holder(solar_clear = p_fit_clearance(), fn = undef,
 module rear_fin_assembly(half_lap = p_fit_clearance(), solar_clear = p_fit_clearance(),
                          exploded = 0, fn = undef, colored = true) {
     rf_assert_valid(half_lap, solar_clear,
-                    p_rear_shaft_hole_from_front(), p_m6_clearance_d());
+                    p_rear_shaft_hole_from_front(), p_m5_hole_d());
     rear_fin(half_lap, solar_clear, fn, colored);
     translate([-exploded, 0,  exploded]) bottle_holder_shaft(rf_upper_shaft_z0(), half_lap, fn = fn, colored = colored);
     translate([-exploded, 0, -exploded]) bottle_holder_shaft(rf_lower_shaft_z0(), half_lap, fn = fn, colored = colored);

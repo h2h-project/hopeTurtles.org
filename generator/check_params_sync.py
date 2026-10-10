@@ -93,10 +93,23 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         ("p_solar_panel_w", "fin DEFAULTS['solar_panel_width']", bf["solar_panel_width"]),
         ("p_solar_panel_h", "fin DEFAULTS['solar_panel_height']", bf["solar_panel_height"]),
         ("p_solar_panel_t", "fin DEFAULTS['solar_panel_thickness']", bf["solar_panel_thickness"]),
-        # M6 clearance hole  -- p_m6_clearance_d()
-        ("p_m6_clearance_d", "6fc EcojoinerInputs.screw_diameter", eco_in.screw_diameter),
-        ("p_m6_clearance_d", "fin TUNING['shaft_hole_diameter']", bft["shaft_hole_diameter"]),
-        ("p_m6_clearance_d", "ballast MOUNT_HOLE_DIAMETER", bal_ref.MOUNT_HOLE_DIAMETER),
+        # M5 bite hole  -- p_m5_hole_d() (p_m5_clearance_d() in v5.0.0, p_m6_clearance_d() before)
+        ("p_m5_hole_d", "6fc EcojoinerInputs.screw_diameter", eco_in.screw_diameter),
+        ("p_m5_hole_d", "fin TUNING['shaft_hole_diameter']", bft["shaft_hole_diameter"]),
+        ("p_m5_hole_d", "ballast MOUNT_HOLE_DIAMETER", bal_ref.MOUNT_HOLE_DIAMETER),
+        # M5 clamp hardware drawn on the 6FC PDF  -- p_m5_*()
+        ("p_m5_bolt_d", "6fc HW_BOLT_D", eco.HW_BOLT_D),
+        ("p_m5_bolt_len", "6fc HW_BOLT_LEN", eco.HW_BOLT_LEN),
+        ("p_m5_head_d", "6fc HW_HEAD_D", eco.HW_HEAD_D),
+        ("p_m5_head_h", "6fc HW_HEAD_H", eco.HW_HEAD_H),
+        ("p_m5_acorn_af", "6fc HW_ACORN_AF", eco.HW_ACORN_AF),
+        ("p_m5_acorn_h", "6fc HW_ACORN_H", eco.HW_ACORN_H),
+        # M5 pair edge inset  -- p_eco_screw_edge_inset() / p_eco_screw_pair_offset()
+        ("p_eco_screw_edge_inset", "6fc SCREW_EDGE_INSET", eco.SCREW_EDGE_INSET),
+        ("p_eco_screw_edge_inset", "fin SCREW_EDGE_INSET", bf_ref.SCREW_EDGE_INSET),
+        ("p_eco_screw_edge_inset", "ballast MOUNT_HOLE_EDGE_INSET", bal_ref.MOUNT_HOLE_EDGE_INSET),
+        ("p_eco_screw_pair_offset", "6fc derive_dimensions().screw_pair_offset", eco_derived.screw_pair_offset),
+        ("p_eco_screw_pair_offset", "fin shaft_hole_pair_offset(DEFAULTS)", bf_ref.shaft_hole_pair_offset(bf)),
         # John mounting-hole inset  -- p_screw_side_offset()
         ("p_screw_side_offset", "6fc derive_dimensions().screw_side_offset", eco_derived.screw_side_offset),
         ("p_screw_side_offset", "fin SCREW_SIDE_OFFSET", bf_ref.SCREW_SIDE_OFFSET),

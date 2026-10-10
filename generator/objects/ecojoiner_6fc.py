@@ -1,7 +1,10 @@
 """Six-panel Flatpack Ecojoiner (6FC) object: the original/default design.
 
 Params rebased 2026-09-08 on ../turtle_body/lib/ecojoiner.scad (cap 31 / collar 34 /
-port 82 / Ø6.4 M6 clearance holes). The **Master John** (one of the six cross-slats,
+port 82). turtle_body v5.0.0 replaced the 12 Pressers + single M6 bolt per John end with
+TWO M5 holes per Little/Master John end; since v5.1.0 they are Ø5.2 bite holes that a
+black M5x30 socket-head cap screw threads into (no nut), with a black acorn nut on the tip
+bearing on the bottle -- hardware, not cut parts. The **Master John** (one of the six cross-slats,
 cut with deeper top slots so it can be fitted last into the almost-closed frame) is a
 real assembly feature this generator has always carried; the v1.7.1 sync briefly
 flattened it away, and turtle_body v1.8.1 lifted the rule upstream
@@ -47,8 +50,28 @@ PART_QUANTITIES = {
     "Little John": 5,
     "Master John": 1,
     "Final Key": 4,
-    "Presser": 12,
 }
+
+# Bottle-clamp hardware (bought, not cut). turtle_body v5.0.0/v5.1.0: two
+# black M5x30 socket-head cap screws per Little/Master John port end, each
+# biting into its 5.2 mm hole (no nut) -> 6 Johns x 2 ends x 2 = 24 sets.
+CLAMP_HARDWARE_SETS = 24
+CLAMP_BOLT_LABEL = "Black M5x30 socket cap screw + black acorn nut"
+
+# Hardware dimensions drawn on the PDF's clamp-hardware panel. Mirror
+# turtle_body lib/params.scad p_m5_*() (ISO 4762 socket cap screw / DIN 1587
+# acorn nut nominals); check_params_sync.py asserts them. HW_SOCKET_AF is
+# drawing-only (turtle_body models the head as a plain cylinder).
+HW_BOLT_D = 5.0        # p_m5_bolt_d()
+HW_BOLT_LEN = 30.0     # p_m5_bolt_len()
+HW_HEAD_D = 8.5        # p_m5_head_d()
+HW_HEAD_H = 5.0        # p_m5_head_h()
+HW_SOCKET_AF = 4.0     # hex key size, drawing only
+HW_ACORN_AF = 8.0      # p_m5_acorn_af()
+HW_ACORN_H = 10.0      # p_m5_acorn_h()
+# turtle_body p_eco_screw_edge_inset(): each bolt of a pair sits this far in
+# from a John long edge (holes at john_height/2 +- (john_height/2 - inset)).
+SCREW_EDGE_INSET = 10.0
 
 # ---------------------------------------------------------------------------
 # The generated PDF is the only export with prose/labels baked into it (SVG
@@ -56,7 +79,7 @@ PART_QUANTITIES = {
 # `gen_part_*` locale keys the frontend uses for the same names — are kept in
 # English in every language, matching the site's existing convention).
 # Site language codes not listed here fall back to English; part names,
-# units (mm), and screw callouts (M6) are not translated anywhere.
+# units (mm), and screw callouts (M5) are not translated anywhere.
 SUPPORTED_PDF_LANGS = ("en", "id", "tr")
 
 PDF_STRINGS: Dict[str, Dict[str, str]] = {
@@ -159,15 +182,53 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "id": "Final Key: {length} x {width}mm",
         "tr": "Final Key: {length} x {width}mm",
     },
-    "presser_dim": {
-        "en": "Presser: ⌀{value}mm",
-        "id": "Presser: ⌀{value}mm",
-        "tr": "Presser: ⌀{value}mm",
+    # Presser strings, retired with the Presser in turtle_body v5.0.0. Kept
+    # commented out in case the Presser comes back (see the commented
+    # Presser section in write_pdf()).
+    # "presser_dim": {
+    #     "en": "Presser: ⌀{value}mm",
+    #     "id": "Presser: ⌀{value}mm",
+    #     "tr": "Presser: ⌀{value}mm",
+    # },
+    # "presser_source_note": {
+    #     "en": "Made from the cut-out holes of the Long, Little and Master Johns.",
+    #     "id": "Dibuat dari lubang potongan Long John, Little John, dan Master John.",
+    #     "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
+    # },
+    "hardware_title": {
+        "en": "Bottle clamp hardware x {count}",
+        "id": "Perangkat penjepit botol x {count}",
+        "tr": "Şişe kelepçe donanımı x {count}",
     },
-    "presser_source_note": {
-        "en": "Made from the cut-out holes of the Long, Little and Master Johns.",
-        "id": "Dibuat dari lubang potongan Long John, Little John, dan Master John.",
-        "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
+    "hardware_screw": {
+        "en": "{count} x black M5 socket cap screw, {length}mm",
+        "id": "{count} x sekrup kepala soket M5 hitam, {length}mm",
+        "tr": "{count} x siyah M5 alyan başlı vida, {length}mm",
+    },
+    "hardware_acorn": {
+        "en": "{count} x black M5 acorn nut",
+        "id": "{count} x mur tutup M5 hitam",
+        "tr": "{count} x siyah M5 kör somun",
+    },
+    "hardware_side_view": {
+        "en": "side",
+        "id": "samping",
+        "tr": "yan",
+    },
+    "hardware_end_view": {
+        "en": "end",
+        "id": "ujung",
+        "tr": "uç",
+    },
+    "hardware_hex_key": {
+        "en": "hex key {value}mm",
+        "id": "kunci L {value}mm",
+        "tr": "alyan anahtarı {value}mm",
+    },
+    "hardware_note": {
+        "en": "Two per John end. Drive each screw from outside with a hex key; it bites into the wood and holds itself. Screw the acorn nut fully onto the tip, then turn the screw in until each acorn nut presses on the bottle.",
+        "id": "Dua per ujung John. Putar setiap sekrup dari luar dengan kunci L; sekrup menggigit kayu dan menahan dirinya sendiri. Pasang mur tutup penuh di ujungnya, lalu putar sekrup masuk sampai setiap mur tutup menekan botol.",
+        "tr": "Her John ucuna iki adet. Her vidayı dışarıdan alyan anahtarıyla sıkın; ahşaba tutunur ve kendini sabitler. Kör somunu uca tam oturtun, ardından her kör somun şişeye bastırana kadar vidayı içeri çevirin.",
     },
     "final_key_note": {
         "en": "Use board thickness {thickness}mm, but allow for sanding down for final fit.",
@@ -211,9 +272,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "kenardan {value}mm",
     },
     "through_hole_label": {
-        "en": "M6 through-hole: ⌀{value}mm",
-        "id": "Lubang tembus M6: ⌀{value}mm",
-        "tr": "M6 geçme deliği: ⌀{value}mm",
+        "en": "M5 bite hole (screw threads into wood): ⌀{value}mm",
+        "id": "Lubang gigit M5 (sekrup mengulir ke kayu): ⌀{value}mm",
+        "tr": "M5 tutunma deliği (vida ahşaba diş açar): ⌀{value}mm",
     },
     "version_credit": {
         "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.",
@@ -278,8 +339,8 @@ class EcojoinerInputs:
     port_height: float = 84.0  # bottle body diameter -- turtle_body p_bottle_d() / p_port_height()
     bottle_volume_l: float = 1.5
     bottle_brand: str = "generic"
-    screw_diameter: float = 6.4  # M6 clearance hole (through-bolt, not a self-tapping pilot hole)
-    screw_label: str = "M6 clearance (diameter 6.4mm)"
+    screw_diameter: float = 5.2  # M5 bite hole -- turtle_body p_m5_hole_d() (5.5 clearance in v5.0.0, 6.4 M6 before)
+    screw_label: str = "M5 bite hole (diameter 5.2mm)"
     fit_clearance: float = 0.20
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
     job_id: str = ""
@@ -306,11 +367,25 @@ class EcojoinerDerived:
     little_center_span: float
     screw_side_offset: float
     screw_y_center: float
+    # turtle_body v5.0.0: two holes per John end, at screw_y_center +- this.
+    screw_pair_offset: float
     final_key_length: float
     final_key_width: float
-    presser_diameter: float
-    presser_thickness: float
-    presser_through_hole_diameter: float
+    # M5 bite-hole diameter (== inputs.screw_diameter), carried here so
+    # the frontend's derived-dimension table can show it.
+    screw_hole_diameter: float
+
+    @property
+    def screw_ys(self) -> Tuple[float, float]:
+        return (self.screw_y_center - self.screw_pair_offset,
+                self.screw_y_center + self.screw_pair_offset)
+
+    @property
+    def screw_holes(self) -> Tuple[Tuple[float, float], ...]:
+        """All four M5 hole centres on a Little/Master John (John-local)."""
+        return tuple((hx, hy)
+                     for hx in (self.screw_side_offset, self.john_length - self.screw_side_offset)
+                     for hy in self.screw_ys)
 
 
 
@@ -348,7 +423,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         + _to_float(get("portFitMm", "port_fit_mm"), 0.0),
         bottle_volume_l=_to_float(get("bottleVolumeL", "bottle_volume_l", "volume", "bottleVolume"), 1.5),
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),
-        screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 6.4),
+        screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 5.2),
         fit_clearance=_to_float(get("fitClearance", "fit_clearance"), 0.20),
         formats=formats,
         job_id=str(get("jobId", "job_id", default="") or ""),
@@ -379,7 +454,7 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
     in_range("Bottle diameter / port height", inputs.port_height, 30, 200)
     in_range("Cap diameter", inputs.cap_diameter, 10, 80)
     in_range("Collar diameter", inputs.collar_diameter, 10, 90)
-    in_range("M6 clearance-hole diameter", inputs.screw_diameter, 3, 12)
+    in_range("M5 hole diameter", inputs.screw_diameter, 3, 12)
     in_range("Fit clearance", inputs.fit_clearance, 0, 2)
 
     if inputs.bottle_volume_l <= 0 or inputs.bottle_volume_l > 5:
@@ -398,7 +473,13 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
         if inputs.collar_diameter >= john_height:
             errors.append("Collar hole is too large for the calculated John slat height.")
         if inputs.screw_diameter >= john_height:
-            errors.append("M6 clearance hole is too large for the calculated John slat height.")
+            errors.append("M5 hole is too large for the calculated John slat height.")
+        # Two M5 holes per John end, SCREW_EDGE_INSET in from each long edge:
+        # they must not merge, and must not break out of the edge.
+        if john_height - 2 * SCREW_EDGE_INSET <= inputs.screw_diameter + 4:
+            errors.append("The bottle diameter leaves no room for two M5 holes at each John end.")
+        if SCREW_EDGE_INSET <= inputs.screw_diameter / 2 + 2:
+            errors.append("M5 hole is too large for its 10mm edge inset.")
         if (john_height - inputs.cap_diameter) / 2 < min_material_mm:
             errors.append("Cap hole leaves less than 4mm of material above/below the hole.")
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
@@ -449,18 +530,22 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
     little_end_span = port_length + slat
     little_center_span = port_height
 
-    # M6 clearance holes: centered vertically, fixed 17mm from side edges
-    # (lib/params.scad p_screw_side_offset(); was 25 until turtle_body v4.2.0).
+    # M5 bite-hole PAIRS (turtle_body v5.0.0/v5.1.0; was one centred M6 hole):
+    # fixed 17mm from each John end (p_screw_side_offset(); was 25 until
+    # v4.2.0), SCREW_EDGE_INSET from each long edge (p_eco_screw_pair_offset()).
     screw_side_offset = 17.0
     screw_y_center = john_height / 2
+    screw_pair_offset = john_height / 2 - SCREW_EDGE_INSET
 
     # Final Keys replace Saddlers in v3.2.
     final_key_length = port_height + 4 * slat
     final_key_width = 2 * slat
 
-    # Presser: remnant from cap hole, allowing about 1mm saw/kerf loss.
-    # For a 31mm cap hole, this gives the familiar 30mm Presser.
-    presser_diameter = max(1.0, inputs.cap_diameter - 1.0)
+    # Presser retired in turtle_body v5.0.0 (replaced by the M5 clamp
+    # hardware). Kept for reference if it ever returns:
+    # # Presser: remnant from cap hole, allowing about 1mm saw/kerf loss.
+    # # For a 31mm cap hole, this gives the familiar 30mm Presser.
+    # presser_diameter = max(1.0, inputs.cap_diameter - 1.0)
 
     return EcojoinerDerived(
         port_length=port_length,
@@ -475,11 +560,10 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
         little_center_span=little_center_span,
         screw_side_offset=screw_side_offset,
         screw_y_center=screw_y_center,
+        screw_pair_offset=screw_pair_offset,
         final_key_length=final_key_length,
         final_key_width=final_key_width,
-        presser_diameter=presser_diameter,
-        presser_thickness=slat,
-        presser_through_hole_diameter=inputs.screw_diameter,
+        screw_hole_diameter=inputs.screw_diameter,
     )
 
 
@@ -520,8 +604,8 @@ def _john_svg_group(
 
     out += _circle(d.john_length / 2, d.john_height / 2, center_hole_diameter, "cut")
     if include_screw_holes:
-        out += _circle(d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
-        out += _circle(d.john_length - d.screw_side_offset, d.screw_y_center, inputs.screw_diameter, "cut")
+        for hx, hy in d.screw_holes:
+            out += _circle(hx, hy, inputs.screw_diameter, "cut")
 
     if include_labels:
         out += _label(0, -3, name)
@@ -538,7 +622,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
 
     gap = 12.0
     margin = 10.0
-    row_h = max(d.john_height, d.final_key_width, d.presser_diameter) + gap
+    row_h = max(d.john_height, d.final_key_width) + gap
 
     # Estimate a simple row-based layout. This is clean, not material-optimized.
     if full_set:
@@ -546,7 +630,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         width = margin * 2 + d.john_length
         height = margin * 2 + rows * row_h + 2 * row_h
     else:
-        width = margin * 2 + d.john_length + gap + max(d.final_key_length, d.presser_diameter)
+        width = margin * 2 + d.john_length + gap + d.final_key_length
         height = margin * 2 + 3 * row_h
 
     out = _svg_header(width, height)
@@ -581,35 +665,17 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             out += "  </g>\n"
             x += d.final_key_length + gap
         y += row_h
-
-        # Pressers on one or more rows. Main circle and through hole.
-        x = margin
-        for i in range(PART_QUANTITIES["Presser"]):
-            if x + d.presser_diameter > width - margin:
-                x = margin
-                y += d.presser_diameter + gap
-            out += f'  <g id="presser_{i+1}" transform="translate({x:.3f} {y:.3f})">\n'
-            out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_diameter, "cut")
-            out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_through_hole_diameter, "cut")
-            out += _label(0, -3, f"Presser {i+1}")
-            out += "  </g>\n"
-            x += d.presser_diameter + gap
     else:
         out += _john_svg_group("Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter, include_screw_holes=False)
         y += row_h
         out += _john_svg_group("Little John x5", margin, y, inputs, d, d.standard_slot_depth, little_slots, inputs.collar_diameter)
         y += row_h
         out += _john_svg_group("Master John x1", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter)
-        # Final key and presser column.
+        # Final key column.
         x2 = margin + d.john_length + gap
         out += f'  <g id="final_key" transform="translate({x2:.3f} {margin:.3f})">\n'
         out += _rect(0, 0, d.final_key_length, d.final_key_width, "cut")
         out += _label(0, -3, "Final Key x4")
-        out += "  </g>\n"
-        out += f'  <g id="presser" transform="translate({x2:.3f} {margin + d.final_key_width + gap:.3f})">\n'
-        out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_diameter, "cut")
-        out += _circle(d.presser_diameter / 2, d.presser_diameter / 2, d.presser_through_hole_diameter, "cut")
-        out += _label(0, -3, "Presser x12")
         out += "  </g>\n"
 
     out += "</svg>\n"
@@ -630,7 +696,7 @@ def _john_dxf_group(
     include_screw_holes: bool = True,
 ) -> None:
     """DXF equivalent of _john_svg_group: outer rect, slot rects, center hole,
-    two screw pilot holes, and an optional label - all offset by (x, y).
+    four M5 clearance holes, and an optional label - all offset by (x, y).
 
     DXF has no `<g transform="translate()">` equivalent, so every coordinate
     below has (x, y) added directly rather than relying on a transform. Any
@@ -644,10 +710,8 @@ def _john_dxf_group(
 
     _dxf_circle(msp, x + d.john_length / 2, y + d.john_height / 2, center_hole_diameter, DXF_CUT_LAYER)
     if include_screw_holes:
-        _dxf_circle(msp, x + d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER)
-        _dxf_circle(
-            msp, x + d.john_length - d.screw_side_offset, y + d.screw_y_center, inputs.screw_diameter, DXF_CUT_LAYER
-        )
+        for hx, hy in d.screw_holes:
+            _dxf_circle(msp, x + hx, y + hy, inputs.screw_diameter, DXF_CUT_LAYER)
 
     if include_labels:
         _dxf_label(msp, x, y - 3, name)
@@ -673,7 +737,7 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
 
     gap = 12.0
     margin = 10.0
-    row_h = max(d.john_height, d.final_key_width, d.presser_diameter) + gap
+    row_h = max(d.john_height, d.final_key_width) + gap
 
     y = margin
     long_slots = (
@@ -709,20 +773,6 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             _dxf_label(msp, x, y - 3, f"Final Key {i+1}")
             x += d.final_key_length + gap
         y += row_h
-
-        # Pressers on one or more rows, wrapping at the same width write_svg
-        # uses for its full_set canvas.
-        x = margin
-        width_limit = margin * 2 + d.john_length
-        for i in range(PART_QUANTITIES["Presser"]):
-            if x + d.presser_diameter > width_limit - margin:
-                x = margin
-                y += d.presser_diameter + gap
-            cx, cy = x + d.presser_diameter / 2, y + d.presser_diameter / 2
-            _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
-            _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
-            _dxf_label(msp, x, y - 3, f"Presser {i+1}")
-            x += d.presser_diameter + gap
     else:
         _john_dxf_group(
             msp, "Long John x6", margin, y, inputs, d, d.standard_slot_depth, long_slots, inputs.cap_diameter,
@@ -737,16 +787,10 @@ def write_dxf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
             msp, "Master John x1", margin, y, inputs, d, d.master_slot_depth, little_slots, inputs.collar_diameter
         )
 
-        # Final key and presser column.
+        # Final key column.
         x2 = margin + d.john_length + gap
         _dxf_rect(msp, x2, margin, d.final_key_length, d.final_key_width, DXF_CUT_LAYER)
         _dxf_label(msp, x2, margin - 3, "Final Key x4")
-
-        presser_y = margin + d.final_key_width + gap
-        cx, cy = x2 + d.presser_diameter / 2, presser_y + d.presser_diameter / 2
-        _dxf_circle(msp, cx, cy, d.presser_diameter, DXF_CUT_LAYER)
-        _dxf_circle(msp, cx, cy, d.presser_through_hole_diameter, DXF_CUT_LAYER)
-        _dxf_label(msp, x2, presser_y - 3, "Presser x12")
 
     doc.saveas(str(path))
 
@@ -768,7 +812,10 @@ def write_scad(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived) -> None
     Little John x 5
     Master John x 1
     Final Key x 4
-    Presser x 12
+
+  Hardware (not cut): {CLAMP_HARDWARE_SETS} x {CLAMP_BOLT_LABEL}
+    -- two per Little/Master John end; each screw bites into its hole (no
+    nut), acorn nut on the tip bearing on the bottle.
 
   Generated from bottle/wood form inputs.
 */
@@ -781,11 +828,12 @@ port_length = {d.port_length:.3f};
 port_height = {inputs.port_height:.3f};  // bottle diameter
 cap_diameter = {inputs.cap_diameter:.3f};
 collar_diameter = {inputs.collar_diameter:.3f};
-screw_diameter = {inputs.screw_diameter:.3f};  // M6 clearance hole diameter
+screw_diameter = {inputs.screw_diameter:.3f};  // M5 bite hole: the screw threads into the wood
+screw_edge_inset = {SCREW_EDGE_INSET:.3f};  // each M5 hole from a John long edge
 fit_clearance = {inputs.fit_clearance:.3f};
 
 // ---------- Display/export controls ----------
-part = "layout";       // layout, full_set, long_john, little_john, master_john, final_key, presser
+part = "layout";       // layout, full_set, long_john, little_john, master_john, final_key
 output_mode = "solid_3d"; // solid_3d or cut_2d
 show_labels = true;
 layout_gap = 24;
@@ -806,10 +854,9 @@ little_end_span = port_length + slat_thickness;
 little_center_span = port_height;
 screw_side_offset = 17;
 screw_y_center = john_height / 2;
+screw_pair_offset = john_height / 2 - screw_edge_inset;
 final_key_length = port_height + 4 * slat_thickness;
 final_key_width = 2 * slat_thickness;
-presser_diameter = max(1, cap_diameter - 1);
-presser_through_hole_diameter = screw_diameter;
 
 // ---------- Safety checks ----------
 assert(slat_thickness >= 3 && slat_thickness <= 30, "slat_thickness out of range");
@@ -822,6 +869,8 @@ assert(fit_clearance >= 0 && fit_clearance <= 2, "fit_clearance out of range");
 assert(john_height > 0, "Bottle diameter must be greater than twice the wood thickness");
 assert(cap_diameter < john_height, "Cap hole too large for John height");
 assert(collar_diameter < john_height, "Collar hole too large for John height");
+assert(2 * screw_pair_offset > screw_diameter + 4, "No room for two M5 holes per John end");
+assert(screw_edge_inset > screw_diameter / 2 + 2, "M5 hole breaks out of the John edge");
 
 // ---------- Helper modules ----------
 module maybe_extrude() {{
@@ -838,9 +887,11 @@ module center_hole(diameter) {{
   translate([john_length / 2, john_height / 2]) circle(d=diameter);
 }}
 
+// Two M5 holes at each end (turtle_body v5.0.0; replaced one M6 + Presser).
 module screw_holes_2d() {{
-  translate([screw_side_offset, screw_y_center]) circle(d=screw_diameter);
-  translate([john_length - screw_side_offset, screw_y_center]) circle(d=screw_diameter);
+  for (x = [screw_side_offset, john_length - screw_side_offset])
+    for (y = [screw_y_center - screw_pair_offset, screw_y_center + screw_pair_offset])
+      translate([x, y]) circle(d=screw_diameter, $fn=16);
 }}
 
 module part_label(txt, w, h) {{
@@ -884,32 +935,11 @@ module final_key_2d() {{
   square([final_key_length, final_key_width], center=false);
 }}
 
-module presser_2d() {{
-  // Cutting view: outer circle and through pilot hole.
-  difference() {{
-    circle(d=presser_diameter);
-    circle(d=presser_through_hole_diameter);
-  }}
-}}
-
 // ---------- 3D parts ----------
 module long_john() {{ maybe_extrude() long_john_2d(); part_label("Long John x 6", john_length, john_height); }}
 module little_john() {{ maybe_extrude() little_john_2d(); part_label("Little John x 5", john_length, john_height); }}
 module master_john() {{ maybe_extrude() master_john_2d(); part_label("Master John x 1", john_length, john_height); }}
 module final_key() {{ maybe_extrude() final_key_2d(); part_label("Final Key x 4", final_key_length, final_key_width); }}
-
-module presser() {{
-  if (output_mode == "cut_2d") {{
-    presser_2d();
-  }} else {{
-    // 3D view with through hole.
-    difference() {{
-      cylinder(d=presser_diameter, h=slat_thickness);
-      translate([0,0,-0.1]) cylinder(d=presser_through_hole_diameter, h=slat_thickness + 0.2);
-    }}
-    part_label("Presser x 12", presser_diameter, presser_diameter);
-  }}
-}}
 
 // ---------- Layouts ----------
 module one_each_layout() {{
@@ -917,7 +947,6 @@ module one_each_layout() {{
   translate([0, -(john_height + layout_gap), 0]) little_john();
   translate([0, -2 * (john_height + layout_gap), 0]) master_john();
   translate([john_length + layout_gap, 0, 0]) final_key();
-  translate([john_length + layout_gap + presser_diameter / 2, -(final_key_width + layout_gap + presser_diameter / 2), 0]) presser();
 }}
 
 module full_set_layout() {{
@@ -928,9 +957,6 @@ module full_set_layout() {{
 
   key_y = -12 * row;
   for (i = [0:3]) translate([i * (final_key_length + layout_gap), key_y, 0]) final_key();
-
-  press_y = key_y - final_key_width - layout_gap - presser_diameter / 2;
-  for (i = [0:11]) translate([presser_diameter/2 + i * (presser_diameter + layout_gap/2), press_y, 0]) presser();
 }}
 
 if (part == "layout") one_each_layout();
@@ -939,7 +965,6 @@ else if (part == "long_john") long_john();
 else if (part == "little_john") little_john();
 else if (part == "master_john") master_john();
 else if (part == "final_key") final_key();
-else if (part == "presser") presser();
 else one_each_layout();
 '''
 
@@ -1011,7 +1036,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         T(lang, "std_slot_depth_line", value=_ceil_mm(d.standard_slot_depth)),
         T(lang, "master_slot_depth_line", value=_ceil_mm(d.master_slot_depth)),
         T(lang, "final_key_dim", length=_ceil_mm(d.final_key_length), width=_ceil_mm(d.final_key_width)),
-        T(lang, "presser_dim", value=_ceil_mm(d.presser_diameter)),
+        # T(lang, "presser_dim", value=_ceil_mm(d.presser_diameter)),  # Presser retired (turtle_body v5.0.0)
     ]
 
     thickness_box_y = (box_y - 8) + 76 + thickness_box_gap
@@ -1052,7 +1077,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     left_pad = 80  # room for the rotated part title and the overall-height
     # dimension line, stacked to the left of each slat
     draw_x = margin + left_pad
-    right_col_x = page_w - margin - 205  # Final Key / Presser column start
+    right_col_x = page_w - margin - 205  # Final Key / clamp-hardware column start
 
     content_top = page_h - 130
     content_bottom = 45  # the footer notes have moved up next to the Derived dimensions box
@@ -1114,20 +1139,19 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.setFont(symbol_font, 9)
         c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{_ceil_mm(hole_diam)}")
 
-        # Screw pilot holes. The left hole's label grows rightward and the
-        # right hole's label grows leftward, back toward the hole, so
-        # neither one runs past the slat's outer edge.
+        # M5 bite-hole pairs (two per end). Each end's label sits
+        # between its two holes; the left label grows rightward and the
+        # right label grows leftward, back toward the holes, so neither one
+        # runs past the slat's outer edge.
         if include_screw_holes:
-            screw_label = f"M6 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
-            for i, hx in enumerate((d.screw_side_offset, d.john_length - d.screw_side_offset)):
-                hcx, hcy = x + sx(hx), y + sx(d.screw_y_center)
-                c.circle(hcx, hcy, sx(inputs.screw_diameter / 2), stroke=1, fill=0)
-                c.setFillColor(colors.HexColor("#111111"))
-                c.setFont(symbol_font, 6.5)
-                if i == 0:
-                    c.drawString(hcx + 7, hcy + 2, screw_label)
-                else:
-                    c.drawRightString(hcx - 7, hcy + 2, screw_label)
+            screw_label = f"2x M5 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
+            for hx, hy in d.screw_holes:
+                c.circle(x + sx(hx), y + sx(hy), sx(inputs.screw_diameter / 2), stroke=1, fill=0)
+            c.setFillColor(colors.HexColor("#111111"))
+            c.setFont(symbol_font, 6.5)
+            mid_y = y + sx(d.screw_y_center) - 2
+            c.drawString(x + sx(d.screw_side_offset) - 4, mid_y, screw_label)
+            c.drawRightString(x + sx(d.john_length - d.screw_side_offset) + 4, mid_y, screw_label)
 
         # Part title, rotated 90 degrees and set to the left of the slat
         # rather than above it, so the vertical space above each row is free
@@ -1185,6 +1209,13 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
                 c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label", value=f"{d.screw_side_offset:g}"), body_font, 6.5,
                 ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
             )
+            # Each hole of the pair: its inset from the nearer long edge
+            # (bottom edge -> lower hole, drawn just outside the right end).
+            x_end = x + sx(d.john_length)
+            _draw_dimension_line(
+                c, x_end + 10, y, x_end + 10, y + sx(d.screw_ys[0]), f"{_ceil_mm(d.screw_ys[0])}mm", body_font, 6.5,
+                ext1=(x_end - sx(d.screw_side_offset), y), ext2=(x_end - sx(d.screw_side_offset), y + sx(d.screw_ys[0])),
+            )
         _draw_dimension_line(
             c, x, y - 27, x + sx(d.john_length), y - 27, f"{_ceil_mm(d.john_length)}mm", body_font, 6.5,
             ext1=(x, y), ext2=(x + sx(d.john_length), y),
@@ -1197,7 +1228,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     draw_john("Little John x 5", content_top - row_pitch, d.standard_slot_depth, little_slots, inputs.collar_diameter)
     draw_john("Master John x 1", content_top - 2 * row_pitch, d.master_slot_depth, little_slots, inputs.collar_diameter)
 
-    # Right-side parts: Final Key and Presser. Lowered from the top of their
+    # Right-side parts: Final Key and the clamp hardware. Lowered from the top of their
     # column (they used to sit right under the Derived-dimensions notes,
     # leaving a large empty gap between them and the footer) so they split
     # the column's leftover vertical space more evenly.
@@ -1243,66 +1274,235 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         ext1=(fk_x, right_y + 90), ext2=(fk_x, right_y + 90 + fk_h),
     )
 
-    # Presser top view and side/section view directly below it. Right-aligned
-    # to the page margin like the Final Key above: the through-hole label
-    # sits to the right of the circle, so the circle's centre is pulled left
-    # by the label's own rendered width, keeping the label's right edge (not
-    # the circle's) flush with the margin.
-    # Dropped an extra 1.5cm below its natural position so there's clear air
-    # between this section and the Final Key box above it.
-    presser_section_gap = 15 * mm
-    p_top_cy = right_y + 10 - presser_section_gap
-    p_r = 22
-    through_hole_text = T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter))
-    through_hole_text_w = c.stringWidth(through_hole_text, body_font, 6)
-    label_gap = 12
-    p_top_cx = page_w - margin - through_hole_text_w - label_gap - p_r
-    # Title and the cut-source note stack above the circle. The note is
-    # wrapped rather than drawString'd — the sentence doesn't fit on one
-    # line in this column and would otherwise run off the page edge.
-    presser_note_width = through_hole_text_w + label_gap + 2 * p_r
-    presser_note_style = ParagraphStyle(
-        name="presser_note", fontName=body_font, fontSize=5.5, leading=6.6,
+    # ------------------------------------------------------------------
+    # PRESSER SECTION -- retired in turtle_body v5.0.0, when the 12 cut
+    # Pressers were replaced by the M5 bottle-clamp hardware drawn below.
+    # Kept commented out in case it is needed again. Re-enabling it also
+    # needs the presser_diameter / presser_thickness /
+    # presser_through_hole_diameter fields back on EcojoinerDerived (see the
+    # commented formula in derive_dimensions()), the commented
+    # "presser_dim" / "presser_source_note" strings in PDF_STRINGS, and the
+    # hardware panel below moved out of its place.
+    # ------------------------------------------------------------------
+    # # Presser top view and side/section view directly below it. Right-aligned
+    # # to the page margin like the Final Key above: the through-hole label
+    # # sits to the right of the circle, so the circle's centre is pulled left
+    # # by the label's own rendered width, keeping the label's right edge (not
+    # # the circle's) flush with the margin.
+    # # Dropped an extra 1.5cm below its natural position so there's clear air
+    # # between this section and the Final Key box above it.
+    # presser_section_gap = 15 * mm
+    # p_top_cy = right_y + 10 - presser_section_gap
+    # p_r = 22
+    # through_hole_text = T(lang, "through_hole_label", value=_ceil_mm(d.presser_through_hole_diameter))
+    # through_hole_text_w = c.stringWidth(through_hole_text, body_font, 6)
+    # label_gap = 12
+    # p_top_cx = page_w - margin - through_hole_text_w - label_gap - p_r
+    # # Title and the cut-source note stack above the circle. The note is
+    # # wrapped rather than drawString'd — the sentence doesn't fit on one
+    # # line in this column and would otherwise run off the page edge.
+    # presser_note_width = through_hole_text_w + label_gap + 2 * p_r
+    # presser_note_style = ParagraphStyle(
+    #     name="presser_note", fontName=body_font, fontSize=5.5, leading=6.6,
+    #     textColor=colors.HexColor("#333333"),
+    # )
+    # presser_note_p = Paragraph(html.escape(T(lang, "presser_source_note")), presser_note_style)
+    # presser_note_p.wrapOn(c, presser_note_width, 40)
+    # presser_note_y = p_top_cy + p_r + 6
+    # presser_title_y = presser_note_y + presser_note_p.height + 10
+    # c.setFont(title_font, 9)
+    # c.drawString(p_top_cx - p_r, presser_title_y, "Presser x 12")
+    # presser_note_p.drawOn(c, p_top_cx - p_r, presser_note_y)
+    # c.setStrokeColor(colors.black)
+    # c.setLineWidth(1)
+    # c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
+    # c.circle(p_top_cx, p_top_cy, p_r * d.presser_through_hole_diameter / d.presser_diameter, stroke=1, fill=0)
+    # # No diameter dimension here — a Presser's cap-side and collar-side
+    # # holes can differ, so a single ⌀ label under the diagram would be
+    # # misleading. Left dimensionless intentionally.
+    # c.setFont(body_font, 6)
+    # c.drawString(p_top_cx + p_r + label_gap, p_top_cy + 8, through_hole_text)
+    #
+    # # Side/section view under top view. Uses the same points-per-mm scale as
+    # # the top view (derived from p_r / presser radius) so the two views
+    # # depict the same physical part at matching sizes - the section's width
+    # # equals the top view's diameter, and its through-hole width matches the
+    # # top view's hole circle, rather than being drawn at an unrelated fixed
+    # # size.
+    # presser_scale = p_r / (d.presser_diameter / 2)
+    # side_w = d.presser_diameter * presser_scale
+    # side_h = d.presser_thickness * presser_scale
+    # side_x = p_top_cx - side_w / 2
+    # side_y = p_top_cy - 62
+    # c.setStrokeColor(colors.black)
+    # c.setLineWidth(1)
+    # c.rect(side_x, side_y, side_w, side_h, fill=0, stroke=1)
+    # # Through hole in section.
+    # hole_w = d.presser_through_hole_diameter * presser_scale
+    # c.rect(p_top_cx - hole_w / 2, side_y, hole_w, side_h, fill=0, stroke=1)
+    # _draw_dimension_line(
+    #     c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{_ceil_mm(d.presser_thickness)}mm", body_font, 5,
+    #     ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
+    # )
+
+    # ------------------------------------------------------------------
+    # BOTTLE-CLAMP HARDWARE (turtle_body v5.0.0/v5.1.x) -- in the space the
+    # Presser section used. Bought, not cut: x24 black M5 socket cap screws
+    # and x24 black M5 acorn nuts, two of each per Little/Master John end.
+    # Drawn to one shared scale (hw_s points per mm) as a side view + end
+    # view of each part, dimensioned, with the bite-hole size and a fitting
+    # note below. Right-aligned to the page margin like the Final Key.
+    # ------------------------------------------------------------------
+    hw_w = fk_w
+    hw_x = page_w - margin - hw_w
+    hw_s = 2.1                      # points per mm for the hardware drawings
+    hw_fill = colors.HexColor("#1c1c1e")
+    hw_hi = colors.HexColor("#5a5a5e")   # highlight lines on the black parts
+    hw_title_y = right_y + 52
+
+    c.setFillColor(colors.HexColor("#111111"))
+    c.setFont(safe_title_font, 9)   # safe_title_font: the title face lacks e.g. Turkish Ş
+    c.drawString(hw_x, hw_title_y, T(lang, "hardware_title", count=CLAMP_HARDWARE_SETS))
+    c.setFont(body_font, 6)
+    c.drawString(hw_x, hw_title_y - 10,
+                 T(lang, "hardware_screw", count=CLAMP_HARDWARE_SETS, length=_ceil_mm(HW_BOLT_LEN)))
+    c.drawString(hw_x, hw_title_y - 18, T(lang, "hardware_acorn", count=CLAMP_HARDWARE_SETS))
+
+    # --- socket cap screw, side view: head on top, shank hanging down ----
+    head_w, head_h = HW_HEAD_D * hw_s, HW_HEAD_H * hw_s
+    shank_w, shank_h = HW_BOLT_D * hw_s, HW_BOLT_LEN * hw_s
+    scr_cx = hw_x + 22
+    scr_top = hw_title_y - 30
+    scr_head_y = scr_top - head_h                 # bottom of the head
+    scr_tip_y = scr_head_y - shank_h
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(0.6)
+    c.setFillColor(hw_fill)
+    c.roundRect(scr_cx - head_w / 2, scr_head_y, head_w, head_h, 1.2, fill=1, stroke=1)
+    c.rect(scr_cx - shank_w / 2, scr_tip_y, shank_w, shank_h, fill=1, stroke=1)
+    # thread suggestion: light slanted lines across the shank (drawing only)
+    c.setStrokeColor(hw_hi)
+    c.setLineWidth(0.35)
+    ty = scr_tip_y + 1.5
+    while ty < scr_head_y - 1.5:
+        c.line(scr_cx - shank_w / 2 + 0.4, ty, scr_cx + shank_w / 2 - 0.4, ty + 1.0)
+        ty += 0.8 * hw_s * 1.5
+    # knurl suggestion on the head
+    for k in range(1, 6):
+        kx = scr_cx - head_w / 2 + k * head_w / 6
+        c.line(kx, scr_head_y + 1, kx, scr_head_y + head_h - 1)
+    c.setFillColor(colors.HexColor("#333333"))
+    c.setFont(body_font, 5)
+    c.drawCentredString(scr_cx, scr_tip_y - 8, T(lang, "hardware_side_view"))
+    # dimensions: shank length (under the head), head diameter, shank diameter
+    _draw_dimension_line(
+        c, scr_cx + head_w / 2 + 6, scr_tip_y, scr_cx + head_w / 2 + 6, scr_head_y,
+        f"{_ceil_mm(HW_BOLT_LEN)}mm", body_font, 5,
+        ext1=(scr_cx + shank_w / 2, scr_tip_y), ext2=(scr_cx + head_w / 2, scr_head_y),
+    )
+    _draw_dimension_line(
+        c, scr_cx - head_w / 2 - 6, scr_head_y, scr_cx - head_w / 2 - 6, scr_top,
+        f"{_ceil_mm(HW_HEAD_H)}mm", body_font, 5, label_side="left",
+        ext1=(scr_cx - head_w / 2, scr_head_y), ext2=(scr_cx - head_w / 2, scr_top),
+    )
+    c.setFillColor(colors.HexColor("#333333"))
+    c.setFont(symbol_font, 5)
+    c.drawString(scr_cx + head_w / 2 + 3, scr_top + 2, f"⌀{_ceil_mm(HW_HEAD_D)}")
+    c.drawRightString(scr_cx - shank_w / 2 - 3, (scr_tip_y + scr_head_y) / 2, f"M5 ⌀{_ceil_mm(HW_BOLT_D)}")
+
+    # --- socket cap screw, end view: round head with the hex socket ------
+    end_cx = scr_cx + 52
+    end_cy = scr_top - head_w / 2
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(0.6)
+    c.setFillColor(hw_fill)
+    c.circle(end_cx, end_cy, head_w / 2, fill=1, stroke=1)
+    sock_r = HW_SOCKET_AF * hw_s / 2 / math.cos(math.radians(30))
+    sock = c.beginPath()
+    for k in range(6):
+        a = math.radians(60 * k)
+        px, py = end_cx + sock_r * math.cos(a), end_cy + sock_r * math.sin(a)
+        if k == 0:
+            sock.moveTo(px, py)
+        else:
+            sock.lineTo(px, py)
+    sock.close()
+    c.setFillColor(colors.HexColor("#4a4a4e"))
+    c.setStrokeColor(hw_hi)
+    c.drawPath(sock, fill=1, stroke=1)
+    c.setFillColor(colors.HexColor("#333333"))
+    c.setFont(body_font, 5)
+    c.drawCentredString(end_cx, end_cy - head_w / 2 - 7, T(lang, "hardware_end_view"))
+    c.drawCentredString(end_cx, end_cy - head_w / 2 - 13, T(lang, "hardware_hex_key", value=_ceil_mm(HW_SOCKET_AF)))
+
+    # --- acorn nut, side view: hex body + domed cap (dome up) ------------
+    ac_w = HW_ACORN_AF * hw_s                     # across flats, seen side-on
+    ac_r = ac_w / 2
+    ac_body_h = (HW_ACORN_H - HW_ACORN_AF / 2) * hw_s
+    ac_cx = end_cx + 62
+    ac_base_y = scr_tip_y + 20
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(0.6)
+    c.setFillColor(hw_fill)
+    dome = c.beginPath()
+    dome.moveTo(ac_cx - ac_r, ac_base_y)
+    dome.lineTo(ac_cx - ac_r, ac_base_y + ac_body_h)
+    dome.arcTo(ac_cx - ac_r, ac_base_y + ac_body_h - ac_r, ac_cx + ac_r, ac_base_y + ac_body_h + ac_r,
+               startAng=180, extent=-180)
+    dome.lineTo(ac_cx + ac_r, ac_base_y)
+    dome.close()
+    c.drawPath(dome, fill=1, stroke=1)
+    # hex-flat edges seen side-on
+    c.setStrokeColor(hw_hi)
+    c.setLineWidth(0.35)
+    for fx in (ac_cx - ac_r / 2, ac_cx + ac_r / 2):
+        c.line(fx, ac_base_y + 0.6, fx, ac_base_y + ac_body_h)
+    c.line(ac_cx - ac_r, ac_base_y + ac_body_h, ac_cx + ac_r, ac_base_y + ac_body_h)
+    c.setFillColor(colors.HexColor("#333333"))
+    c.setFont(body_font, 5)
+    c.drawCentredString(ac_cx, ac_base_y - 8, T(lang, "hardware_side_view"))
+    # Dimensioned on the LEFT: the page margin is right beside this column.
+    _draw_dimension_line(
+        c, ac_cx - ac_r - 6, ac_base_y, ac_cx - ac_r - 6, ac_base_y + HW_ACORN_H * hw_s,
+        f"{_ceil_mm(HW_ACORN_H)}mm", body_font, 5, label_side="left",
+        ext1=(ac_cx - ac_r, ac_base_y), ext2=(ac_cx, ac_base_y + HW_ACORN_H * hw_s),
+    )
+
+    # --- acorn nut, end view (open, threaded side): hexagon + bore -------
+    ae_cy = ac_base_y + HW_ACORN_H * hw_s + 26
+    ae_r = ac_r / math.cos(math.radians(30))
+    hexp = c.beginPath()
+    for k in range(6):
+        a = math.radians(60 * k + 30)
+        px, py = ac_cx + ae_r * math.cos(a), ae_cy + ae_r * math.sin(a)
+        if k == 0:
+            hexp.moveTo(px, py)
+        else:
+            hexp.lineTo(px, py)
+    hexp.close()
+    c.setStrokeColor(colors.black)
+    c.setLineWidth(0.6)
+    c.setFillColor(hw_fill)
+    c.drawPath(hexp, fill=1, stroke=1)
+    c.setFillColor(colors.white)
+    c.circle(ac_cx, ae_cy, HW_BOLT_D * hw_s / 2, fill=1, stroke=1)
+    c.setFillColor(colors.HexColor("#333333"))
+    c.setFont(body_font, 5)
+    c.drawCentredString(ac_cx, ae_cy - ae_r - 7, T(lang, "hardware_end_view"))
+    c.drawCentredString(ac_cx, ae_cy - ae_r - 13, f"{_ceil_mm(HW_ACORN_AF)}mm A/F")
+
+    # --- bite hole + fitting note under the drawings ----------------------
+    hw_note_top = scr_tip_y - 18
+    c.setFillColor(colors.HexColor("#111111"))
+    c.setFont(body_font, 6)
+    c.drawString(hw_x, hw_note_top, T(lang, "through_hole_label", value=_ceil_mm(inputs.screw_diameter)))
+    hw_note_style = ParagraphStyle(
+        name="hw_note", fontName=body_font, fontSize=5.5, leading=6.6,
         textColor=colors.HexColor("#333333"),
     )
-    presser_note_p = Paragraph(html.escape(T(lang, "presser_source_note")), presser_note_style)
-    presser_note_p.wrapOn(c, presser_note_width, 40)
-    presser_note_y = p_top_cy + p_r + 6
-    presser_title_y = presser_note_y + presser_note_p.height + 10
-    c.setFont(title_font, 9)
-    c.drawString(p_top_cx - p_r, presser_title_y, "Presser x 12")
-    presser_note_p.drawOn(c, p_top_cx - p_r, presser_note_y)
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(1)
-    c.circle(p_top_cx, p_top_cy, p_r, stroke=1, fill=0)
-    c.circle(p_top_cx, p_top_cy, p_r * d.presser_through_hole_diameter / d.presser_diameter, stroke=1, fill=0)
-    # No diameter dimension here — a Presser's cap-side and collar-side
-    # holes can differ, so a single ⌀ label under the diagram would be
-    # misleading. Left dimensionless intentionally.
-    c.setFont(body_font, 6)
-    c.drawString(p_top_cx + p_r + label_gap, p_top_cy + 8, through_hole_text)
-
-    # Side/section view under top view. Uses the same points-per-mm scale as
-    # the top view (derived from p_r / presser radius) so the two views
-    # depict the same physical part at matching sizes - the section's width
-    # equals the top view's diameter, and its through-hole width matches the
-    # top view's hole circle, rather than being drawn at an unrelated fixed
-    # size.
-    presser_scale = p_r / (d.presser_diameter / 2)
-    side_w = d.presser_diameter * presser_scale
-    side_h = d.presser_thickness * presser_scale
-    side_x = p_top_cx - side_w / 2
-    side_y = p_top_cy - 62
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(1)
-    c.rect(side_x, side_y, side_w, side_h, fill=0, stroke=1)
-    # Through hole in section.
-    hole_w = d.presser_through_hole_diameter * presser_scale
-    c.rect(p_top_cx - hole_w / 2, side_y, hole_w, side_h, fill=0, stroke=1)
-    _draw_dimension_line(
-        c, side_x + side_w + 24, side_y, side_x + side_w + 24, side_y + side_h, f"{_ceil_mm(d.presser_thickness)}mm", body_font, 5,
-        ext1=(side_x + side_w, side_y), ext2=(side_x + side_w, side_y + side_h),
-    )
+    hw_note_p = Paragraph(html.escape(T(lang, "hardware_note")), hw_note_style)
+    hw_note_p.wrapOn(c, hw_w, 60)
+    hw_note_p.drawOn(c, hw_x, hw_note_top - 5 - hw_note_p.height)
 
     # Credit box, sized to hug its three lines of text rather than leaving a
     # tall band of empty space below them (the box used to be 44pt tall for

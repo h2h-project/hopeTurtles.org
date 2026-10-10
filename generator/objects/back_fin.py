@@ -54,6 +54,7 @@ from back_fin_generator import (
     TUNING as _BF_TUNING,
     build_scad as _bf_build_scad,
     default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
+    shaft_hole_pair_offset as _bf_shaft_hole_pair_offset,
 )
 
 PART_QUANTITIES = {
@@ -127,6 +128,14 @@ class BackFinDerived:
     shaft_notch_v0: float
     shaft_notch_height: float
     shaft_hole_from_front: float
+    # turtle_body v5.0.0: M5 hole PAIR at shaft_width/2 +- this offset.
+    shaft_hole_pair_offset: float
+
+
+def _shaft_hole_ys(inputs, d) -> Tuple[float, float]:
+    """The two M5 hole centres across the shaft width (shaft-local v)."""
+    c = inputs.shaft_width / 2
+    return (c - d.shaft_hole_pair_offset, c + d.shaft_hole_pair_offset)
 
 
 def parse_inputs_from_dict(data: Dict[str, object]) -> BackFinInputs:
@@ -194,7 +203,7 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     shaft_notch_v0 = inputs.shaft_width / 2 - joint_slot_opening / 2
 
     # TB-07: not a free tuning knob. None means "derive it" -- the value
-    # must put the shaft's M6 hole exactly where the mating Ecojoiner Little
+    # must put the shaft's M5 hole pair exactly where the mating Ecojoiner Little
     # John's own hole is (see back_fin_generator.default_shaft_hole_from_front()).
     shaft_hole_from_front = (
         inputs.shaft_hole_from_front
@@ -229,6 +238,9 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         shaft_notch_v0=shaft_notch_v0,
         shaft_notch_height=shaft_notch_height,
         shaft_hole_from_front=shaft_hole_from_front,
+        shaft_hole_pair_offset=_bf_shaft_hole_pair_offset(
+            {"wood_thickness": t, "bottle_diameter": inputs.bottle_diameter}
+        ),
     )
 
 
@@ -285,7 +297,8 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         (d.fin_width > d.fin_diagonal_run, "Board width is too small for the fin's diagonal edge."),
         (s < t and d.shaft_rear_x > s / 2, "Solar slot clearance leaves too little fin material."),
         (inputs.solar_panel_width > 4 * t + s, "Solar panel width is too narrow for the holder's slot and chamfers."),
-        (inputs.shaft_width > inputs.shaft_hole_diameter, "Shaft width must be greater than the shaft hole diameter."),
+        (2 * d.shaft_hole_pair_offset + inputs.shaft_hole_diameter < inputs.shaft_width,
+         "The shaft's two M5 holes would run off its edges."),
         (
             d.shaft_hole_from_front > inputs.shaft_hole_diameter / 2
             and d.shaft_front_x + d.shaft_hole_from_front + inputs.shaft_hole_diameter / 2 < 0,
@@ -356,7 +369,8 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
     def shaft_group(y, name):
         out = f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
         out += _rect(0, 0, d.shaft_length, inputs.shaft_width)
-        out += _circle(d.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)
+        for hy in _shaft_hole_ys(inputs, d):
+            out += _circle(d.shaft_hole_from_front, hy, inputs.shaft_hole_diameter)
         out += _rect(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)
         out += _label(0, -3, name)
         out += "  </g>\n"
@@ -422,7 +436,8 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
     def shaft_group(y, name):
         _dxf_rect(msp, 0, y, d.shaft_length, inputs.shaft_width, DXF_CUT_LAYER)
-        _dxf_circle(msp, d.shaft_hole_from_front, y + inputs.shaft_width / 2, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
+        for hy in _shaft_hole_ys(inputs, d):
+            _dxf_circle(msp, d.shaft_hole_from_front, y + hy, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
         _dxf_rect(msp, d.shaft_notch_u0, y + d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
@@ -494,13 +509,13 @@ def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
 
 def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
     hole_x = d.shaft_hole_from_front
-    hole_y = inputs.shaft_width / 2
+    hole_y_lo, hole_y_hi = _shaft_hole_ys(inputs, d)
     n_u0 = d.shaft_notch_u0
     n_w = d.shaft_notch_width
     n_h = d.shaft_notch_height
     n_v0 = d.shaft_notch_v0
     dims = [
-        # M6 hole position, measured from the shaft's front edge.
+        # M5 hole-pair position, measured from the shaft's front edge.
         (
             (0, inputs.shaft_width + 14), (hole_x, inputs.shaft_width + 14),
             f"{_ceil_mm(hole_x)}mm",
@@ -511,18 +526,22 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
             (n_u0, -6), (d.shaft_length, -6),
             f"{_ceil_mm(n_w)}mm deep", {"ext1": (n_u0, 0), "ext2": (d.shaft_length, 0)},
         ),
-        # The hole's position across the shaft's width - it's drilled dead
-        # centre, so this is the same as half the shaft width, but a
-        # carpenter needs that called out at the hole rather than having to
-        # infer it from the width dimension elsewhere on the sheet.
+        # The pair's positions across the shaft's width: the near hole from
+        # the bottom edge, then the pitch between the two holes.
         (
-            (hole_x + 10, 0), (hole_x + 10, hole_y),
-            f"{_ceil_mm(hole_y)}mm",
-            {"ext1": (hole_x, 0), "ext2": (hole_x, hole_y)},
+            (hole_x + 10, 0), (hole_x + 10, hole_y_lo),
+            f"{_ceil_mm(hole_y_lo)}mm",
+            {"ext1": (hole_x, 0), "ext2": (hole_x, hole_y_lo)},
+        ),
+        (
+            (hole_x + 10, hole_y_lo), (hole_x + 10, hole_y_hi),
+            f"{_ceil_mm(hole_y_hi - hole_y_lo)}mm",
+            {"ext1": (hole_x, hole_y_lo), "ext2": (hole_x, hole_y_hi)},
         ),
     ]
     labels = [
-        ((hole_x, hole_y), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
+        ((hole_x, hole_y_lo), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
+        ((hole_x, hole_y_hi), f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"),
         ((n_u0 + n_w / 2, n_v0 + n_h / 2), f"{_ceil_mm(n_h)}mm wide"),
     ]
     return dims, labels
@@ -706,7 +725,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "notches": [
                 _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
             ],
-            "circles": [(d.shaft_hole_from_front, inputs.shaft_width / 2, inputs.shaft_hole_diameter)],
+            "circles": [(d.shaft_hole_from_front, hy, inputs.shaft_hole_diameter) for hy in _shaft_hole_ys(inputs, d)],
             "dims": shaft_dims,
             "labels": shaft_labels,
         },
@@ -858,7 +877,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Joint slot opening: {_ceil_mm(d.joint_slot_opening)}mm",
         f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
-        f"Shaft M6 hole from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
+        f"Shaft M5 hole pair from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
     ]
     box_gap = 10
     box_h = 92
