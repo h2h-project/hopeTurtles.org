@@ -56,7 +56,7 @@ DEFAULTS = {
 # MOUNT_HOLE_EDGE_INSET in from each long edge (slat width == John height).
 MOUNT_HOLE_SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 MOUNT_HOLE_DIAMETER = 5.2            # M5 bite hole (v5.1.0); 5.5 in v5.0.0, 6.4 (M6) before
-MOUNT_HOLE_EDGE_INSET = 10.0
+MOUNT_HOLE_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 
 # Everything after the foundation-variable assignments, which build_scad()
 # generates dynamically from DEFAULTS/overrides (plus the derived

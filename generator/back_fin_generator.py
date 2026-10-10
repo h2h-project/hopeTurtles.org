@@ -14,7 +14,7 @@ shaft_hole_diameter and shaft_hole_from_front are the M5 bolt PAIR that ties
 each green bottle-holder shaft to its Ecojoiner Little John (see turtle_body
 CLAUDE.md TB-07; the pair replaced a single M6 + Presser in turtle_body
 v5.0.0). The two holes sit +-shaft_hole_pair_offset across the shaft width
-(p_eco_screw_pair_offset(), 20mm at defaults). shaft_hole_diameter must equal
+(p_eco_screw_pair_offset(), 18mm at defaults). shaft_hole_diameter must equal
 the Ecojoiner's own M5 bite hole (p_m5_hole_d(), 5.2mm -- the cap screw
 threads into the wood, no nut, since v5.1.0) and
 shaft_hole_from_front is not a free tuning knob -- it is DERIVED from the
@@ -58,12 +58,12 @@ SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 
 # Mirrors turtle_body p_eco_screw_edge_inset(): each bolt of the John's M5
 # pair sits this far in from a John long edge (turtle_body v5.0.0).
-SCREW_EDGE_INSET = 10.0
+SCREW_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 
 
 def shaft_hole_pair_offset(p: dict[str, float]) -> float:
     """turtle_body p_eco_screw_pair_offset(): +-offset of each M5 hole from
-    the shaft centreline = John height / 2 - edge inset (20 at defaults)."""
+    the shaft centreline = John height / 2 - edge inset (18 at defaults)."""
     return (p["bottle_diameter"] - 2 * p["wood_thickness"]) / 2 - SCREW_EDGE_INSET
 
 
@@ -120,7 +120,7 @@ solar_panel_x0 = fin_solar_notch_x0+t-solar_panel_height;
 
 // M5 bolt pair across the shaft width, matching the Ecojoiner John's pair
 // (turtle_body p_eco_screw_edge_inset() / p_eco_screw_pair_offset()).
-screw_edge_inset = 10;
+screw_edge_inset = 12;
 shaft_hole_pair_offset = (bottle_diameter-2*t)/2-screw_edge_inset;
 solar_panel_z0 = fin_height;
 

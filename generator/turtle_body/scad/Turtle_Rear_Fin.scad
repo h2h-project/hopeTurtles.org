@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Rear_Fin.scad
-//  Turtle Body version 5.1.1
+//  Turtle Body version 5.2.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -150,9 +150,9 @@ function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt botto
 // Pair layout, shared by the John holes and every board bolted through them
 // (rear-fin shafts, ballast core slats): each bolt sits this far in from a
 // John long edge, i.e. +-p_eco_screw_pair_offset() from the John centreline.
-function p_eco_screw_edge_inset()  = 10;
+function p_eco_screw_edge_inset()  = 12;   // was 10 until v5.2.0
 function p_eco_screw_pair_offset() =
-    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 20
+    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 18
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;

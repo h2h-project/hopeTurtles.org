@@ -41,8 +41,8 @@
   "p_m5_acorn_af": 8,
   "p_m5_acorn_h": 10,
   "p_m5_acorn_thread_depth": 7,
-  "p_eco_screw_edge_inset": 10,
-  "p_eco_screw_pair_offset": 20,
+  "p_eco_screw_edge_inset": 12,
+  "p_eco_screw_pair_offset": 18,
   "p_cap_disk_d": 100,
   "p_cap_roof_t": 5,
   "p_cap_boss_depth": 1.5,
@@ -170,5 +170,5 @@
     0.26,
     0.17
   ],
-  "version": "5.1.1"
+  "version": "5.2.0"
 }

@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Core_Ecojoiner.scad
-//  Turtle Body version 5.1.1
+//  Turtle Body version 5.2.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -146,9 +146,9 @@ function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt botto
 // Pair layout, shared by the John holes and every board bolted through them
 // (rear-fin shafts, ballast core slats): each bolt sits this far in from a
 // John long edge, i.e. +-p_eco_screw_pair_offset() from the John centreline.
-function p_eco_screw_edge_inset()  = 10;
+function p_eco_screw_edge_inset()  = 12;   // was 10 until v5.2.0
 function p_eco_screw_pair_offset() =
-    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 20
+    (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 18
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
@@ -417,7 +417,7 @@ function eco_port_gap() = (eco_rectangle_y() - eco_slat_t() - p_bottle_d()) / 2;
 // The pair sits off the centreline, where the round bottle has curved away:
 // distance along the bolt from the John's port face to the bottle surface.
 function eco_clamp_reach() = let(r = p_bottle_d() / 2, v = p_eco_screw_pair_offset())
-    eco_port_gap() + r - sqrt(r * r - v * v);                                   // 17.07
+    eco_port_gap() + r - sqrt(r * r - v * v);                                   // 16.05
 // Open port, acorn run fully down the thread, dome tip touching the bottle:
 // shank tip measured inward from the John's port face, and how far the cap
 // screw head then stands off the John's outer face (the adjustable part --
@@ -427,7 +427,7 @@ function eco_clamp_head_standoff() = p_m5_bolt_len() - eco_slat_t() - eco_clamp_
 // Through port (John + rear-fin / ballast slat, no acorn): the bare tip is set
 // to just meet the bottle, so the head stands off by whatever is left over.
 function eco_through_room() = let(r = p_bottle_d() / 2, v = p_eco_screw_pair_offset())
-    r - sqrt(r * r - v * v);                                                     // 5.07
+    r - sqrt(r * r - v * v);                                                     // 4.05
 function eco_through_tip() = min(p_m5_bolt_len() - 2 * eco_slat_t(), eco_through_room());
 function eco_through_head_standoff() = p_m5_bolt_len() - 2 * eco_slat_t() - eco_through_tip();
 // Footprint that must fit on a John face: the larger of the screw head and

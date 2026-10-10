@@ -71,7 +71,7 @@ HW_ACORN_AF = 8.0      # p_m5_acorn_af()
 HW_ACORN_H = 10.0      # p_m5_acorn_h()
 # turtle_body p_eco_screw_edge_inset(): each bolt of a pair sits this far in
 # from a John long edge (holes at john_height/2 +- (john_height/2 - inset)).
-SCREW_EDGE_INSET = 10.0
+SCREW_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 
 # ---------------------------------------------------------------------------
 # The generated PDF is the only export with prose/labels baked into it (SVG
@@ -196,9 +196,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
     #     "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
     # },
     "hardware_title": {
-        "en": "Bottle clamp hardware x {count}",
-        "id": "Perangkat penjepit botol x {count}",
-        "tr": "Şişe kelepçe donanımı x {count}",
+        "en": "Bottle Clamp Bolts x {count}",
+        "id": "Baut Penjepit Botol x {count}",
+        "tr": "Şişe Kelepçe Cıvataları x {count}",
     },
     "hardware_screw": {
         "en": "{count} x black M5 socket cap screw, {length}mm",
@@ -277,9 +277,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "M5 tutunma deliği (vida ahşaba diş açar): ⌀{value}mm",
     },
     "version_credit": {
-        "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner.",
-        "id": "Versi {version} dari Ecojoiner. Ditemukan oleh Russell Maier. Direkayasa oleh Richard Graham. Lihat ecobricks.org/ecojoiner.",
-        "tr": "Ecojoiner'ın {version} sürümü. Russell Maier tarafından icat edildi. Richard Graham tarafından mühendisliği yapıldı. ecobricks.org/ecojoiner adresine bakın.",
+        "en": "Version {version} of the Ecojoiner. Invention by Russell Maier. Engineering by Richard Graham. See ecobricks.org/ecojoiner and hopeturtles.org/turtles/generate",
+        "id": "Versi {version} dari Ecojoiner. Ditemukan oleh Russell Maier. Direkayasa oleh Richard Graham. Lihat ecobricks.org/ecojoiner dan hopeturtles.org/turtles/generate",
+        "tr": "Ecojoiner'ın {version} sürümü. Russell Maier tarafından icat edildi. Richard Graham tarafından mühendisliği yapıldı. ecobricks.org/ecojoiner ve hopeturtles.org/turtles/generate adreslerine bakın.",
     },
 }
 
@@ -479,7 +479,7 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
         if john_height - 2 * SCREW_EDGE_INSET <= inputs.screw_diameter + 4:
             errors.append("The bottle diameter leaves no room for two M5 holes at each John end.")
         if SCREW_EDGE_INSET <= inputs.screw_diameter / 2 + 2:
-            errors.append("M5 hole is too large for its 10mm edge inset.")
+            errors.append(f"M5 hole is too large for its {SCREW_EDGE_INSET:g}mm edge inset.")
         if (john_height - inputs.cap_diameter) / 2 < min_material_mm:
             errors.append("Cap hole leaves less than 4mm of material above/below the hole.")
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
@@ -1040,9 +1040,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     ]
 
     thickness_box_y = (box_y - 8) + 76 + thickness_box_gap
-    c.setStrokeColor(colors.HexColor("#aaaaaa"))
-    c.setFillColor(colors.HexColor("#f8f8f8"))
-    c.roundRect(thickness_box_x, thickness_box_y, thickness_box_w, thickness_box_h, 5, fill=1, stroke=1)
+    # Plain text, no box (the rounded box was removed 2026-10-10); the box
+    # geometry is kept only to position the text where it always sat.
     c.setFillColor(colors.HexColor("#111111"))
     c.setFont(safe_title_font, thickness_font_size)
     c.drawCentredString(
@@ -1346,11 +1345,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # )
 
     # ------------------------------------------------------------------
-    # BOTTLE-CLAMP HARDWARE (turtle_body v5.0.0/v5.1.x) -- in the space the
+    # BOTTLE CLAMP BOLTS (turtle_body v5.0.0/v5.1.x) -- in the space the
     # Presser section used. Bought, not cut: x24 black M5 socket cap screws
     # and x24 black M5 acorn nuts, two of each per Little/Master John end.
-    # Drawn to one shared scale (hw_s points per mm) as a side view + end
-    # view of each part, dimensioned, with the bite-hole size and a fitting
+    # Drawn to one shared scale (hw_s points per mm): the screw side view
+    # (white) and the acorn nut side + end views (black), dimensioned, with the bite-hole size and a fitting
     # note below. Right-aligned to the page margin like the Final Key.
     # ------------------------------------------------------------------
     hw_w = fk_w
@@ -1375,13 +1374,14 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     scr_top = hw_title_y - 30
     scr_head_y = scr_top - head_h                 # bottom of the head
     scr_tip_y = scr_head_y - shank_h
+    # Drawn white (outline only) so it reads clearly on the printed sheet.
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.6)
-    c.setFillColor(hw_fill)
+    c.setFillColor(colors.white)
     c.roundRect(scr_cx - head_w / 2, scr_head_y, head_w, head_h, 1.2, fill=1, stroke=1)
     c.rect(scr_cx - shank_w / 2, scr_tip_y, shank_w, shank_h, fill=1, stroke=1)
     # thread suggestion: light slanted lines across the shank (drawing only)
-    c.setStrokeColor(hw_hi)
+    c.setStrokeColor(colors.HexColor("#999999"))
     c.setLineWidth(0.35)
     ty = scr_tip_y + 1.5
     while ty < scr_head_y - 1.5:
@@ -1410,36 +1410,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.drawString(scr_cx + head_w / 2 + 3, scr_top + 2, f"⌀{_ceil_mm(HW_HEAD_D)}")
     c.drawRightString(scr_cx - shank_w / 2 - 3, (scr_tip_y + scr_head_y) / 2, f"M5 ⌀{_ceil_mm(HW_BOLT_D)}")
 
-    # --- socket cap screw, end view: round head with the hex socket ------
-    end_cx = scr_cx + 52
-    end_cy = scr_top - head_w / 2
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(0.6)
-    c.setFillColor(hw_fill)
-    c.circle(end_cx, end_cy, head_w / 2, fill=1, stroke=1)
-    sock_r = HW_SOCKET_AF * hw_s / 2 / math.cos(math.radians(30))
-    sock = c.beginPath()
-    for k in range(6):
-        a = math.radians(60 * k)
-        px, py = end_cx + sock_r * math.cos(a), end_cy + sock_r * math.sin(a)
-        if k == 0:
-            sock.moveTo(px, py)
-        else:
-            sock.lineTo(px, py)
-    sock.close()
-    c.setFillColor(colors.HexColor("#4a4a4e"))
-    c.setStrokeColor(hw_hi)
-    c.drawPath(sock, fill=1, stroke=1)
-    c.setFillColor(colors.HexColor("#333333"))
-    c.setFont(body_font, 5)
-    c.drawCentredString(end_cx, end_cy - head_w / 2 - 7, T(lang, "hardware_end_view"))
-    c.drawCentredString(end_cx, end_cy - head_w / 2 - 13, T(lang, "hardware_hex_key", value=_ceil_mm(HW_SOCKET_AF)))
-
     # --- acorn nut, side view: hex body + domed cap (dome up) ------------
     ac_w = HW_ACORN_AF * hw_s                     # across flats, seen side-on
     ac_r = ac_w / 2
     ac_body_h = (HW_ACORN_H - HW_ACORN_AF / 2) * hw_s
-    ac_cx = end_cx + 62
+    ac_cx = scr_cx + 100
     ac_base_y = scr_tip_y + 20
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.6)
@@ -1504,14 +1479,11 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     hw_note_p.wrapOn(c, hw_w, 60)
     hw_note_p.drawOn(c, hw_x, hw_note_top - 5 - hw_note_p.height)
 
-    # Credit box, sized to hug its three lines of text rather than leaving a
-    # tall band of empty space below them (the box used to be 44pt tall for
-    # ~20pt of actual text). Keeps the same top edge (y=40) as the old
-    # two-line box — the third line (the generator URL) is squeezed in at a
-    # slightly smaller leading.
-    credit_h = 34
-    credit_line3_y = 8
-    credit_line2_y = credit_line3_y + 10
+    # Credit box, sized to hug its two lines of text: the licence, then the
+    # version/credit line, which now also carries the generator URL (it used
+    # to be a third line of its own).
+    credit_h = 24
+    credit_line2_y = 12
     credit_line1_y = credit_line2_y + 10
     c.setStrokeColor(colors.HexColor("#aaaaaa"))
     c.setFillColor(colors.HexColor("#f8f8f8"))
@@ -1520,7 +1492,6 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setFont(body_font, 6)
     c.drawString(margin + 8, credit_line1_y, T(lang, "license_statement"))
     c.drawString(margin + 8, credit_line2_y, T(lang, "version_credit", version=DESIGN_VERSION))
-    c.drawString(margin + 8, credit_line3_y, "https://hopeturtles.org/turtles/generate")
 
     c.showPage()
     c.save()
