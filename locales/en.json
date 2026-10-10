@@ -493,6 +493,7 @@
   "gen_connection_exact": "Exact",
   "gen_connection_snug": "Snug",
   "gen_connection_tight": "Tight",
+  "gen_connection_verytight": "Very Tight",
   "gen_connection_supertight": "Super Tight",
   "gen_submit": "Save and Generate",
   "gen_save_profile_btn": "Save bottle profile",

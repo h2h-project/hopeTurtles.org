@@ -6127,7 +6127,8 @@ body.ocean-bg {
 .eco-connection-slider__ticks span {
   position: absolute;
   top: 0.65rem;
-  left: calc((100% - var(--thumb-size)) * (var(--i) / 4) + var(--thumb-size) / 2);
+  /* 6 stops (0-5): Loose .. Super Tight. Update the divisor if steps change. */
+  left: calc((100% - var(--thumb-size)) * (var(--i) / 5) + var(--thumb-size) / 2);
   transform: translateX(-50%);
   white-space: nowrap;
 }

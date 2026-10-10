@@ -387,14 +387,18 @@
   });
 
   // --- Connection (port fit) slider -----------------------------------------
-  // Slider position 0-4 maps to a port-width offset in mm applied against the
+  // Slider position 0-5 maps to a port-width offset in mm applied against the
   // bottle diameter: Loose adds 1mm, each step tighter removes 1mm more.
+  // Keep in step with FIT_CONNECTION_STEPS in generator/objects/ecojoiner_6fc.py
+  // and CONNECTION_STEPS in public/js/dashboard.js. (Very Tight added
+  // 2026-10-10; Super Tight moved from -3 to -4mm.)
   const CONNECTION_STEPS = [
     { mm: 1, key: "gen_connection_loose" },
     { mm: 0, key: "gen_connection_exact" },
     { mm: -1, key: "gen_connection_snug" },
     { mm: -2, key: "gen_connection_tight" },
-    { mm: -3, key: "gen_connection_supertight" },
+    { mm: -3, key: "gen_connection_verytight" },
+    { mm: -4, key: "gen_connection_supertight" },
   ];
   const connectionSlider = el("eco-connection");
   const connectionMmInput = el("eco-connection-mm");
@@ -740,7 +744,7 @@
     const fill = (str) =>
       str
         .replace(/\{component\}/g, component)
-        .replace("{version}", data.design_version || "3.2");
+        .replace("{version}", data.design_version || "3.3");
     const title = fill(s("gen_res_title"));
     const lede = fill(s("gen_res_lede"));
 

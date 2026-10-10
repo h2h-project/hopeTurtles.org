@@ -54,16 +54,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     # Manual/CLI-only flags below build 6FC inputs directly, for ad-hoc use
     # without a --json payload. The web app always supplies --json.
     p.add_argument("--slat-thickness", type=float, default=12.0, help="Wood thickness in mm.")
-    p.add_argument("--cap-diameter", type=float, default=32.0, help="Bottle cap diameter in mm.")
-    p.add_argument("--collar-diameter", type=float, default=32.0, help="Bottle collar diameter in mm.")
-    p.add_argument("--taper-height", type=float, default=60.0, help="Bottle taper height in mm. Used with port allowance.")
+    p.add_argument("--cap-diameter", type=float, default=31.0, help="Bottle cap diameter in mm (turtle_body p_bottle_cap_d()).")
+    p.add_argument("--collar-diameter", type=float, default=34.0, help="Bottle collar diameter in mm (turtle_body p_collar_d()).")
+    p.add_argument("--taper-height", type=float, default=62.0, help="Bottle taper height in mm (turtle_body p_top_dome_h()). Used with port allowance.")
     p.add_argument("--port-length", type=float, default=None, help="Optional direct port length in mm. Overrides taper height.")
     p.add_argument("--port-allowance", type=float, default=20.0, help="Extra seating allowance added to taper height.")
-    p.add_argument("--port-height", type=float, default=85.0, help="Bottle diameter / port height in mm.")
+    p.add_argument("--port-height", type=float, default=84.0, help="Bottle diameter / port height in mm (turtle_body p_bottle_d()).")
     p.add_argument("--port-fit-mm", type=float, default=0.0, help="Connection fit offset in mm, added to port height (negative = tighter).")
     p.add_argument("--bottle-volume-l", type=float, default=1.5, help="Bottle volume in litres, used for naming/stats.")
     p.add_argument("--bottle-brand", type=str, default="generic", help="Bottle brand, used for naming/stats.")
-    p.add_argument("--screw-diameter", type=float, default=4.5, help="M6 pilot-hole cut diameter in mm.")
+    p.add_argument("--screw-diameter", type=float, default=5.2, help="M5 bite-hole diameter in mm (turtle_body p_m5_hole_d()).")
     p.add_argument("--fit-clearance", type=float, default=0.20, help="Slot clearance in mm.")
     p.add_argument("--formats", type=str, default="pdf,scad,svg", help="Comma-separated formats: pdf,scad,svg,dxf.")
     p.add_argument("--job-id", type=str, default="", help="Optional job id for stable file naming.")
@@ -93,6 +93,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             port_length=args.port_length,
             port_allowance=args.port_allowance,
             port_height=args.port_height + args.port_fit_mm,
+            port_fit_mm=args.port_fit_mm,
             bottle_volume_l=args.bottle_volume_l,
             bottle_brand=args.bottle_brand,
             screw_diameter=args.screw_diameter,

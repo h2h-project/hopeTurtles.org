@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
-    DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
+    DESIGN_VERSION as _COMMON_DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
     _to_float, _slugify, _ceil_mm,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
@@ -44,7 +44,13 @@ LICENSE_STATEMENT = (
     "Open Hardware Licence, Strongly Reciprocal license (CERN-OHL-S-2.0)."
 )
 
-# Part quantities for the v3.2 flatpack.
+# The Ecojoiner's own design version. v3.3 (2026-10-10): the Presser is gone,
+# replaced by the M5 cap-screw + acorn-nut bottle clamp. Kept separate from
+# common.DESIGN_VERSION, which the fin / sails / sail-cutout sheets still
+# report as 3.2.
+DESIGN_VERSION = "3.3"
+
+# Part quantities for the v3.3 flatpack.
 PART_QUANTITIES = {
     "Long John": 6,
     "Little John": 5,
@@ -195,6 +201,17 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
     #     "id": "Dibuat dari lubang potongan Long John, Little John, dan Master John.",
     #     "tr": "Long John, Little John ve Master John'dan kesilen deliklerden yapılır.",
     # },
+    "fit_connection_line": {
+        "en": "Fit connection: {value}",
+        "id": "Kekencangan sambungan: {value}",
+        "tr": "Bağlantı sıkılığı: {value}",
+    },
+    "fit_loose": {"en": "Loose", "id": "Longgar", "tr": "Gevşek"},
+    "fit_exact": {"en": "Exact", "id": "Pas", "tr": "Tam"},
+    "fit_snug": {"en": "Snug", "id": "Rapat", "tr": "Sıkı"},
+    "fit_tight": {"en": "Tight", "id": "Ketat", "tr": "Dar"},
+    "fit_very_tight": {"en": "Very Tight", "id": "Sangat ketat", "tr": "Çok dar"},
+    "fit_super_tight": {"en": "Super Tight", "id": "Super ketat", "tr": "Süper dar"},
     "hardware_title": {
         "en": "Bottle Clamp Bolts x {count}",
         "id": "Baut Penjepit Botol x {count}",
@@ -337,6 +354,11 @@ class EcojoinerInputs:
     port_length: Optional[float] = None
     port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM  # turtle_body p_port_allowance()
     port_height: float = 84.0  # bottle body diameter -- turtle_body p_bottle_d() / p_port_height()
+    # "Adjust connection" slider offset (Panel 5), in mm. Already folded into
+    # port_height by parse_inputs_from_dict() / generate_exports.main(); kept
+    # separately only so the PDF can report the measured bottle diameter and
+    # the fit the builder chose.
+    port_fit_mm: float = 0.0
     bottle_volume_l: float = 1.5
     bottle_brand: str = "generic"
     screw_diameter: float = 5.2  # M5 bite hole -- turtle_body p_m5_hole_d() (5.5 clearance in v5.0.0, 6.4 M6 before)
@@ -421,6 +443,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         port_allowance=_to_float(get("portAllowance", "port_allowance"), DEFAULT_PORT_ALLOWANCE_MM),
         port_height=_to_float(get("portHeight", "port_height", "bottleDiameter", "bottle_diameter"), 84.0)
         + _to_float(get("portFitMm", "port_fit_mm"), 0.0),
+        port_fit_mm=_to_float(get("portFitMm", "port_fit_mm"), 0.0),
         bottle_volume_l=_to_float(get("bottleVolumeL", "bottle_volume_l", "volume", "bottleVolume"), 1.5),
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),
         screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 5.2),
@@ -565,6 +588,28 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
         final_key_width=final_key_width,
         screw_hole_diameter=inputs.screw_diameter,
     )
+
+
+# The generator form's "Adjust connection" slider steps (Panel 5), in mm added
+# to the port height. Must match CONNECTION_STEPS in
+# public/js/ecojoiner-generate.js and public/js/dashboard.js.
+FIT_CONNECTION_STEPS = (
+    (1.0, "fit_loose"),
+    (0.0, "fit_exact"),
+    (-1.0, "fit_snug"),
+    (-2.0, "fit_tight"),
+    (-3.0, "fit_very_tight"),
+    (-4.0, "fit_super_tight"),
+)
+
+
+def _fit_connection_label(lang: str, mm: float) -> str:
+    """Nearest slider step's name; an off-step value also shows its mm."""
+    step_mm, key = min(FIT_CONNECTION_STEPS, key=lambda st: abs(st[0] - mm))
+    label = T(lang, key)
+    if abs(step_mm - mm) > 1e-6:
+        label += f" ({mm:+g}mm)"
+    return label
 
 
 def make_job_slug(inputs: EcojoinerInputs, derived: EcojoinerDerived) -> str:
@@ -1025,10 +1070,12 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     input_lines = [
         T(lang, "wood", value=_ceil_mm(inputs.slat_thickness)),
         T(lang, "port_length_line", value=_ceil_mm(d.port_length)),
-        T(lang, "bottle_diameter", value=_ceil_mm(inputs.port_height)),
+        # port_height has the fit offset folded in; show what was measured.
+        T(lang, "bottle_diameter", value=_ceil_mm(inputs.port_height - inputs.port_fit_mm)),
         T(lang, "cap_line", value=_ceil_mm(inputs.cap_diameter)),
         T(lang, "collar_line", value=_ceil_mm(inputs.collar_diameter)),
         T(lang, "fit_clearance_line", value=_ceil_mm(inputs.fit_clearance)),
+        T(lang, "fit_connection_line", value=_fit_connection_label(lang, inputs.port_fit_mm)),
     ]
     derived_lines = [
         T(lang, "john_dim", length=_ceil_mm(d.john_length), height=_ceil_mm(d.john_height)),
@@ -1050,8 +1097,10 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         thickness_text,
     )
 
-    _rounded_rect_text(c, page_w - margin - 155, box_y - 8, 155, 76, T(lang, "input_variables_title"), input_lines, safe_title_font, body_font)
-    derived_box_x, derived_box_y, derived_box_w = page_w - margin - 155, box_y - 94, 155
+    # Input box grew one 9pt line (the fit connection) downward in v3.3; the
+    # Derived box and the notes below it move down by the same amount.
+    _rounded_rect_text(c, page_w - margin - 155, box_y - 17, 155, 85, T(lang, "input_variables_title"), input_lines, safe_title_font, body_font)
+    derived_box_x, derived_box_y, derived_box_w = page_w - margin - 155, box_y - 103, 155
     _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, 76, T(lang, "derived_dimensions_title"), derived_lines, safe_title_font, body_font)
 
     # Notes, placed under the Derived dimensions box rather than at the foot

@@ -643,14 +643,15 @@
       </div>
       <div class="eco-connection-slider">
         <div class="eco-connection-slider__value" data-eco-edit-connection-value>Exact fit</div>
-        <input type="range" min="0" max="4" step="1" value="1" data-eco-edit-connection aria-label="Tightness of the joiner" />
+        <input type="range" min="0" max="5" step="1" value="1" data-eco-edit-connection aria-label="Tightness of the joiner" />
         <input type="hidden" name="portFitMm" data-eco-edit-connection-mm />
         <div class="eco-connection-slider__ticks">
-          <span>Loose</span>
-          <span>Exact</span>
-          <span>Snug</span>
-          <span>Tight</span>
-          <span>Super tight</span>
+          <span style="--i: 0">Loose</span>
+          <span style="--i: 1">Exact</span>
+          <span style="--i: 2">Snug</span>
+          <span style="--i: 3">Tight</span>
+          <span style="--i: 4">Very tight</span>
+          <span style="--i: 5">Super tight</span>
         </div>
       </div>
       <p class="form-feedback" role="status" data-eco-edit-feedback hidden></p>

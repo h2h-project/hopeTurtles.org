@@ -1473,7 +1473,8 @@ toggleBottlesTableState();
     { mm: 0, label: "Exact fit" },
     { mm: -1, label: "Snug" },
     { mm: -2, label: "Tight" },
-    { mm: -3, label: "Super tight" },
+    { mm: -3, label: "Very tight" },
+    { mm: -4, label: "Super tight" },
   ];
 
   const connectionLabelForMm = (mm) => {
