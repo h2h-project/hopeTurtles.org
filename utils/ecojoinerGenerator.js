@@ -253,6 +253,16 @@ const mapBackFinFields = (body = {}) => {
     }
   }
 
+  // "Adjust connection" (Panel 5): the fin's green shafts sit against the
+  // Ecojoiner's Little Johns, which are cut to bottle diameter + this offset,
+  // so the shaft gap and hole pair must follow it too.
+  const optional = {};
+  const portFitMm = toNumber(body.portFitMm);
+  if (portFitMm !== null) {
+    if (Number.isNaN(portFitMm)) errors.push('portFitMm must be a number.');
+    else optional.port_fit_mm = portFitMm;
+  }
+
   // Fabrication checkboxes → generator formats.
   const formats = new Set();
   if (isTruthy(body.fabCarpentry)) formats.add('pdf');
@@ -278,7 +288,8 @@ const mapBackFinFields = (body = {}) => {
       solar_panel_width: numbers.solarPanelWidth,
       solar_panel_thickness: numbers.solarPanelThickness,
       solar_panel_height: numbers.solarPanelHeight,
-      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format))
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format)),
+      ...optional
     },
     // Not generator inputs, but worth echoing back so the page can show the
     // full picture on the confirmation screen.

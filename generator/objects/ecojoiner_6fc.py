@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
-    DESIGN_VERSION as _COMMON_DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
+    LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
     _to_float, _slugify, _ceil_mm,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
@@ -678,7 +678,7 @@ def write_svg(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, full_
         width = margin * 2 + d.john_length + gap + d.final_key_length
         height = margin * 2 + 3 * row_h
 
-    out = _svg_header(width, height)
+    out = _svg_header(width, height, desc=f"Flatpack Ecojoiner v{DESIGN_VERSION}, 1:1 millimetre geometry")
     out += f'  <metadata>{html.escape(json.dumps({"version": DESIGN_VERSION, "license": LICENSE_ID}))}</metadata>\n'
 
     y = margin

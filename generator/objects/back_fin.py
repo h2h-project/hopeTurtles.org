@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
-    DESIGN_VERSION,
     LICENSE_ID,
     GeneratedFile,
     _to_float,
@@ -49,6 +48,7 @@ from common import (
     canvas,
     ezdxf,
 )
+from objects.ecojoiner_6fc import _fit_connection_label  # same Panel 5 step names as the 6FC sheet
 from back_fin_generator import (
     DEFAULTS as _BF_DEFAULTS,
     TUNING as _BF_TUNING,
@@ -56,6 +56,10 @@ from back_fin_generator import (
     default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
     shaft_hole_pair_offset as _bf_shaft_hole_pair_offset,
 )
+
+# The Back Fin's own design version, matched to the Ecojoiner's v3.3
+# (2026-10-10). common.DESIGN_VERSION stays 3.2 for the sails / sail cutout.
+DESIGN_VERSION = "3.3"
 
 PART_QUANTITIES = {
     "Rear Fin": 1,
@@ -95,6 +99,9 @@ class BackFinInputs:
     # override, same tier as the rest of TUNING.
     shaft_hole_from_front: Optional[float] = _BF_TUNING["shaft_hole_from_front"]
     fin_rear_tab_width: float = _BF_TUNING["fin_rear_tab_width"]
+    # "Adjust connection" offset from the form (Panel 5), mm; see
+    # back_fin_generator.TUNING["port_fit_mm"].
+    port_fit_mm: float = _BF_TUNING["port_fit_mm"]
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
@@ -193,7 +200,10 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     joint_slot_depth = joint_meet_x = shaft_rear_x / 2
     joint_slot_opening = t + inputs.half_lap_clearance
     upper_shaft_z0 = fin_height - 3 * t
-    lower_shaft_z0 = upper_shaft_z0 - inputs.bottle_diameter - t
+    # The shafts clamp the bottle at the Ecojoiner's PORT height (bottle
+    # diameter + the form's "Adjust connection" offset), matching the Little
+    # Johns they sit against -- see back_fin_generator.TUNING["port_fit_mm"].
+    lower_shaft_z0 = upper_shaft_z0 - (inputs.bottle_diameter + inputs.port_fit_mm) - t
     solar_meet_z = upper_shaft_z0 + solar_slot_depth
     solar_slot_width = t + inputs.solar_slot_clearance
 
@@ -212,7 +222,8 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         inputs.shaft_hole_from_front
         if inputs.shaft_hole_from_front is not None
         else _bf_default_shaft_hole_from_front(
-            {"wood_thickness": t, "fin_board_width": inputs.fin_board_width, "bottle_diameter": inputs.bottle_diameter}
+            {"wood_thickness": t, "fin_board_width": inputs.fin_board_width,
+             "bottle_diameter": inputs.bottle_diameter, "port_fit_mm": inputs.port_fit_mm}
         )
     )
 
@@ -242,7 +253,8 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         shaft_notch_height=shaft_notch_height,
         shaft_hole_from_front=shaft_hole_from_front,
         shaft_hole_pair_offset=_bf_shaft_hole_pair_offset(
-            {"wood_thickness": t, "bottle_diameter": inputs.bottle_diameter}
+            {"wood_thickness": t, "bottle_diameter": inputs.bottle_diameter,
+             "port_fit_mm": inputs.port_fit_mm}
         ),
     )
 
@@ -276,6 +288,8 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         errors.append("Joinery clearance must be zero or greater.")
     if inputs.solar_slot_clearance < 0:
         errors.append("Solar slot clearance must be zero or greater.")
+    if not -10 <= inputs.port_fit_mm <= 10:
+        errors.append("Connection fit offset must be between -10 and 10 mm.")
     if inputs.shaft_hole_from_front is not None and inputs.shaft_hole_from_front <= 0:
         errors.append("Shaft hole position must be greater than 0.")
 
@@ -645,14 +659,14 @@ def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
         # Where the 45-degree corner chamfer begins, measured along the
         # holder's own horizontal (bottom) edge from the corner - not the
         # chamfer's own diagonal length, which isn't what a carpenter marks
-        # before cutting it. rotate_label centers the text on the line
-        # itself (this part is drawn rotated in the PDF, so the line ends up
-        # vertical) instead of trying to fit it to one side, which would run
-        # off the page in this narrow rightmost column.
+        # before cutting it. Both ends carry the same chamfer, so it is
+        # dimensioned at the FAR end (L - chamfer .. L), on the same row as
+        # the slot-start dimension but clear of its span -- at the near end
+        # its rotated label landed on the slot-start line.
         (
-            (0, -14), (d.solar_chamfer, -14),
+            (d.solar_holder_length - d.solar_chamfer, -7), (d.solar_holder_length, -7),
             f"{_ceil_mm(d.solar_chamfer)}mm",
-            {"ext1": (0, 0), "ext2": (d.solar_chamfer, 0), "rotate_label": True},
+            {"ext1": (d.solar_holder_length - d.solar_chamfer, 0), "ext2": (d.solar_holder_length, 0)},
         ),
     ]
     labels = [
@@ -679,13 +693,13 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle("Flatpack Back Fin v2.0")
+    c.setTitle(f"Flatpack Back Fin v{DESIGN_VERSION}")
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, "Flatpack Back Fin v2.0")
+    c.drawString(margin, title_y, f"Flatpack Back Fin v{DESIGN_VERSION}")
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
@@ -829,9 +843,12 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             c.setLineWidth(0.5)
             c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
 
+        # Overall width: label BELOW its line (offset), so it can't collide
+        # with a part's own bottom-edge callout just above (e.g. the fin's
+        # flat-run dimension).
         _draw_dimension_line(
             c, ox, oy - 16, ox + part["eff_w"] * scale, oy - 16,
-            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5,
+            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5, offset=-15,
         )
         _draw_dimension_line(
             c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
@@ -873,6 +890,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
         f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
         f"Board width: {_ceil_mm(inputs.fin_board_width)}mm",
+        f"Fit connection: {_fit_connection_label('en', inputs.port_fit_mm)}",
     ]
     derived_lines = [
         f"Fin: {_ceil_mm(d.fin_width)} x {_ceil_mm(d.fin_height)}mm",
@@ -880,7 +898,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Joint slot opening: {_ceil_mm(d.joint_slot_opening)}mm",
         f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
-        f"Shaft M5 hole pair from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
+        f"M5 holes from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
     ]
     box_gap = 10
     box_h = 92

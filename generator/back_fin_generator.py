@@ -48,6 +48,13 @@ TUNING = {
     "shaft_hole_diameter": 5.2,  # turtle_body lib/params.scad p_m5_hole_d() (5.5 in v5.0.0, 6.4 M6 before)
     "shaft_hole_from_front": None,  # None = derive via TB-07; see SCREW_SIDE_OFFSET below
     "fin_rear_tab_width": 15.0,
+    # "Adjust connection" (generator form Panel 5), mm added to the bottle
+    # diameter to give the Ecojoiner PORT height (negative = tighter). The
+    # 6FC cuts its Johns to that port height, so the green shafts -- which
+    # sit flush against those Little Johns and clamp the same bottle -- must
+    # use it too: their gap, their M5 pair spacing and their hole position.
+    # The fin's own size stays tied to the measured bottle_diameter.
+    "port_fit_mm": 0.0,
 }
 
 # Mirrors turtle_body lib/params.scad p_screw_side_offset() -- the mounting-
@@ -61,10 +68,16 @@ SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 SCREW_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 
 
+def port_height(p: dict[str, float]) -> float:
+    """Ecojoiner port height = bottle diameter + the form's fit offset."""
+    return p["bottle_diameter"] + p.get("port_fit_mm", 0.0)
+
+
 def shaft_hole_pair_offset(p: dict[str, float]) -> float:
     """turtle_body p_eco_screw_pair_offset(): +-offset of each M5 hole from
-    the shaft centreline = John height / 2 - edge inset (18 at defaults)."""
-    return (p["bottle_diameter"] - 2 * p["wood_thickness"]) / 2 - SCREW_EDGE_INSET
+    the shaft centreline = John height / 2 - edge inset (18 at defaults).
+    John height follows the PORT height (fit offset included)."""
+    return (port_height(p) - 2 * p["wood_thickness"]) / 2 - SCREW_EDGE_INSET
 
 
 def default_shaft_hole_from_front(p: dict[str, float]) -> float:
@@ -74,11 +87,11 @@ def default_shaft_hole_from_front(p: dict[str, float]) -> float:
         - screw_side_offset - bottle_h + cap_h + port_height, and (v5.3.0)
         p_rear_shaft_len() = bottle_h + (2/3)*(fin_board_w - 2*t) - cap_h
         + shaft_rear_x, so shaft_rear_x, bottle_h and cap_h all cancel and
-        (with port_height == bottle_diameter) this reduces to the same value
-        as before the shafts were lengthened:
+        (port_height = bottle_diameter + port_fit_mm, the Ecojoiner's) this
+        reduces to the same value as before the shafts were lengthened:
     """
     t = p["wood_thickness"]
-    return (2 / 3) * (p["fin_board_width"] - 2 * t) - SCREW_SIDE_OFFSET + p["bottle_diameter"]
+    return (2 / 3) * (p["fin_board_width"] - 2 * t) - SCREW_SIDE_OFFSET + port_height(p)
 
 SCAD_BODY = r'''
 /* [Display] */
@@ -115,8 +128,11 @@ shaft_front_x = shaft_rear_x-shaft_length;
 // green opens from its rear at shaft_rear_x back to the midpoint.
 joint_slot_depth = shaft_rear_x/2;
 joint_meet_x = joint_slot_depth;
+// The shafts clamp the bottle at the Ecojoiner's PORT height (bottle
+// diameter + the form's fit offset; negative = tighter).
+port_height = bottle_diameter+port_fit_mm;
 upper_shaft_z0 = fin_height-3*t;
-lower_shaft_z0 = upper_shaft_z0-bottle_diameter-t;
+lower_shaft_z0 = upper_shaft_z0-port_height-t;
 solar_holder_z0 = upper_shaft_z0;
 solar_meet_z = solar_holder_z0+solar_slot_depth;
 
@@ -127,7 +143,7 @@ solar_panel_x0 = fin_solar_notch_x0+t-solar_panel_height;
 // M5 bolt pair across the shaft width, matching the Ecojoiner John's pair
 // (turtle_body p_eco_screw_edge_inset() / p_eco_screw_pair_offset()).
 screw_edge_inset = 12;
-shaft_hole_pair_offset = (bottle_diameter-2*t)/2-screw_edge_inset;
+shaft_hole_pair_offset = (port_height-2*t)/2-screw_edge_inset;
 solar_panel_z0 = fin_height;
 
 assert(t>0 && bottle_height>cap_height && cap_diameter>0);
@@ -208,7 +224,7 @@ module solar_panel_reference() {
 module bottle_mockup() {
     // Simplified total-length envelope: cap INCLUDED in bottle_height.
     // Bottle rear sits at the fin's front X=0, avoiding the fin itself.
-    zc = lower_shaft_z0+t+bottle_diameter/2;
+    zc = lower_shaft_z0+t+port_height/2;   // centred between the shafts
     color([0,0.85,0.95,0.3])
         translate([-bottle_height+cap_height,0,zc]) rotate([0,90,0])
             cylinder(h=bottle_height-cap_height,d=bottle_diameter);
@@ -286,7 +302,7 @@ def dimensions(p: dict[str, float]) -> dict[str, float]:
         hole_from_front = default_shaft_hole_from_front(p)
     return dict(fin_width=width, shaft_rear_x=rear, shaft_length=length,
                 shaft_front_x=rear-length, joint_slot_depth=rear/2,
-                upper_shaft_z0=upper, lower_shaft_z0=upper-p["bottle_diameter"]-t,
+                upper_shaft_z0=upper, lower_shaft_z0=upper-port_height(p)-t,
                 fin_height=3*p["bottle_diameter"],
                 shaft_hole_from_front=hole_from_front,
                 shaft_hole_pair_offset=shaft_hole_pair_offset(p))
@@ -296,6 +312,10 @@ def validate(p: dict[str, float]) -> None:
     for key, value in p.items():
         if not math.isfinite(value):
             raise ValueError(f"{key} must be finite")
+        if key == "port_fit_mm":
+            if not -10 <= value <= 10:
+                raise ValueError("port_fit_mm must be between -10 and 10 mm")
+            continue
         if key in ("half_lap_clearance", "solar_slot_clearance", "exploded"):
             if value < 0:
                 raise ValueError(f"{key} must be nonnegative")
@@ -354,7 +374,8 @@ def build_parser() -> argparse.ArgumentParser:
         parser.add_argument("--"+key.replace("_", "-"), type=positive_number)
     for key, default in TUNING.items():
         parser.add_argument("--"+key.replace("_", "-"),
-                            type=nonnegative_number if "clearance" in key else positive_number,
+                            type=(finite_number if key == "port_fit_mm"
+                                  else nonnegative_number if "clearance" in key else positive_number),
                             default=default)
     parser.add_argument("--exploded", type=nonnegative_number, default=0)
     parser.add_argument("--defaults", action="store_true", help="Use defaults for omitted dimensions")
