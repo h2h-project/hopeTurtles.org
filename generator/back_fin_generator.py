@@ -51,7 +51,6 @@ TUNING = {
     "shaft_width": None,
     "shaft_hole_diameter": 5.2,  # turtle_body lib/params.scad p_m5_hole_d() (5.5 in v5.0.0, 6.4 M6 before)
     "shaft_hole_from_front": None,  # None = derive via TB-07; see SCREW_SIDE_OFFSET below
-    "fin_rear_tab_width": 15.0,
     # "Adjust connection" (generator form Panel 5), mm added to the bottle
     # diameter to give the Ecojoiner PORT height (negative = tighter). The
     # 6FC cuts its Johns to that port height, so the green shafts -- which
@@ -112,15 +111,14 @@ show_bottle_mockup = false; // F5 simplified envelope only
 $fn = 96;
 eps = 0.02; // Boolean overlap ONLY; fit clearances are separate inputs
 t = wood_thickness;
-fin_width = fin_board_width + fin_rear_tab_width;
+fin_width = fin_board_width; // one board wide (turtle_body v5.7.0 rf_fin_width(); was + a 15 mm rear tab)
 fin_height = 3*bottle_diameter;
 fin_diagonal_rise = 2*bottle_diameter/3;
 fin_diagonal_run = fin_diagonal_rise;
 
-// turtle_body v5.3.0 (p_rear_shaft_len()): the approved 305 + (2/3)*(93-24)
-// - 17 = 334, PLUS the 84 mm green/yellow overlap (shaft_rear_x below), so the
-// bottle base abuts the fin's front edge (X=0) instead of sitting 84 mm into
-// the fin. The shaft front and its John hole pair do not move. = 418.
+// turtle_body v5.3.0 (p_rear_shaft_len()): 305 + (2/3)*(93-24) - 17 = 334,
+// PLUS the green/yellow overlap (shaft_rear_x below = fin_width - 2t, 69 since
+// v5.7.0), so the bottle base abuts the fin's front edge (X=0). = 403.
 shaft_length = bottle_height + (2/3)*(fin_board_width-2*t) - cap_height
              + (fin_width-2*t);
 solar_holder_length = solar_panel_width;
@@ -156,7 +154,7 @@ shaft_hole_pair_offset = (port_height-2*t)/2-screw_edge_inset;
 solar_panel_z0 = fin_height;
 
 assert(t>0 && bottle_height>cap_height && cap_diameter>0);
-assert(bottle_diameter>0 && fin_board_width>2*t && fin_rear_tab_width>0);
+assert(bottle_diameter>0 && fin_board_width>2*t);
 assert(solar_panel_width>0 && solar_panel_height>0 && solar_panel_thickness>0);
 assert(half_lap_clearance>=0 && solar_slot_clearance>=0);
 assert(shaft_front_x<0 && joint_slot_depth>half_lap_clearance/2);
@@ -301,9 +299,9 @@ def ask(label: str, default: float) -> float:
 
 def dimensions(p: dict[str, float]) -> dict[str, float]:
     t = p["wood_thickness"]
-    width = p["fin_board_width"] + p["fin_rear_tab_width"]
+    width = p["fin_board_width"]  # one board wide (turtle_body v5.7.0)
     rear = width-2*t
-    # + rear (the 84 mm fin overlap): turtle_body v5.3.0 p_rear_shaft_len()
+    # + rear (the 69 mm fin overlap): turtle_body v5.3.0 p_rear_shaft_len()
     length = p["bottle_height"]+(2/3)*(p["fin_board_width"]-2*t)-p["cap_height"]+rear
     upper = 3*p["bottle_diameter"]-3*t
     hole_from_front = p.get("shaft_hole_from_front")

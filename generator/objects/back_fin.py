@@ -23,6 +23,7 @@ from common import (
     _to_float,
     _slugify,
     _ceil_mm,
+    board_width_errors,
     _svg_header,
     _rect,
     _circle,
@@ -102,7 +103,6 @@ class BackFinInputs:
     # in back_fin_generator.py. Not exposed on the form; only an advanced
     # override, same tier as the rest of TUNING.
     shaft_hole_from_front: Optional[float] = _BF_TUNING["shaft_hole_from_front"]
-    fin_rear_tab_width: float = _BF_TUNING["fin_rear_tab_width"]
     # "Adjust connection" offset from the form (Panel 5), mm; see
     # back_fin_generator.TUNING["port_fit_mm"].
     port_fit_mm: float = _BF_TUNING["port_fit_mm"]
@@ -191,11 +191,13 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> BackFinInputs:
 
 def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     t = inputs.wood_thickness
-    fin_width = inputs.fin_board_width + inputs.fin_rear_tab_width
+    # One board wide (turtle_body v5.7.0 rf_fin_width() = p_fin_board_w());
+    # was board + a 15 mm rear tab, wider than the board it is cut from.
+    fin_width = inputs.fin_board_width
     fin_height = 3 * inputs.bottle_diameter
     fin_diagonal_rise = fin_diagonal_run = 2 * inputs.bottle_diameter / 3
     # turtle_body v5.3.0 p_rear_shaft_len(): + the fin overlap (fin_width -
-    # 2t = 84) so the bottle base abuts the fin's front edge. 418 at defaults.
+    # 2t = 69) so the bottle base abuts the fin's front edge. 403 at defaults.
     shaft_length = (
         inputs.bottle_height
         + (2 / 3) * (inputs.fin_board_width - 2 * t)
@@ -291,7 +293,6 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         ("solar_panel_thickness", inputs.solar_panel_thickness, "Solar panel thickness"),
         ("shaft_width", inputs.shaft_width, "Shaft width"),
         ("shaft_hole_diameter", inputs.shaft_hole_diameter, "Shaft hole diameter"),
-        ("fin_rear_tab_width", inputs.fin_rear_tab_width, "Fin rear tab width"),
     ]
     for _, value, label in positive_fields:
         if value is None or value <= 0:
@@ -337,6 +338,11 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
     for ok, message in checks:
         if not ok:
             errors.append(message)
+    errors += board_width_errors(inputs.fin_board_width, [
+        ("rear fin", d.fin_width, d.fin_height),
+        ("bottle holder shaft", inputs.shaft_width, d.shaft_length),
+        ("solar panel holder", d.solar_holder_length, d.solar_holder_height),
+    ])
     return errors
 
 

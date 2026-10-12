@@ -23,7 +23,7 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
     LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
-    _to_float, _slugify, _ceil_mm,
+    _to_float, _slugify, _ceil_mm, board_width_errors,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
     _register_fonts, _draw_dimension_line, _draw_top_edge_with_gaps, _rounded_rect_text,
@@ -364,6 +364,8 @@ class EcojoinerInputs:
     screw_diameter: float = 5.2  # M5 bite hole -- turtle_body p_m5_hole_d() (5.5 clearance in v5.0.0, 6.4 M6 before)
     screw_label: str = "M5 bite hole (diameter 5.2mm)"
     fit_clearance: float = 0.20
+    # The form's "Max board width". None = not given, no fit check.
+    board_max_width: Optional[float] = None
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
     job_id: str = ""
     lang: str = "en"  # site language; see PDF_STRINGS/_pdf_lang for supported codes
@@ -448,6 +450,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> EcojoinerInputs:
         bottle_brand=str(get("bottleBrand", "bottle_brand", "brand", default="generic") or "generic"),
         screw_diameter=_to_float(get("screwDiameter", "screw_diameter"), 5.2),
         fit_clearance=_to_float(get("fitClearance", "fit_clearance"), 0.20),
+        board_max_width=_to_float(get("boardMaxWidth", "board_max_width"), None),
         formats=formats,
         job_id=str(get("jobId", "job_id", default="") or ""),
         lang=str(get("lang", default="en") or "en").lower(),
@@ -507,6 +510,12 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
             errors.append("Cap hole leaves less than 4mm of material above/below the hole.")
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
             errors.append("Collar hole leaves less than 4mm of material above/below the hole.")
+        if not errors:
+            d = derive_dimensions(inputs)
+            errors += board_width_errors(inputs.board_max_width, [
+                ("Long/Little John", d.john_length, d.john_height),
+                ("Final Key", d.final_key_length, d.final_key_width),
+            ])
 
     allowed_formats = {"pdf", "scad", "svg", "dxf"}
     unknown_formats = [f for f in inputs.formats if f not in allowed_formats]

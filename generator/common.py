@@ -13,7 +13,7 @@ import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 # ReportLab is used only for PDF generation. SVG and SCAD generation use only
 # Python's standard library.
@@ -86,6 +86,26 @@ def _ceil_mm(value: float) -> str:
     """
     text = f"{round(value, 6):.1f}"
     return text[:-2] if text.endswith(".0") else text
+
+
+def board_width_errors(max_width: Optional[float], parts) -> List[str]:
+    """Check every sawn part fits within the builder's max board width.
+
+    `parts` is an iterable of (label, a, b): the part's two flat 2D outline
+    extents. A part can lie either way along the board, so only its NARROWER
+    extent has to fit. `max_width` None / <= 0 means "not given" -> no check.
+    """
+    if max_width is None or max_width <= 0:
+        return []
+    errors = []
+    for label, a, b in parts:
+        need = min(a, b)
+        if need > max_width + 1e-6:
+            errors.append(
+                f"The {label} needs a board at least {_ceil_mm(need)}mm wide, "
+                f"but the max board width is {_ceil_mm(max_width)}mm."
+            )
+    return errors
 
 
 # ---------------------------------------------------------------------------

@@ -31,6 +31,7 @@ from common import (
     _to_float,
     _slugify,
     _ceil_mm,
+    board_width_errors,
     _svg_header,
     _rect,
     _circle,
@@ -49,7 +50,6 @@ from common import (
     _rect_open,
     _draw_edges,
     _draw_open_path,
-    _rect_edges_with_gaps,
     colors,
     letter,
     canvas,
@@ -62,6 +62,7 @@ from bottom_ballast_fin_generator import (
     MOUNT_HOLE_SCREW_SIDE_OFFSET as _BALLAST_SCREW_SIDE_OFFSET,
     MOUNT_HOLE_DIAMETER as _BALLAST_MOUNT_HOLE_DIAMETER,
     MOUNT_HOLE_EDGE_INSET as _BALLAST_MOUNT_HOLE_EDGE_INSET,
+    BOARD_FRONT_CHAMFER as _BALLAST_BOARD_FRONT_CHAMFER,
 )
 
 # The Bottom Ballast Fin's own design version, matched to the Ecojoiner and
@@ -151,6 +152,7 @@ class BallastDerived:
     end_slot_edge_offset: float
     left_end_slot_x0: float
     right_end_slot_x0: float
+    board_front_chamfer: float
 
     # Red ballast lock piece
     red_piece_width: float
@@ -229,12 +231,11 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     slot_depth = slat_width / 2
     neck_width = ph - 3 * t
     shoulder_step = slat_width - neck_width
-    # The shoulder cut begins one PORT HEIGHT (the opening the slat passes
-    # through, fit offset included) below the slat top -- NOT one
-    # port_length (the port's axial insertion depth, which only equals
-    # bottle_diameter by coincidence at the reference bottle's defaults).
-    # port_length instead governs the M5 mount-hole pair below.
-    upper_diagonal_start_z = slat_height - ph
+    # The shoulder cut begins at or below the outer John's port end
+    # (port_length + t below the seated slat top) and at least one board
+    # width below the old one-port-height start -- turtle_body v5.6.0
+    # bl_upper_diag_from_top() = max(port_height, port_length) + t.
+    upper_diagonal_start_z = slat_height - (max(ph, port_length) + t)
     upper_neck_start_z = upper_diagonal_start_z - shoulder_step
     slot_z0 = lower_lobe_height
     slot_z1 = slot_z0 + slot_height
@@ -250,7 +251,9 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     mount_hole_y = slat_height - mount_hole_from_top
     mount_hole_pair_offset = slat_width / 2 - _BALLAST_MOUNT_HOLE_EDGE_INSET
 
-    ballast_bottom_length = 3.5 * bd
+    # +2t (turtle_body v5.5.0, p_ballast_board_len()): keeps every slot where
+    # it was relative to centre while the ends past the foot slots grow 2t -> 3t.
+    ballast_bottom_length = 3.5 * bd + 2 * t
     ballast_bottom_width = fw
     ballast_slot_width = t
     ballast_slot_depth = fw / 3
@@ -261,9 +264,12 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     # Was +-bd/2 (84 mm apart), leaving 72 mm between the slats.
     left_slot_center = center_slot_center - (ph + t) / 2
     right_slot_center = center_slot_center + (ph + t) / 2
-    end_slot_edge_offset = 2 * t
+    end_slot_edge_offset = 3 * t   # bl_end_slot_offset() -- 3t since v5.5.0 (was 2t)
     left_end_slot_x0 = end_slot_edge_offset
     right_end_slot_x0 = ballast_bottom_length - end_slot_edge_offset - ballast_slot_width
+    # 45-degree chamfers on both corners of the foot-slot (front) edge, legs
+    # this long (bl_board_front_chamfer(), v5.5.0).
+    board_front_chamfer = _BALLAST_BOARD_FRONT_CHAMFER
 
     red_piece_width = 5 * t
     red_piece_height = 5 * t
@@ -319,6 +325,7 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
         end_slot_edge_offset=end_slot_edge_offset,
         left_end_slot_x0=left_end_slot_x0,
         right_end_slot_x0=right_end_slot_x0,
+        board_front_chamfer=board_front_chamfer,
         red_piece_width=red_piece_width,
         red_piece_height=red_piece_height,
         red_piece_thickness=red_piece_thickness,
@@ -391,6 +398,10 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
             "Bottle diameter is too large for the ballast-bottom board's end slots to clear the board ends.",
         ),
         (
+            d.board_front_chamfer < min(d.end_slot_edge_offset, d.ballast_slot_depth),
+            "The ballast-bottom board's front corner chamfers would cut into a red lock-foot slot.",
+        ),
+        (
             d.mount_hole_diameter / 2 < d.mount_hole_from_top < d.slat_height - d.mount_hole_diameter / 2,
             "The port length leaves the M5 mount holes outside the core slat - try a different top tapper height or port length.",
         ),
@@ -403,6 +414,12 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
     for ok, message in checks:
         if not ok:
             errors.append(message)
+    errors += board_width_errors(inputs.fin_board_width, [
+        ("ballast core slat", d.slat_width, d.slat_height),
+        ("ballast bottom board", d.ballast_bottom_length, d.ballast_bottom_width),
+        ("red lock foot", d.red_piece_width, d.red_piece_height),
+        ("bottom ballast fin", d.ballast_fin_length, d.ballast_fin_height),
+    ])
     return errors
 
 
@@ -442,6 +459,23 @@ def _slat_outline(d: BallastDerived):
         (d.slot_depth, d.slot_z0),
         (0, d.slot_z0),
     ]
+
+
+def _board_outline(d: BallastDerived):
+    """Orange board outline with the two 45-degree front-corner chamfers
+    (front = the top edge here, where the red lock-foot slots open)."""
+    L, W, ch = d.ballast_bottom_length, d.ballast_bottom_width, d.board_front_chamfer
+    return [(0, 0), (L, 0), (L, W - ch), (L - ch, W), (ch, W), (0, W - ch)]
+
+
+def _board_edges(d: BallastDerived):
+    """_board_outline() as _draw_edges() triples, with the three bottom
+    notches gapped into the bottom edge and the two foot slots into the top."""
+    notches = _board_notches(d)
+    gaps = {0: [_rect_open(*n, "bottom")[1] for n in notches[:3]],
+            3: [_rect_open(*n, "top")[1] for n in notches[3:]]}
+    pts = _board_outline(d)
+    return [(pts[i], pts[(i + 1) % len(pts)], gaps.get(i, [])) for i in range(len(pts))]
 
 
 def _board_notches(d: BallastDerived):
@@ -522,7 +556,7 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
         return group(y, name, body)
 
     def board_group(y, name):
-        body = _rect(0, 0, d.ballast_bottom_length, d.ballast_bottom_width)
+        body = _polygon(_board_outline(d))
         for nx, ny, nw, nh in _board_notches(d):
             body += _rect(nx, ny, nw, nh)
         return group(y, name, body)
@@ -588,7 +622,7 @@ def write_dxf(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
         _dxf_label(msp, 0, y - 3, name)
 
     def board_group(y, name):
-        _dxf_rect(msp, 0, y, d.ballast_bottom_length, d.ballast_bottom_width, DXF_CUT_LAYER)
+        _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _board_outline(d)], DXF_CUT_LAYER)
         for nx, ny, nw, nh in _board_notches(d):
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
@@ -978,10 +1012,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "w_mm": d.ballast_bottom_length,
             "h_mm": d.ballast_bottom_width,
             "rotate": True,
-            "edges": _rect_edges_with_gaps(
-                0, 0, d.ballast_bottom_length, d.ballast_bottom_width,
-                {"bottom": _board_notches(d)[:3], "top": _board_notches(d)[3:]},
-            ),
+            "edges": _board_edges(d),
             "notches": [
                 _rect_open(*notch, side)[0]
                 for notch, side in zip(_board_notches(d), ["bottom", "bottom", "bottom", "top", "top"])

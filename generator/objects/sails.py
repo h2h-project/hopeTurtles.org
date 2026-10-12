@@ -37,6 +37,7 @@ from common import (
     _to_float,
     _slugify,
     _ceil_mm,
+    board_width_errors,
     _svg_header,
     _rect,
     _circle,
@@ -168,6 +169,8 @@ class SailsInputs:
     bottom_dome_height: float = DEFAULTS["bottom_dome_height"]
     side_batten_height: float = TUNING["side_batten_height"]
     cage_mount_hole_diameter: float = TUNING["cage_mount_hole_diameter"]
+    # The form's "Max board width". None = not given, no fit check.
+    board_max_width: Optional[float] = None
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
@@ -241,6 +244,7 @@ def parse_inputs_from_dict(data: Dict[str, object]) -> SailsInputs:
 
     return SailsInputs(
         **kwargs,
+        board_max_width=_to_float(get("board_max_width"), None),
         bottle_brand=str(get("bottle_brand", "generic") or "generic"),
         formats=formats,
         job_id=str(get("job_id", "") or ""),
@@ -384,6 +388,14 @@ def validate_inputs(inputs: SailsInputs) -> List[str]:
     for ok, message in checks:
         if not ok:
             errors.append(message)
+    # Wooden parts only -- the sail membrane is fabric, not cut from the board.
+    errors += board_width_errors(inputs.board_max_width, [
+        ("top sail bar", d.top_bar_length, d.top_bar_width),
+        ("batten", d.batten_width, d.batten_height),
+        ("bottom sail bar", d.bottom_bar_length, d.bottom_bar_width),
+        ("joint strengthener", d.strengthener_width, d.strengthener_height),
+        ("C end piece", d.c_piece_length, d.c_piece_width),
+    ])
     return errors
 
 

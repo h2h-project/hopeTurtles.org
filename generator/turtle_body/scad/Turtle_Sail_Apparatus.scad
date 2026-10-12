@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Sail_Apparatus.scad
-//  Turtle Body version 5.4.1
+//  Turtle Body version 5.7.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -303,14 +303,15 @@ function p_solar_panel_t() = 2.5;    // real panel, independent of wood thicknes
 // first 84 mm of the fin inside the bottle. The shaft front (and its John
 // hole pair) stays where it was, so the shafts grow by exactly that overlap:
 //   334 (old approved formula) + 84 = 418.
-function p_rear_shaft_rear_x() = p_fin_board_w() + p_rear_fin_tab_width()
-                               - 2 * p_wood_t();                               // 84
+// v5.7.0: the yellow fin is exactly one board wide (it was board + a 15 mm
+// "rear tab", 108 mm -- wider than the 93 mm board it is cut from), so the
+// overlap is board width - 2t: 84 -> 69, shaft 418 -> 403, half-lap 42 -> 34.5.
+function p_rear_shaft_rear_x() = p_fin_board_w() - 2 * p_wood_t();             // 69
 function p_rear_shaft_len() = p_bottle_h()
                             + (2/3) * (p_fin_board_w() - 2 * p_wood_t())
                             - p_bottle_cap_h()
-                            + p_rear_shaft_rear_x();                            // 418 (334 until v5.3.0)
-function p_rear_half_lap_engagement() = 42;   // green/yellow interlock depth
-function p_rear_fin_tab_width() = 15;
+                            + p_rear_shaft_rear_x();                            // 403 (418 v5.3.0-v5.6.0)
+function p_rear_half_lap_engagement() = p_rear_shaft_rear_x() / 2;  // 34.5 green/yellow interlock depth
 // v5.4.0: the green shaft is as wide as the Ecojoiner John it bolts flush
 // against (John height = port height - 2 x stock), so their edges and M5 pair
 // line up. Was a fixed 59 -- 1 mm narrower than the 60 mm John, and the M5
@@ -331,7 +332,7 @@ function p_ballast_core_w()   = p_port_height() - 2 * p_wood_t();               
 function p_ballast_core_len() = p_bottle_h() - p_bottle_cap_h() + 6 * p_wood_t();  // 360
 function p_ballast_slat_gap() = p_port_height();       // clear inner-face gap
 function p_ballast_slat_spacing() = p_port_height() + p_wood_t();               // 96
-function p_ballast_board_len() = 3.5 * p_bottle_d();   // 287
+function p_ballast_board_len() = 3.5 * p_bottle_d() + 2 * p_wood_t();   // 318 (v5.5.0: +2t, 3t ends past the foot slots)
 function p_ballast_fin_len()   = 3 * p_bottle_d();     // 246
 function p_ballast_lock_w()    = 5 * p_wood_t();       // 60
 

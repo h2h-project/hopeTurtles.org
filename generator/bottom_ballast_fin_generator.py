@@ -28,10 +28,9 @@ so build_scad() takes it as its own argument rather than through `overrides`.
 It governs the M5 mounting-hole pair position (how far the slat is bolted to
 the Ecojoiner Little John's own hole pair) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET
 below.
-It is NOT the same thing as bottle_diameter/port_height, which separately
-governs where the slat's shoulder cut begins (see upper_diagonal_start_z);
-those two used to be conflated here because they are numerically equal at
-the reference bottle's defaults (both 82), which is coincidence, not a rule.
+It is NOT the same thing as bottle_diameter/port_height; the slat's shoulder
+cut begins at max(port_height, port_length) + wood_thickness below the slat
+top (see upper_diagonal_start_z), i.e. never inside the John.
 """
 
 from __future__ import annotations
@@ -57,6 +56,9 @@ DEFAULTS = {
 MOUNT_HOLE_SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
 MOUNT_HOLE_DIAMETER = 5.2            # M5 bite hole (v5.1.0); 5.5 in v5.0.0, 6.4 (M6) before
 MOUNT_HOLE_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
+# Legs of the 45-degree chamfers on both corners of the orange board's foot-slot
+# (front) edge -- turtle_body lib/ballast_fin.scad bl_board_front_chamfer(), v5.5.0.
+BOARD_FRONT_CHAMFER = 20.0
 
 # Everything after the foundation-variable assignments, which build_scad()
 # generates dynamically from DEFAULTS/overrides (plus the derived
@@ -107,13 +109,12 @@ neck_width =
 shoulder_step =
     slat_width - neck_width;
 
-// The shoulder cut begins one PORT_HEIGHT (the opening the slat passes
-// through) below the slat top -- NOT one port_length (the
-// port's axial insertion depth, a different quantity that only happens to
-// equal bottle_diameter at the reference bottle's defaults). port_length
-// instead governs the M5 mount-hole pair below.
+// The shoulder cut begins at or below the outer John's port end, which sits
+// port_length + wood_thickness below the seated slat top, and at least one
+// board width below the old one-port_height start (turtle_body v5.6.0,
+// bl_upper_diag_from_top(); was port_height, 10 mm inside the John).
 upper_diagonal_start_z =
-    slat_height - port_height;
+    slat_height - (max(port_height, port_length) + wood_thickness);
 
 upper_neck_start_z =
     upper_diagonal_start_z - shoulder_step;
@@ -148,9 +149,11 @@ mount_hole_pair_offset =
 // ============================================================================
 
 // Overall board size
-// Length = 3.5 bottle diameters
+// Length = 3.5 bottle diameters + 2 board thicknesses (turtle_body v5.5.0,
+// p_ballast_board_len(): the ends past the foot slots grew 2t -> 3t and every
+// slot kept its position relative to centre).
 ballast_bottom_length =
-    3.5 * bottle_diameter;
+    3.5 * bottle_diameter + 2 * wood_thickness;
 
 ballast_bottom_width =
     fin_board_width;
@@ -168,7 +171,8 @@ center_ballast_slot_depth =
     bottle_diameter / 2;
 
 
-// Three slots from the FRONT long edge.
+// Three slots from the lower long edge (the AFT edge in the turtle -- the
+// yellow fin trails from it).
 // Center slot is centered on the whole board.
 // Left and right slots hold the two green slats: their centres are one port
 // height + one stock thickness apart, so the slats' INNER faces are one port
@@ -185,12 +189,13 @@ right_slot_center =
     center_slot_center + (port_height + wood_thickness) / 2;
 
 
-// Two slots from the REAR long edge.
+// Two slots from the upper long edge (the FRONT edge in the turtle).
 //
-// Interpreting "two board widths from the sides" as:
-// the NEAR EDGE of each slot begins 2 x wood_thickness from the board end.
+// The NEAR EDGE of each slot begins 3 x wood_thickness from the board end
+// (turtle_body bl_end_slot_offset(); 2 x until v5.5.0 -- widened so the ends
+// past the foot slots are stronger).
 end_slot_edge_offset =
-    2 * wood_thickness;
+    3 * wood_thickness;
 
 left_end_slot_x0 =
     end_slot_edge_offset;
@@ -296,6 +301,9 @@ assert(left_slot_center - ballast_slot_width/2 > 0,
 assert(right_slot_center + ballast_slot_width/2 < ballast_bottom_length,
        "Right center-family slot is too close to board end.");
 
+assert(board_front_chamfer >= 0
+       && board_front_chamfer < min(end_slot_edge_offset, ballast_slot_depth),
+       "Orange board front chamfers would cut into a red lock-foot slot.");
 assert(red_chamfer * 2 < red_piece_height,
        "Red chamfers are too large for the red piece height.");
 
@@ -376,13 +384,19 @@ module ballast_bottom_board() {
     linear_extrude(height = wood_thickness)
     difference() {
 
-        square([
-            ballast_bottom_length,
-            ballast_bottom_width
+        // Outline with 45-degree chamfers (legs = board_front_chamfer) on
+        // both corners of the foot-slot edge (turtle_body v5.5.0).
+        polygon([
+            [0, 0],
+            [ballast_bottom_length, 0],
+            [ballast_bottom_length, ballast_bottom_width - board_front_chamfer],
+            [ballast_bottom_length - board_front_chamfer, ballast_bottom_width],
+            [board_front_chamfer, ballast_bottom_width],
+            [0, ballast_bottom_width - board_front_chamfer]
         ]);
 
         // ------------------------------------------------------------
-        // Three slots from the front / lower long edge
+        // Three slots from the lower (aft) long edge
         // ------------------------------------------------------------
 
         // Slot 1
@@ -416,7 +430,7 @@ module ballast_bottom_board() {
             ]);
 
         // ------------------------------------------------------------
-        // Two slots from the rear / upper long edge
+        // Two slots from the upper (front) long edge
         // ------------------------------------------------------------
 
         translate([
@@ -747,6 +761,7 @@ def build_scad(overrides: dict[str, float], port_length: float, port_fit_mm: flo
     lines.append(f"screw_side_offset = {MOUNT_HOLE_SCREW_SIDE_OFFSET:.12g};")
     lines.append(f"mount_hole_diameter = {MOUNT_HOLE_DIAMETER:.12g};")
     lines.append(f"mount_hole_edge_inset = {MOUNT_HOLE_EDGE_INSET:.12g};")
+    lines.append(f"board_front_chamfer = {BOARD_FRONT_CHAMFER:.12g};")
     return "\n".join(lines) + "\n" + SCAD_BODY
 
 
@@ -858,7 +873,7 @@ def main() -> None:
     green_height = bh - ch + 6.0 * t
     green_slot_depth = green_width / 2
     mount_hole_from_top = port_length + t - MOUNT_HOLE_SCREW_SIDE_OFFSET
-    orange_length = 3.5 * bd
+    orange_length = 3.5 * bd + 2 * t
     orange_center_slot_depth = bd / 2
     red_piece_size = 5 * t
     red_slot_depth = red_piece_size / 2

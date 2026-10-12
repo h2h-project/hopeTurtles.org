@@ -133,17 +133,16 @@
   "p_solar_panel_w": 148,
   "p_solar_panel_h": 223,
   "p_solar_panel_t": 2.5,
-  "p_rear_shaft_rear_x": 84,
-  "p_rear_shaft_len": 418,
-  "p_rear_half_lap_engagement": 42,
-  "p_rear_fin_tab_width": 15,
+  "p_rear_shaft_rear_x": 69,
+  "p_rear_shaft_len": 403,
+  "p_rear_half_lap_engagement": 34.5,
   "p_rear_shaft_width": 60,
   "p_rear_shaft_hole_from_front": 113,
   "p_ballast_core_w": 60,
   "p_ballast_core_len": 360,
   "p_ballast_slat_gap": 84,
   "p_ballast_slat_spacing": 96,
-  "p_ballast_board_len": 294,
+  "p_ballast_board_len": 318,
   "p_ballast_fin_len": 252,
   "p_ballast_lock_w": 60,
   "p_wood_shade_sail": [
@@ -171,5 +170,5 @@
     0.26,
     0.17
   ],
-  "version": "5.4.1"
+  "version": "5.7.0"
 }

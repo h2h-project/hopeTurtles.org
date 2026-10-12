@@ -152,7 +152,9 @@ const mapSixFcFields = (body = {}) => {
     ['fitClearance', 'fit_clearance'],
     ['portAllowance', 'port_allowance'],
     ['portLength', 'port_length'],
-    ['portFitMm', 'port_fit_mm']
+    ['portFitMm', 'port_fit_mm'],
+    // Not a 6FC sizing input -- only checked against the cut parts' widths.
+    ['boardMaxWidth', 'board_max_width']
   ]) {
     const parsed = toNumber(body[field]);
     if (parsed === null) continue;
@@ -453,7 +455,9 @@ const mapSailsFields = (body = {}) => {
       cap_height: numbers.capHeight,
       top_dome_height: numbers.topTapper,
       bottom_dome_height: numbers.bottomTapper,
-      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format))
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format)),
+      // Optional: only checked against the wooden parts' widths.
+      ...(Number.isFinite(toNumber(body.boardMaxWidth)) ? { board_max_width: toNumber(body.boardMaxWidth) } : {})
     },
     context: {
       material: body.material ? String(body.material) : null,
