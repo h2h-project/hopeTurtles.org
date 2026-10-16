@@ -31,15 +31,43 @@
     <% } %>
     <script src="https://kit.fontawesome.com/735e38ff98.js" crossorigin="anonymous"></script>
     <script>
+      // Pre-paint color mode (Buwana color-mode contract, key `color_mode`).
+      // Order: saved choice from the server (theme cookie / Buwana ?mode=)
+      // → localStorage → legacy keys → prefers-color-scheme → server default.
       (function () {
-        const storedTheme = localStorage.getItem('ht-theme');
-        const storedLang = localStorage.getItem('ht-lang');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const theme = storedTheme || (prefersDark ? 'dark' : '<%= theme %>');
-        document.documentElement.dataset.theme = theme;
-        if (storedLang) {
-          document.documentElement.lang = storedLang;
+        const root = document.documentElement;
+        const ok = (m) => m === 'light' || m === 'dark';
+        const serverTheme = '<%= theme %>';
+        const serverExplicit = <%= (typeof themeExplicit !== 'undefined' && themeExplicit) ? 'true' : 'false' %>;
+        let theme = null;
+        let source = 'default';
+        let stored = null;
+        try {
+          stored = localStorage.getItem('color_mode') ||
+            localStorage.getItem('ht-theme') ||
+            localStorage.getItem('hopeturtles-theme');
+        } catch (e) {}
+        if (serverExplicit && ok(serverTheme)) {
+          theme = serverTheme;
+          source = 'server';
+        } else if (ok(stored)) {
+          theme = stored;
+          source = 'storage';
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          theme = 'dark';
+          source = 'system';
+        } else {
+          theme = ok(serverTheme) ? serverTheme : 'light';
         }
+        root.dataset.theme = theme;
+        root.dataset.themeSource = source;
+        if (source === 'server' || source === 'storage') {
+          try { localStorage.setItem('color_mode', theme); } catch (e) {}
+        }
+        try {
+          const storedLang = localStorage.getItem('ht-lang');
+          if (storedLang) root.lang = storedLang;
+        } catch (e) {}
       })();
     </script>
   </head>

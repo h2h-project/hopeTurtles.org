@@ -1,6 +1,7 @@
 import { query } from '../config/db.js';
 import { createModel } from './baseModel.js';
 import { unixSecondsToUtcDatetime, localDayBoundsUnix } from '../utils/time.js';
+import { chargeMaFromIna } from '../utils/batteryCurrent.js';
 
 const telemetryModel = createModel('telemetry_tb', 'telemetry_id');
 
@@ -133,6 +134,7 @@ telemetryModel.getRouteForTurtle = async (turtleId, hours = 1) => {
       TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
       latitude,
       longitude,
+      machine_state,
       CAST(JSON_EXTRACT(raw_data, '$.flags.journey_id') AS UNSIGNED) AS journey_id
     FROM telemetry_tb
     WHERE turtle_id = ?
@@ -151,8 +153,29 @@ telemetryModel.getRouteForTurtle = async (turtleId, hours = 1) => {
   return query(sql, [turtleId, minutes, turtleId]);
 };
 
-// Daily energy rollup: Wh harvested (current > 0) and Wh consumed
-// (current < 0), reset at local midnight in `timeZone`. Each sample's
+// One journey's track: every reading with a fix tagged flags.journey_id =
+// journeyId, oldest first. Same (0, 0) filter as getRouteForTurtle. Used by
+// the app API (GET /api/app/v2/turtles/:id/journeys/:journey_id/track).
+telemetryModel.getJourneyTrackForTurtle = async (turtleId, journeyId) => {
+  const sql = `
+    SELECT
+      TIMESTAMPDIFF(SECOND, '1970-01-01 00:00:00', \`timestamp\`) AS ts,
+      latitude,
+      longitude,
+      machine_state
+    FROM telemetry_tb
+    WHERE turtle_id = ?
+      AND CAST(JSON_EXTRACT(raw_data, '$.flags.journey_id') AS UNSIGNED) = ?
+      AND latitude IS NOT NULL AND longitude IS NOT NULL
+      AND NOT (latitude = 0 AND longitude = 0)
+    ORDER BY \`timestamp\` ASC
+    LIMIT 5000
+  `;
+  return query(sql, [turtleId, journeyId]);
+};
+
+// Daily energy rollup: Wh harvested (charge current > 0) and Wh consumed
+// (< 0; see utils/batteryCurrent.js for the sign), reset at local midnight in `timeZone`. Each sample's
 // voltage*current is integrated over the elapsed time since the *previous*
 // sample (the same discrete-integration approach the coulomb counter uses),
 // so a lone first-of-day sample contributes nothing until a second arrives.
@@ -182,7 +205,7 @@ telemetryModel.getDailyEnergyForTurtle = async (turtleId, timeZone = 'Etc/UTC') 
   let prevTs = null;
   for (const row of rows) {
     const v = Number(row.ina_bus_v);
-    const i = Number(row.ina_current_ma);
+    const i = Number(chargeMaFromIna(row.ina_current_ma) ?? NaN);
     const hasSample = Number.isFinite(v) && Number.isFinite(i);
     if (hasSample && prevTs !== null) {
       const dtHours = (row.ts - prevTs) / 3600;

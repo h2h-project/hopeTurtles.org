@@ -15,40 +15,50 @@ const updateThemeToggleVisuals = (theme) => {
   }
 };
 
+// Color mode follows the Buwana contract: localStorage key `color_mode`, the
+// `theme` cookie the server renders from, and Buwana's users_tb.color_mode as
+// the source of truth. The <head> script in partials/header.ejs has already
+// resolved the mode before paint and recorded where it came from.
+const saveTheme = (theme, { sync = true } = {}) => {
+  try {
+    localStorage.setItem('color_mode', theme);
+  } catch (e) {}
+  // Cookie for server rendering; sync pushes the choice to Buwana when logged in.
+  return fetch('/theme', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ theme, sync })
+  }).catch(() => {});
+};
+
 const applyTheme = (theme) => {
   root.dataset.theme = theme;
-  localStorage.setItem('ht-theme', theme);
   updateThemeToggleVisuals(theme);
 };
 
-const detectInitialTheme = () => {
-  const stored = localStorage.getItem('ht-theme');
-  if (stored) {
-    applyTheme(stored);
-    return;
-  }
-  applyTheme(prefersDark.matches ? 'dark' : root.dataset.theme || 'light');
-};
+const initialTheme = root.dataset.theme || 'light';
+applyTheme(initialTheme);
 
-detectInitialTheme();
+// A mode found only in localStorage (no cookie yet): give it to the server so
+// the next page renders in it without relying on the head script. Not a fresh
+// choice, so don't push it to Buwana.
+if (root.dataset.themeSource === 'storage') {
+  saveTheme(initialTheme, { sync: false });
+}
 
+// With no saved choice, keep following the OS setting.
 prefersDark.addEventListener('change', (event) => {
-  const stored = localStorage.getItem('ht-theme');
-  if (!stored) {
+  if (root.dataset.themeSource === 'system' || root.dataset.themeSource === 'default') {
     applyTheme(event.matches ? 'dark' : 'light');
   }
 });
 
 if (themeToggle) {
-  updateThemeToggleVisuals(root.dataset.theme || 'light');
   themeToggle.addEventListener('click', () => {
     const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
     applyTheme(next);
-    fetch('/theme', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ theme: next })
-    }).catch(() => {});
+    root.dataset.themeSource = 'server';
+    saveTheme(next);
   });
 }
 

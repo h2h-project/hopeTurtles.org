@@ -130,7 +130,7 @@ Content-Type: application/json
     // turtle navigation / power (turtle_mode = true)
     "ina_bus_v":      3.85,      // battery bus voltage
     "ina_batt_pct":   65,        // estimated battery %
-    "ina_current_ma": 120.5,
+    "ina_current_ma": 120.5,     // RAW INA219 sign: negative = charging (see below)
     "ina_power_mw":   463.9,
     "rtc_temp":       26.0,      // DS3231 onboard temp
 
@@ -154,6 +154,39 @@ The batch endpoint receives an array of the above objects.
 ```
 - `server_now` (Unix seconds) lets the device calculate clock drift.
 - `202 Accepted` + `{ "ok": true, "ignored": true, "reason": "..." }` for boot-garbage readings the server decides not to store.
+
+### Battery current sign
+
+`values.ina_current_ma` is the INA219's **raw** reading: **negative =
+charging**, positive = discharging. That is the turtle's convention
+everywhere (its OLED, the Wrangler app, the Bluetooth contract); the
+turtleOS data dictionary in `turtleOS/docs/wrangler/` is the authority.
+`raw_data` stores it unmodified. Everything the server computes or charts
+from it (coulomb-counted SoC in `utils/batterySoc.js`, `utils/batteryKpis.js`,
+daily Wh in `telemetryModel.getDailyEnergyForTurtle`, the "+ charging"
+current chart) uses the **charge current**, `chargeMaFromIna()` in
+`utils/batteryCurrent.js` (positive = charging). Convert there, and
+nowhere else. Before 2026-10-14 the server read the raw value as
+"positive = charging", so stored `battery_soc_pct` values from before
+then are unreliable.
+
+### Wrangler app API (`/api/app/v2`)
+
+The Turtle Wrangler Android app's API: `POST /session` trades a Buwana ID
+token (Wrangler's own client, `BUWANA_WRANGLER_CLIENT_ID`) for an app
+token (`app_sessions_tb`, SHA-256 only, migration
+`sql/migrations/20261015_app_sessions.sql`); everything else is read-only
+behind `middleware/appAuth.js` (`Authorization: Bearer`). Same visibility
+rule as `/my-turtle` (manager or admin). Answers use the device API's
+`{ ok: ... }` shape and the turtle data dictionary's field names. Spec:
+turtleOS `docs/wrangler/03_v2_plan.md`, Phase D.
+
+### Wrangler docs
+
+The Turtle Wrangler engineering docs (Bluetooth contract, app plan, v2
+plan) live in **turtleOS**, `docs/wrangler/`. This repo's `docs/wrangler/`
+and `public/wrangler/` only point there; `vision.html` (the stakeholder
+proposal) is the one Wrangler file kept here.
 
 ### What needs to be built
 
@@ -457,6 +490,7 @@ BUWANA_TOKEN_URL=https://buwana.ecobricks.org/token.php
 BUWANA_JWKS_URI=https://buwana.ecobricks.org/.well-known/jwks.php
 BUWANA_REDIRECT_URI=https://hopeturtles.org/auth/callback
 BUWANA_SCOPE=openid buwana:basic buwana:profile buwana:community buwana:bioregion
+BUWANA_WRANGLER_CLIENT_ID=   # Turtle Wrangler app's Buwana client; empty = app API login off
 MAPBOX_TOKEN=
 DEFAULT_THEME=light
 DEFAULT_LANG=en

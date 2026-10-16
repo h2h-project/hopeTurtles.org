@@ -4,11 +4,12 @@ import jwksClient from 'jwks-rsa';
 import { config } from '../config/env.js';
 import usersModel from '../models/usersModel.js';
 import { generatePkcePair } from '../utils/auth/pkce.js';
+import { THEME_COOKIE, THEME_COOKIE_OPTIONS, isSupportedTheme } from '../middleware/theme.js';
 
 // --------------------------------------------------------------------
 // Helpers
 // --------------------------------------------------------------------
-const parseBuwanaId = (value) => {
+export const parseBuwanaId = (value) => {
   if (value === undefined || value === null) {
     throw new Error('ID token did not include a subject (sub) claim.');
   }
@@ -88,8 +89,15 @@ const getJwksClient = () => {
 // ID Token validation
 // --------------------------------------------------------------------
 // Callers also pass the access token; it is not needed here because no at_hash
-// check is performed against it.
-const validateIdToken = async ({ idToken, nonce }) => {
+// check is performed against it. `audience` defaults to the website's client;
+// the Wrangler app API passes its own client, an issuer, and no nonce (the app
+// checked the nonce against its own authorization request).
+export const validateIdToken = async ({
+  idToken,
+  nonce,
+  audience = config.auth.buwanaClientId,
+  issuer
+}) => {
   const decoded = jwt.decode(idToken, { complete: true });
   if (!decoded?.header?.kid) throw new Error('Unable to decode ID token header (missing kid).');
 
@@ -99,7 +107,8 @@ const validateIdToken = async ({ idToken, nonce }) => {
 
   return jwt.verify(idToken, signingKey, {
     algorithms: ['RS256'],
-    audience: config.auth.buwanaClientId,
+    audience,
+    ...(issuer ? { issuer } : {}),
     nonce
   });
 };
@@ -313,6 +322,13 @@ export const login = async (req, res) => {
     authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('nonce', nonce);
+    // Color-mode contract: hand Buwana the current mode + language so its login
+    // page renders to match. Only send a mode the user actually chose — Buwana
+    // treats ?mode= as a fresh preference and saves it (last write wins).
+    if (res.locals.themeExplicit && isSupportedTheme(res.locals.theme)) {
+      authUrl.searchParams.set('mode', res.locals.theme);
+    }
+    if (res.locals.lang) authUrl.searchParams.set('lang', res.locals.lang);
 
     console.log('🔗 Redirecting to:', authUrl.toString());
     console.groupEnd();
@@ -368,7 +384,14 @@ export const callback = async (req, res, next) => {
 
     const returnTo = pkce.returnTo || '/dashboard';
 
-    await handleTokenExchange(req, code);
+    const { claims } = await handleTokenExchange(req, code);
+
+    // Buwana's users_tb.color_mode is the source of truth; adopt it so the
+    // next page renders in the user's mode. (?mode= on this request was
+    // already applied by themeMiddleware; the claim is authoritative.)
+    if (isSupportedTheme(claims?.color_mode)) {
+      res.cookie(THEME_COOKIE, claims.color_mode, THEME_COOKIE_OPTIONS);
+    }
 
     console.log(`✅ Authentication successful, redirecting to ${returnTo}.`);
     res.redirect(returnTo);

@@ -28,7 +28,7 @@
     <script src="https://kit.fontawesome.com/735e38ff98.js" crossorigin="anonymous"></script>
     <script>
       (function () {
-        const storedTheme = localStorage.getItem('ht-theme');
+        const storedTheme = localStorage.getItem('color_mode') || localStorage.getItem('ht-theme');
         const storedLang = localStorage.getItem('ht-lang');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const theme = storedTheme || (prefersDark ? 'dark' : 'light');

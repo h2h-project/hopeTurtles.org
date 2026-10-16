@@ -152,6 +152,28 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
   return query(sql, [managerId]);
 };
 
+// The app API's turtle list (GET /api/app/v2/turtles): the turtles
+// managerId manages, or every turtle when managerId is null (admins).
+// Most recently heard first.
+turtlesModel.listForApp = async (managerId) => {
+  const sql = `
+    SELECT
+      t.turtle_id,
+      t.name,
+      t.last_lat,
+      t.last_lng,
+      t.last_update,
+      t.last_machine_state,
+      t.solar_charge,
+      m.full_name AS mission_name
+    FROM turtles_tb t
+    LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
+    ${managerId === null ? '' : 'WHERE t.turtle_manager = ?'}
+    ORDER BY t.last_update IS NULL, t.last_update DESC, t.turtle_id DESC
+  `;
+  return query(sql, managerId === null ? [] : [managerId]);
+};
+
 turtlesModel.getManagedById = async (turtleId, managerId) => {
   if (!turtleId || !managerId) {
     return null;

@@ -1,6 +1,7 @@
 import telemetryModel from '../models/telemetryModel.js';
 import turtlesModel from '../models/turtlesModel.js';
 import { computeSoc } from '../utils/batterySoc.js';
+import { chargeMaFromIna } from '../utils/batteryCurrent.js';
 import { tzOffsetMinAt } from '../utils/time.js';
 
 // Device-facing endpoints speak the turtleOS wire protocol (ported from
@@ -115,10 +116,9 @@ const isBadZeroTelemetry = (values) => {
   return null;
 };
 
-// Sign convention for ina_current_ma (high-side shunt on the battery's
-// positive lead, net battery current): positive = charging into the
-// battery, negative = discharging out of it. Passed through unmodified
-// below — this is the only place that convention needs stating.
+// ina_current_ma is the INA219's raw reading: NEGATIVE = charging. raw_data
+// keeps it unmodified; SoC and the battery charts convert it with
+// chargeMaFromIna (utils/batteryCurrent.js), the one place the sign flips.
 const buildIngestArgs = (turtleId, body, batterySocPct = null) => {
   const values = body.values;
   const tempC = firstFinite(values.aht_temp, values.scd_temp, values.bme_temp);
@@ -165,7 +165,7 @@ const integrateBatterySoc = (prevState, body) =>
     prevUpdatedAtUnix: prevState.battery_soc_updated_at
       ? Math.floor(new Date(prevState.battery_soc_updated_at).getTime() / 1000)
       : null,
-    currentMa: finiteOrNull(body.values.ina_current_ma),
+    currentMa: chargeMaFromIna(body.values.ina_current_ma),
     busV: finiteOrNull(body.values.ina_bus_v),
     recordedAtUnix: body.recorded_at,
     capacityAh: finiteOrNull(prevState.control_battery_capacity_ah),

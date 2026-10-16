@@ -854,7 +854,7 @@
       lastGenerated = body.data;
       // Once the files exist the button's job is over: it stays a
       // non-clickable ghost "Done" and the download links become the
-      // primary (solid green) actions instead.
+      // primary (solid fuchsia) actions instead.
       finished = true;
       setDone(button, s("gen_step_done"));
       button.classList.add("ghost");

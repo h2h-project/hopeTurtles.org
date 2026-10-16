@@ -1,5 +1,6 @@
 import { isAdminRole } from '../utils/roles.js';
 import telemetryModel from '../models/telemetryModel.js';
+import { chargeMaFromIna } from '../utils/batteryCurrent.js';
 import turtlesModel from '../models/turtlesModel.js';
 import {
   computeSocSeries,
@@ -96,7 +97,8 @@ export const getTurtleTrends = async (req, res, next) => {
         bmeHumidities: pick('bme_humidity'),
         inaBattPcts: pick('ina_batt_pct'),
         inaBusVs: pick('ina_bus_v'),
-        inaCurrentMas: pick('ina_current_ma'),
+        // Charge current (+ charging), as the chart's label says; raw_data keeps the raw sign.
+        inaCurrentMas: rows.map((row) => chargeMaFromIna(row.ina_current_ma)),
         bmePressures: pick('bme_pressure'),
         bmpPressures: pick('bmp_pressure'),
         bmpTemps: pick('bmp_temp'),
@@ -176,7 +178,7 @@ export const getBatteryKpis = async (req, res, next) => {
     const readings = rawRows
       .map((row) => ({
         ts: toNumberOrNull(row.ts),
-        currentMa: toNumberOrNull(row.ina_current_ma),
+        currentMa: chargeMaFromIna(row.ina_current_ma),
         busV: toNumberOrNull(row.ina_bus_v)
       }))
       .filter((row) => Number.isFinite(row.ts));

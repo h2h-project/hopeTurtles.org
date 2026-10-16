@@ -1,5 +1,6 @@
-// Battery health KPIs derived from the correctly-signed INA219 net current
-// (positive = charging, negative = discharging) via coulomb counting.
+// Battery health KPIs derived from the charge current (positive = charging,
+// negative = discharging: ina_current_ma with its sign flipped, see
+// utils/batteryCurrent.js) via coulomb counting.
 //
 // This is deliberately independent from utils/batterySoc.js, which persists a
 // live running SoC% per telemetry packet as it's ingested (anchored with its

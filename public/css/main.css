@@ -6669,16 +6669,17 @@ body.ocean-bg {
   gap: 0.5rem;
 }
 
-/* Each download is a solid green button: green ground, white text, white
-   icon and a reversed (white-on-green → green-on-white) format pill. */
+/* Each download is a solid fuchsia button: fuchsia ground, white text, white
+   icon and a reversed (white-on-fuchsia → fuchsia-on-white) format pill, so
+   the finished files stand out from every green action above them. */
 .eco-results__files a {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-primary);
+  border: 1px solid #c026d3;
   border-radius: 0.75rem;
-  background: var(--color-primary);
+  background: #c026d3;
   color: #fff;
   font-weight: 600;
   text-decoration: none;
@@ -6691,8 +6692,8 @@ body.ocean-bg {
 
 .eco-results__files a:hover,
 .eco-results__files a:focus-visible {
-  border-color: var(--color-accent);
-  background: var(--color-accent);
+  border-color: #ff00ff;
+  background: #ff00ff;
   color: #fff;
   transform: translateY(-2px);
   box-shadow: var(--shadow-elevated);
@@ -6709,7 +6710,7 @@ body.ocean-bg {
   letter-spacing: 0.06em;
   font-weight: 600;
   background: #fff;
-  color: var(--color-primary);
+  color: #c026d3;
   border-radius: 0.4rem;
   padding: 0.15rem 0.45rem;
 }

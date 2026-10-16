@@ -1,7 +1,8 @@
 // Coulomb-counted battery State of Charge.
 //
-// Each telemetry packet integrates ina_current_ma (signed: positive =
-// charging into the battery, negative = discharging) over the elapsed time
+// Each telemetry packet integrates the charge current (positive = charging,
+// negative = discharging: ina_current_ma with its sign flipped, see
+// utils/batteryCurrent.js) over the elapsed time
 // since the previous packet into a running SoC%. Two anchors bound the
 // long-run drift inherent to coulomb counting:
 //   - charger termination (tail current tapers off near float voltage) → 100%

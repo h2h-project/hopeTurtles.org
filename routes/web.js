@@ -20,6 +20,12 @@ import componentsModel from "../models/componentsModel.js";
 import commissionsModel from "../models/commissionsModel.js";
 import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
 import { renderManagementPage } from "../controllers/usersController.js";
+import config from "../config/env.js";
+import {
+  THEME_COOKIE,
+  THEME_COOKIE_OPTIONS,
+  isSupportedTheme,
+} from "../middleware/theme.js";
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
@@ -260,10 +266,43 @@ router.post(
 );
 router.post("/profile/privacy", ensureAuth, profileController.updatePrivacy);
 
-router.post("/theme", (req, res) => {
-  const { theme } = req.body;
-  res.cookie("theme", theme, { maxAge: 31536000000, sameSite: "lax" });
-  return res.json({ success: true, theme });
+// Theme toggle. Saves the cookie the server renders from and, for a logged-in
+// user, pushes the choice to Buwana (users_tb.color_mode is the source of
+// truth — see Buwana docs/color-mode-policy.md). `sync: false` saves only the
+// cookie (used when main.js adopts a mode it found in localStorage).
+router.post("/theme", async (req, res) => {
+  const { theme, sync } = req.body || {};
+  if (!isSupportedTheme(theme)) {
+    return res.status(400).json({ success: false, error: "invalid_theme" });
+  }
+  res.cookie(THEME_COOKIE, theme, THEME_COOKIE_OPTIONS);
+
+  const accessToken = req.session?.tokens?.accessToken;
+  let synced = false;
+  if (accessToken && sync !== false) {
+    try {
+      const apiRes = await fetch(
+        `${config.auth.buwanaApiUrl}/api/set_color_mode.php`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mode: theme }),
+        },
+      );
+      synced = apiRes.ok;
+      if (!synced) {
+        // Expired token or no buwana:profile.write — the mode still reaches
+        // Buwana as ?mode= on the next login.
+        console.warn(`⚠️ Buwana color-mode sync failed (HTTP ${apiRes.status})`);
+      }
+    } catch (err) {
+      console.warn("⚠️ Buwana color-mode sync failed:", err.message);
+    }
+  }
+  return res.json({ success: true, theme, synced });
 });
 
 router.post("/language", (req, res) => {

@@ -66,6 +66,9 @@ export const config = {
   // Buwana endpoints / client
   buwanaApiUrl: process.env.BUWANA_API_URL || 'https://buwana.ecobricks.org',
   buwanaClientId: process.env.BUWANA_CLIENT_ID || '',
+  // The Turtle Wrangler Android app's own Buwana client (public, PKCE).
+  // Its ID tokens are accepted by POST /api/app/v2/session; empty = off.
+  buwanaWranglerClientId: process.env.BUWANA_WRANGLER_CLIENT_ID || '',
 
   // OIDC endpoints
   buwanaAuthorizeUrl:
