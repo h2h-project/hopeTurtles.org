@@ -6928,6 +6928,45 @@ body.ocean-bg {
   background: rgba(1, 121, 25, 0.07);
 }
 
+.build-assembly {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.build-assembly__step + .build-assembly__step {
+  margin-top: 1.25rem;
+  border-top: 1px dashed rgba(1, 121, 25, 0.2);
+}
+
+.build-assembly h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.6rem;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  color: var(--color-text);
+}
+
+.build-assembly__num {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* The drawings are black ink on white paper in both themes. */
+.build-assembly__figure img {
+  background: #fff;
+}
+
 .build-outro {
   align-items: center;
   text-align: center;
