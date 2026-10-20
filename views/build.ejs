@@ -21,6 +21,19 @@
     body: t[`build_s3_step${n}_body`],
     image: `/images/ecojoiners/assembly/step-${n}.webp`,
   }));
+  // Step 3.1 lists its parts, and its layout drawing carries labels. The
+  // label positions (% of the square image) match step-1.webp — move them
+  // if that drawing is re-rendered with a different layout.
+  Object.assign(assemblySteps[0], {
+    parts: ['long', 'little', 'master', 'keys', 'bolts', 'acorns'].map((k) => t[`build_s3_step1_${k}`]),
+    outro: t.build_s3_step1_outro,
+    labels: [
+      { text: t.build_s3_step1_label_long, x: 40, y: 17 },
+      { text: t.build_s3_step1_label_master, x: 80, y: 30 },
+      { text: t.build_s3_step1_label_little, x: 72, y: 79 },
+      { text: t.build_s3_step1_label_keys, x: 12, y: 70 },
+    ],
+  });
   const controlParts = [
     { title: t.build_s4_cage_title, body: t.build_s4_cage_body },
     { title: t.build_s4_cap_title, body: t.build_s4_cap_body },
@@ -174,12 +187,21 @@
               <h3><span class="build-assembly__num"><%= i + 1 %></span> <%= step.title %></h3>
               <%# Carries <strong> emphasis, so it renders unescaped. %>
               <p><%- step.body %></p>
+              <% if (step.parts) { %>
+              <ul class="build-assembly__parts">
+                <% step.parts.forEach((part) => { %><li><%- part %></li><% }) %>
+              </ul>
+              <% } %>
+              <% if (step.outro) { %><p><%= step.outro %></p><% } %>
               <% if (i === assemblySteps.length - 1) { %>
               <p class="build-callout"><%= t.build_s3_step5_note %></p>
               <% } %>
             </div>
             <figure class="eco-panel__figure build-assembly__figure">
               <img src="<%= step.image %>" alt="<%= t.build_s3_figure_alt.replace('{step}', step.title) %>" loading="lazy" width="1000" height="1000" />
+              <% (step.labels || []).forEach((label) => { %>
+              <span class="build-assembly__label" style="left: <%= label.x %>%; top: <%= label.y %>%"><%= label.text %></span>
+              <% }) %>
             </figure>
           </li>
           <% }) %>

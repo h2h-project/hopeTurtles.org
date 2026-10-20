@@ -6963,8 +6963,39 @@ body.ocean-bg {
 }
 
 /* The drawings are black ink on white paper in both themes. */
+.build-assembly__figure {
+  position: relative;
+}
+
 .build-assembly__figure img {
+  display: block;
   background: #fff;
+}
+
+.build-assembly__parts {
+  margin: -0.5rem 0 1.25rem;
+  padding-left: 1.2rem;
+  line-height: 1.55;
+}
+
+.build-assembly__parts li + li {
+  margin-top: 0.4rem;
+}
+
+/* Labels set over a drawing, centred on their (x, y) point. Ink colours on
+   purpose, so they read as part of the drawing in either theme. */
+.build-assembly__label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0.15rem 0.55rem;
+  border: 1.5px solid #111;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: clamp(0.68rem, 1.6vw, 0.85rem);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .build-outro {
