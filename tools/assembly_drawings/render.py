@@ -35,11 +35,16 @@ GROUPS = ["wood", "master", "key", "hw"]
 
 # Camera per step: (azimuth°, elevation°). The flat layout is seen from
 # higher up so the parts read as a spread on a table.
-VIEWS = {1: (-35, 52), 2: (-35, 28), 3: (-35, 28), 4: (-35, 28), 5: (-35, 28),
-         6: (-68, 18)}
+VIEWS = {1: (-35, 52), 2: (-25, 50), 3: (-35, 28), 4: (-35, 28), 5: (-35, 28),
+         6: (-35, 28), 7: (-68, 18), 8: (-30, 30)}
 
-# Step 5 carries a close-up of the M5 clamp (scene 6) in a circle, bottom right.
-INSET = {5: 6}
+# Close-ups set in a circle, bottom right: step 2 shows the hardware to buy
+# (scene 8), step 6 the fitted M5 clamp (scene 7).
+INSET = {2: 8, 6: 7}
+
+# Scenes whose hardware is drawn in line and hatching rather than solid ink,
+# because it is shown big enough for its shape to matter.
+HW_LINE = {8}
 INSET_FRAC = 0.42
 
 LIGHT = np.array([-0.45, 0.35, 0.82])
@@ -179,9 +184,15 @@ def draw(step, meshes, size=SIZE):
     # Final Keys: close level lines, like end grain, so they read as one kind.
     ink |= (gbuf == GROUPS.index("key")) & ((yy % (4 * SS)) < max(1, int(0.8 * SS)))
 
-    # Hardware: solid ink with a small highlight on lit faces.
     hw = gbuf == GROUPS.index("hw")
-    ink |= hw & ~((shade > 0.85) & hatch)
+    if step in HW_LINE:
+        # Close-up: dark metal in dense hatching, the lit faces left open.
+        ink |= hw & (shade < 0.85) & hatch
+        ink |= hw & (shade < 0.55) & cross
+        ink |= hw & (shade < 0.30) & fine
+    else:
+        # Hardware: solid ink with a small highlight on lit faces.
+        ink |= hw & ~((shade > 0.85) & hatch)
 
     img = Image.fromarray(np.where(ink, 0, 255).astype(np.uint8), "L")
     img = img.filter(ImageFilter.GaussianBlur(0.6 * SS / 2))
@@ -219,7 +230,7 @@ def with_inset(main, detail):
 
 
 def main():
-    steps = [int(s) for s in sys.argv[1:]] or [1, 2, 3, 4, 5]
+    steps = [int(s) for s in sys.argv[1:]] or [1, 2, 3, 4, 5, 6]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         for step in steps:

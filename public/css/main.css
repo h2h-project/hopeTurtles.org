@@ -6965,6 +6965,7 @@ body.ocean-bg {
 /* The drawings are black ink on white paper in both themes. */
 .build-assembly__figure {
   position: relative;
+  container-type: inline-size;
 }
 
 .build-assembly__figure img {
@@ -6992,7 +6993,8 @@ body.ocean-bg {
   border-radius: 999px;
   background: #fff;
   color: #111;
-  font-size: clamp(0.68rem, 1.6vw, 0.85rem);
+  /* Scales with the drawing, so a label keeps its place at any width. */
+  font-size: clamp(0.6rem, 3cqw, 0.9rem);
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;

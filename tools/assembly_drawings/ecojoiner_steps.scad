@@ -96,11 +96,14 @@ A = [0, 0, 0];
 B = [0, 90, 90];
 C = [90, 0, 90];
 
+// Scenes 1-6 are the six sub-steps; 7 and 8 are close-ups that render.py
+// sets into circles on the drawings of steps 6 and 2.
 if (step == 1) layout();
-if (step == 2) frame_square(A, long2_dz = lift);
-if (step == 3) { frame_square(A); frame_square(B, little1_dz = lift * 1.3); }
-if (step == 4) { frame_square(A); frame_square(B); frame_square(C, master = true, little1_dz = lift); }
-if (step == 5) {
+if (step == 2) master_vs_little();
+if (step == 3) frame_square(A, long2_dz = lift * 1.7);
+if (step == 4) { frame_square(A); frame_square(B, little1_dz = lift * 1.3); }
+if (step == 5) { frame_square(A); frame_square(B); frame_square(C, master = true, little1_dz = lift); }
+if (step == 6) {
     frame_square(A, hardware = true);
     frame_square(B, hardware = true);
     frame_square(C, master = true, hardware = true);
@@ -112,11 +115,19 @@ if (step == 5) {
     key_at( xo,  zo, -lift * 2.2);
 }
 
-// ---- step 5 inset: one John end, its M5 pair close up --------------------
+// ---- step 2: the Master John beside a Little John --------------------------
+// Both lying flat, slots facing the same way, so the deeper slots read at a
+// glance.
+module master_vs_little() {
+    translate([0, H + 40, 0]) little_john();
+    master_john();
+}
+
+// ---- step 6 inset: one John end, its M5 pair close up --------------------
 // The John in its own frame (port-side face at Z = t). The upper screw is
 // shown fitted with its acorn; the lower one is pulled out of its hole and
 // its acorn lifted off the tip, so the stack reads in order.
-if (step == 6) rotate([90, 0, 0]) {
+if (step == 7) rotate([90, 0, 0]) {
     ys = eco_screw_ys();
     intersection() {
         little_john();
@@ -129,4 +140,23 @@ if (step == 6) rotate([90, 0, 0]) {
             translate([0, 0, 26]) eco_m5_acorn(tip_z = eco_clamp_reach());
         }
     }
+}
+
+// ---- step 2 inset: what to buy — one M5 bolt and one acorn nut ------------
+// Drawn larger than life, with the hex socket and thread ridges the
+// assembly drawings leave out (pitch 0.8 mm, M5 coarse).
+module m5_bolt_detail() {
+    len = p_m5_bolt_len();
+    difference() {
+        translate([0, 0, -p_m5_head_h()]) cylinder(d = p_m5_head_d(), h = p_m5_head_h(), $fn = 48);
+        translate([0, 0, -p_m5_head_h() - 1]) cylinder(d = 4 / cos(30), h = 3.5, $fn = 6);
+    }
+    cylinder(d = 4.2, h = len, $fn = 32);
+    for (z = [1.5 : 0.8 : len - 0.6])
+        translate([0, 0, z]) cylinder(d1 = 4.2, d2 = 5, h = 0.4, $fn = 32);
+}
+
+if (step == 8 && grp == "hw") {
+    rotate([0, 90, 0]) m5_bolt_detail();
+    translate([p_m5_bolt_len() / 2, 16, 0]) eco_m5_acorn(tip_z = p_m5_acorn_h());
 }

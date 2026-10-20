@@ -16,14 +16,13 @@
   ];
   // Step 3's sub-steps. Drawings are rendered from the turtle_body geometry
   // by tools/assembly_drawings/render.py.
-  const assemblySteps = [1, 2, 3, 4, 5].map((n) => ({
+  const assemblySteps = [1, 2, 3, 4, 5, 6].map((n) => ({
     title: t[`build_s3_step${n}_title`],
     body: t[`build_s3_step${n}_body`],
     image: `/images/ecojoiners/assembly/step-${n}.webp`,
   }));
-  // Step 3.1 lists its parts, and its layout drawing carries labels. The
-  // label positions (% of the square image) match step-1.webp — move them
-  // if that drawing is re-rendered with a different layout.
+  // Extras for some sub-steps. Label positions are % of the square drawing
+  // they sit on — move them if that drawing is re-rendered with a new layout.
   Object.assign(assemblySteps[0], {
     parts: ['long', 'little', 'master', 'keys', 'bolts', 'acorns'].map((k) => t[`build_s3_step1_${k}`]),
     outro: t.build_s3_step1_outro,
@@ -32,6 +31,21 @@
       { text: t.build_s3_step1_label_master, x: 80, y: 30 },
       { text: t.build_s3_step1_label_little, x: 72, y: 79 },
       { text: t.build_s3_step1_label_keys, x: 12, y: 70 },
+    ],
+  });
+  Object.assign(assemblySteps[1], {
+    more: t.build_s3_step2_body2,
+    labels: [
+      { text: t.build_s3_step2_label_little, x: 30, y: 15 },
+      { text: t.build_s3_step2_label_master, x: 22, y: 61 },
+      { text: t.build_s3_step2_label_acorn, x: 88, y: 55 },
+      { text: t.build_s3_step2_label_bolt, x: 40, y: 87 },
+    ],
+  });
+  Object.assign(assemblySteps[2], {
+    labels: [
+      { text: t.build_s3_step3_label_long, x: 38, y: 26 },
+      { text: t.build_s3_step3_label_little, x: 82, y: 95 },
     ],
   });
   const controlParts = [
@@ -193,8 +207,9 @@
               </ul>
               <% } %>
               <% if (step.outro) { %><p><%= step.outro %></p><% } %>
+              <% if (step.more) { %><p><%- step.more %></p><% } %>
               <% if (i === assemblySteps.length - 1) { %>
-              <p class="build-callout"><%= t.build_s3_step5_note %></p>
+              <p class="build-callout"><%= t.build_s3_step6_note %></p>
               <% } %>
             </div>
             <figure class="eco-panel__figure build-assembly__figure">
