@@ -349,14 +349,17 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 
 | Path | Role |
 |---|---|
-| `generator/generate_exports.py` | CLI dispatcher — the only script Node runs. `OBJECT_MODULES` maps `object_type` (`6fc`, `fin`, `ballast`, `sails`) to an object module. No geometry. |
+| `generator/generate_exports.py` | CLI dispatcher — the only script Node runs. `OBJECT_MODULES` maps `object_type` (`6fc`, `fin`, `ballast`, `sails`, `sail_cutout`, `head_fin`) to an object module. No geometry. |
+| `generator/turtle_body_bundle.py` | Builds a builder-specific SCAD straight from a vendored turtle_body bundle by overriding its base `p_*()` literals (each must occur exactly once) and wrapper customizer values. Used by the sails and head fin; the other generators still carry hand-copied SCAD templates. |
 | `generator/common.py` | Shared SVG/DXF/PDF primitives, fonts, slugify, `GeneratedFile`, `DESIGN_VERSION`. |
 | `generator/objects/ecojoiner_6fc.py` | 6FC Ecojoiner core (Long John ×6, Little John ×5, Master John ×1 — the deeper-slotted John fitted last — Final Key ×4; since turtle_body v5.0.0 no Presser — each Little/Master John end has two Ø5.2 M5 bite holes for black cap-screw + acorn-nut clamps (no nut since v5.1.0), 24 hardware sets). Self-contained SCAD writer + SVG/DXF/PDF (en/id/tr). |
 | `generator/objects/back_fin.py` + `generator/back_fin_generator.py` | Rear fin ×1, bottle-holder shaft ×2, solar-panel holder ×1. The reference script owns `build_scad()`; the object module adds manifest + 2D writers. |
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
-| `generator/objects/sails.py` + `generator/generate_sails.py` | Top sail bar ×1, battens ×4, bottom bars ×2, strengtheners ×2, C end pieces ×2, sails ×2. Full SCAD/SVG/DXF/PDF, same as the other objects. |
-| `generator/sync_from_turtle_body.py` | Vendors `../turtle_body/build/params.json` + the 4 wooden bundles into `generator/turtle_body/`. Pure copy; `--check` reports staleness. |
-| `generator/check_params_sync.py` | Asserts 39 shared-input defaults across all 4 generators against `generator/turtle_body/params.json`. Runs in `npm run lint`. Input layer only — not `derive_dimensions()`. |
+| `generator/objects/sails.py` + `generator/generate_sails.py` | Split top crossbar since turtle_body v6.0.0: Top Sail Bar Half ×2 + Sail Crossbar Connector ×1 (Ø9 shaft hole, M3 side clamp into a Ø2.8 pilot), sail battens ×2 (205 + t, 2t two-layer upper notch), non-sail battens ×2 (flush with the cage roof), bottom bars ×2 (3·bd + t), strengtheners ×2, C end pieces ×2, sails ×2. `generate_sails.build_scad()` writes the vendored `Turtle_Sail_Apparatus.scad` bundle (no hand template since 2026-10-22). Full SCAD/SVG/DXF/PDF. |
+| `generator/objects/head_fin.py` + `generator/head_fin_generator.py` | **Head Fin (experimental, turtle_body v5.8.0+):** front fin ×1 (one board wide, raked front edge, 3t flat nose, 45° bottom cut) + head fin slat ×2 that bolt to the front-port Little Johns like the rear shafts (reuses `back_fin_generator`'s port-height / M5-pair / hole-position rules, so it follows "Adjust connection"). SCAD = the vendored `Turtle_Head_Fin.scad` bundle; SVG/DXF/PDF in the back fin's shape. Profile needs 7·t < board width (4t top edge + 3t cut). |
+| `generator/sync_from_turtle_body.py` | Vendors `../turtle_body/build/params.json` + the 5 wooden bundles (incl. `Turtle_Head_Fin.scad`) into `generator/turtle_body/`. Pure copy; `--check` reports staleness. |
+| `generator/check_params_sync.py` | Asserts 80 shared-input / key-derived defaults across the generators against `generator/turtle_body/params.json`. Runs in `npm run lint`. Mostly the input layer — the rest of `derive_dimensions()` still needs a human eye. |
+| `tools/component_previews/render.py` | Renders the Step 4 pen-and-ink cards `public/images/ecojoiners/head-fin.webp` and `sail-frame.webp` (+ `sail-frame-high.webp`, used on the sails PDF) from the vendored bundles, reusing `tools/assembly_drawings/render.py`. Re-run after an upstream shape change. Needs openscad, numpy, Pillow. |
 | `generator/turtle_body/` | Vendored, do not hand-edit: `params.json` (upstream `p_*()` snapshot), `scad/*.scad` (the 4 bundles), `VERSION`. See its `README.md`. |
 | `generator/SYNC_PLAN.md` / `generator/SYNC_LOG.md` | The upstream-sync assessment and its running log. |
 | `generator/claude_code_ecojoiner_backend_prompt_v3_2.md` | Historical: the original brief for the 6FC backend. Not current documentation. |
@@ -377,7 +380,7 @@ Flow:
 | `routes/api/ecojoiner.js` | `POST /api/ecojoiner/validate` (dry run) and `/generate`, both rate-limited via `middleware/rateLimit.js` |
 | `controllers/ecojoinerController.js` | thin wrapper; validation failures answer `422` with `errors[]` |
 | `utils/ecojoinerGenerator.js` | one `map*Fields` per `ecojoinerType` → snake_case inputs, `execFile` invocation, path containment |
-| `utils/ecojoinerCleanup.js` | deletes job folders (`ecojoiner_*`, `backfin_*`, `ballast_*`, `sails_*`) older than `ECOJOINER_JOB_TTL_DAYS` |
+| `utils/ecojoinerCleanup.js` | deletes job folders (`ecojoiner_*`, `backfin_*`, `ballast_*`, `sails_*`, `sailcutout_*`, `headfin_*`) older than `ECOJOINER_JOB_TTL_DAYS` |
 
 Field mapping worth remembering: the form's **volume is in millilitres** and is divided by 1000;
 bottle **diameter** becomes `port_height` for 6FC and `bottle_diameter` for the others; the

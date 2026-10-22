@@ -1,9 +1,16 @@
-"""Sail apparatus object (top sail bar, four battens, bottom sail bars, joint
-strengtheners and C end pieces).
+"""Sail apparatus object (split top crossbar -- two halves on a centre sail
+crossbar connector -- four battens, bottom sail bars, joint strengtheners and
+C end pieces).
 
-The .scad output comes straight from the standalone reference generator
-generator/generate_sails.py (build_scad()), the same delegation pattern as
-objects/back_fin.py -> back_fin_generator.py. This module adds the
+turtle_body v6.0.0-v6.3.4 (synced 2026-10-22): the one-piece 6 x bottle_d
+top bar is now two halves lying on a centre connector that spans the sail
+battens, carries a clearance hole for the sail shaft and clamps it with a
+side M3; sail battens are 205 + t with a 2t two-layer upper notch, non-sail
+battens stop flush with the cage roof, bottom rails are 3 x bottle_d + t.
+
+The .scad output comes from generator/generate_sails.py (build_scad()),
+which now writes turtle_body's own vendored bundle with the builder's
+dimensions -- no hand-copied SCAD. This module adds the
 JSON-manifest/job-folder contract the dispatcher and Node expect, plus
 SVG/DXF/PDF carpenter-file writers for the assembly's 6 flat wooden part
 shapes (generator/SYNC_PLAN.md item S-3, completed 2026-09-08).
@@ -15,10 +22,9 @@ still renders it for context, and a dedicated sail generator is planned.
 Upstream contract: every default below mirrors a ``p_*()`` function in
 ../turtle_body/lib/params.scad (named in the comments). The FIXED constants
 below (batten width, notch depths, cage geometry that positions the batten
-holes, etc.) are ported directly from generate_sails.py's SCAD_TEMPLATE,
-which is itself downstream of lib/sail_frame.scad and lib/control_cage.scad
--- they are not exposed as generator inputs because the SCAD template does
-not expose them either. Do not change a value here without checking
+holes, etc.) mirror lib/sail_frame.scad and lib/control_cage.scad -- they
+are not exposed as generator inputs because sail_frame() does not expose
+them either. Do not change a value here without checking
 upstream first - see CLAUDE.md "Turtle Generator".
 """
 from __future__ import annotations
@@ -31,7 +37,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
-    DESIGN_VERSION,
     LICENSE_ID,
     GeneratedFile,
     _to_float,
@@ -64,14 +69,19 @@ import generate_sails as _sails
 
 OBJECT_TYPE = "sails"
 
+# The sail frame's own design version (common.DESIGN_VERSION stays 3.2 for the
+# sail cutout): 4.0 = the split top crossbar of turtle_body v6.0.0-v6.3.4.
+DESIGN_VERSION = "4.0"
+
 SUPPORTED_FORMATS: Tuple[str, ...] = ("scad", "svg", "dxf", "pdf")
 
-# Counted from generate_sails.SCAD_TEMPLATE's *_native_assembly modules.
+# Counted from lib/sail_frame.scad's *_native_assembly modules.
 # The Sail (x2) is soft goods, not a wooden cut part, so it is not listed
 # here or drawn on any 2D export - keep this equal to PART_QUANTITIES_BY_TYPE
 # ['sails'] in utils/ecojoinerGenerator.js.
 PART_QUANTITIES = {
-    "Top Sail Bar": 1,
+    "Top Sail Bar Half": 2,
+    "Sail Crossbar Connector": 1,
     "Sail Batten": 2,
     "Non-sail Batten": 2,
     "Bottom Sail Bar": 2,
@@ -94,26 +104,36 @@ DEFAULTS = {
 # Fixed joinery/tuning values, not exposed on the form (same tier as the fin
 # object's TUNING).
 TUNING = {
-    "side_batten_height": 205.0,          # p_side_batten_h()
+    # None = derive p_side_batten_h() = 205 + wood thickness (217 at 12 mm;
+    # turtle_body v6.1.0). Sail battens only -- the non-sail battens stop
+    # flush with the cage roof and are derived from it.
+    "side_batten_height": None,
     "cage_mount_hole_diameter": 3.2,      # p_cage_mount_hole_d()
 }
 
 # ---------------------------------------------------------------------------
-# Fixed constants ported from generate_sails.py's SCAD_TEMPLATE. None of
-# these are generator inputs -- the SCAD module doesn't expose them as
-# sail_apparatus() parameters either, so there is nothing to thread through.
+# Fixed constants mirrored from lib/sail_frame.scad / lib/params.scad. None
+# of these are generator inputs -- sail_frame() doesn't expose them as
+# parameters either, so there is nothing to thread through.
 # ---------------------------------------------------------------------------
 TOP_BAR_WIDTH = 22.0                  # p_top_crossbar_w()
 TOP_BAR_SLOT_WIDTH = 10.0             # == BATTEN_THICKNESS
 TOP_BAR_SLOT_DEPTH = 11.0
 TOP_BAR_AXLE_SHAFT_D = 8.0             # p_axle_round_d() -- the shaft the axle hole takes (PDF label only)
-TOP_BAR_AXLE_HOLE_D = 8.2              # p_sail_bar_axle_hole_d() -- TB-08: round shaft + 0.2 mm
-                                        # running clearance (was Ø12 for the retired hex corners)
+
+# Split crossbar (turtle_body v6.0.0). The connector lies on the cage roof;
+# each half lies on top of it and both layers share the sail-batten notch.
+CONNECTOR_AXLE_HOLE_D = 9.0            # p_sail_connector_axle_hole_d() -- clearance, not a bearing
+SAIL_M3_PILOT_D = 2.8                  # p_sail_m3_pilot_d() -- side clamp screw + connector pilots
+SAIL_M3_CLEAR_D = 3.2                  # p_sail_m3_clear_d() -- through each half
+CONNECTOR_OVERHANG = 15.0              # p_sail_connector_overhang() -- past each sail batten
+HALF_INBOARD = 15.0                    # p_sail_bar_half_inboard() -- half runs inboard of its batten
+SIDE_BATTEN_BASE = 205.0               # p_side_batten_h() = 205 + p_wood_t()
 
 BATTEN_WIDTH = 20.0                   # p_side_batten_w()
 BATTEN_THICKNESS = 10.0
 BATTEN_NOTCH_DEPTH = BATTEN_WIDTH / 2  # 10
-BATTEN_END_MARGIN = 15.0
+BATTEN_END_MARGIN = 15.0              # lower margin; also the top margin above the 2t notch (v6.1.0)
 CAGE_MOUNT_PITCH = 32.0               # p_cage_mount_pitch()
 
 BOTTOM_BAR_WIDTH = TOP_BAR_WIDTH      # 22
@@ -167,7 +187,7 @@ class SailsInputs:
     collar_diameter: float = DEFAULTS["collar_diameter"]
     top_dome_height: float = DEFAULTS["top_dome_height"]
     bottom_dome_height: float = DEFAULTS["bottom_dome_height"]
-    side_batten_height: float = TUNING["side_batten_height"]
+    side_batten_height: Optional[float] = TUNING["side_batten_height"]
     cage_mount_hole_diameter: float = TUNING["cage_mount_hole_diameter"]
     # The form's "Max board width". None = not given, no fit check.
     board_max_width: Optional[float] = None
@@ -177,20 +197,33 @@ class SailsInputs:
     job_id: str = ""
     lang: str = "en"
 
+    def __post_init__(self):
+        if self.side_batten_height is None:
+            object.__setattr__(self, "side_batten_height", SIDE_BATTEN_BASE + self.wood_thickness)
+
 
 @dataclass(frozen=True)
 class SailsDerived:
-    top_bar_length: float
+    top_bar_length: float          # tip-to-tip span of the split crossbar
     top_bar_width: float
     top_bar_slot_width: float
     top_bar_slot_depth: float
     top_bar_slot_centre_radius: float
-    top_bar_axle_hole_d: float
+    half_length: float             # each Top Sail Bar Half
+    half_slot_u0: float            # slot start, from the half's inner (connector) end
+    half_screw_u: float            # M3 clearance hole, from the inner end
+    connector_length: float
+    connector_axle_hole_d: float
+    connector_screw_offset: float  # each M3 pilot, from the connector centre
+    m3_pilot_d: float
+    m3_clear_d: float
 
     batten_width: float
-    batten_height: float
+    batten_height: float           # sail battens
+    non_sail_batten_height: float  # flush with the cage roof top
     batten_notch_depth: float
-    batten_notch_height: float
+    batten_notch_height: float     # lower notch (bottom rail / C piece)
+    batten_upper_notch_height: float   # sail battens: connector + half
     batten_end_margin: float
     cage_mount_hole_diameter: float
     cage_mount_pitch: float
@@ -259,14 +292,20 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
 
     notch_root_r = _cage_notch_root_radius(bd)
 
-    # ---- top sail bar -----------------------------------------------
-    top_bar_length = 6 * bd
+    # ---- split top crossbar (lib/sail_frame.scad, v6.0.0) -------------
+    top_bar_length = 6 * bd                      # p_top_crossbar_len(), tip to tip
     top_bar_slot_centre_radius = notch_root_r + TOP_BAR_SLOT_WIDTH / 2
+    slot_outer_r = top_bar_slot_centre_radius + TOP_BAR_SLOT_WIDTH / 2
+    connector_length = 2 * (slot_outer_r + CONNECTOR_OVERHANG)
+    half_inner_x = top_bar_slot_centre_radius - TOP_BAR_SLOT_WIDTH / 2 - HALF_INBOARD
+    half_length = top_bar_length / 2 - half_inner_x
+    joint_screw_x = slot_outer_r + CONNECTOR_OVERHANG / 2
 
-    # ---- batten native Z datums (see generate_sails.py lines ~441-465) ----
-    # (side_batten_notch_height - top_sail_bar_thickness)/2 == 0 since both == t.
-    batten_top_z = CAGE_TOTAL_HEIGHT + t + BATTEN_END_MARGIN
+    # ---- batten native Z datums (lib/sail_frame.scad side_batten_top_native_z):
+    # roof top + two crossbar layers (2t notch) + top margin.
+    batten_top_z = CAGE_TOTAL_HEIGHT + 2 * t + BATTEN_END_MARGIN
     batten_bottom_z = batten_top_z - sbh
+    non_sail_batten_height = CAGE_TOTAL_HEIGHT - batten_bottom_z
     cage_surface_under_z = CAGE_TOTAL_HEIGHT - CAGE_SURFACE_THICKNESS   # 44
     cage_slot_vertical_centre_z = cage_surface_under_z / 2              # 22
     cage_wall_tip_z = -CAGE_PEAK_EXTENSION                              # -20
@@ -279,7 +318,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     bottom_bar_inner_radius = bd / 2 + BOTTLE_CLEARANCE
     bottom_bar_inner_overhang = notch_root_r - bottom_bar_inner_radius
     c_piece_length = bottom_bar_inner_overhang + BATTEN_THICKNESS + C_PIECE_OUTER_EXTENSION
-    bottom_bar_length = 3 * bd
+    bottom_bar_length = 3 * bd + t               # p_bottom_rail_len() (v6.3.0)
 
     # ---- joint strengthener: a plain block resting on the rail's own top
     # surface (TB-08-adjacent rail/strengthener simplification -- no notch,
@@ -291,7 +330,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     # ---- sail (fabric/mylar) outline ----
     bottom_bar_z = batten_bottom_z + BATTEN_END_MARGIN
     sail_bottom_z = bottom_bar_z + t
-    sail_top_z = CAGE_TOTAL_HEIGHT
+    sail_top_z = CAGE_TOTAL_HEIGHT + t           # underside of the crossbar halves (v6.0.0)
     sail_inner_radius = top_bar_slot_centre_radius + BATTEN_THICKNESS / 2 + t
     sail_top_outer_radius = 3 * bd
     sail_bottom_outer_radius = bottom_bar_inner_radius + bottom_bar_length
@@ -302,11 +341,20 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
         top_bar_slot_width=TOP_BAR_SLOT_WIDTH,
         top_bar_slot_depth=TOP_BAR_SLOT_DEPTH,
         top_bar_slot_centre_radius=top_bar_slot_centre_radius,
-        top_bar_axle_hole_d=TOP_BAR_AXLE_HOLE_D,
+        half_length=half_length,
+        half_slot_u0=HALF_INBOARD,
+        half_screw_u=joint_screw_x - half_inner_x,
+        connector_length=connector_length,
+        connector_axle_hole_d=CONNECTOR_AXLE_HOLE_D,
+        connector_screw_offset=joint_screw_x,
+        m3_pilot_d=SAIL_M3_PILOT_D,
+        m3_clear_d=SAIL_M3_CLEAR_D,
         batten_width=BATTEN_WIDTH,
         batten_height=sbh,
+        non_sail_batten_height=non_sail_batten_height,
         batten_notch_depth=BATTEN_NOTCH_DEPTH,
         batten_notch_height=t,
+        batten_upper_notch_height=2 * t,
         batten_end_margin=BATTEN_END_MARGIN,
         cage_mount_hole_diameter=inputs.cage_mount_hole_diameter,
         cage_mount_pitch=CAGE_MOUNT_PITCH,
@@ -345,7 +393,7 @@ def validate_inputs(inputs: SailsInputs) -> List[str]:
         (inputs.collar_diameter, "Collar diameter"),
         (inputs.top_dome_height, "Top dome height"),
         (inputs.bottom_dome_height, "Bottom dome height"),
-        (inputs.side_batten_height, "Batten height"),
+        (inputs.side_batten_height, "Sail batten height"),
         (inputs.cage_mount_hole_diameter, "Cage mount hole diameter"),
     ):
         if value is None or value <= 0:
@@ -381,16 +429,20 @@ def validate_inputs(inputs: SailsInputs) -> List[str]:
         (d.sail_height > 0, "The sail rails leave no vertical space for the sail - try a taller batten."),
         (
             d.cage_mount_hole_diameter / 2 < d.cage_mount_lower_from_bottom
-            and d.cage_mount_upper_from_bottom < d.batten_height - d.cage_mount_hole_diameter / 2,
+            and d.cage_mount_upper_from_bottom < d.non_sail_batten_height - d.cage_mount_hole_diameter / 2 - 2,
             "The batten is too short to contain both cage mounting holes.",
         ),
+        (d.half_length > d.half_screw_u + d.m3_clear_d, "The crossbar halves are too short for their joints."),
+        (d.connector_axle_hole_d < d.top_bar_width - 2 * d.m3_pilot_d,
+         "The crossbar is too narrow around the shaft hole for the M3 clamp screw."),
     ]
     for ok, message in checks:
         if not ok:
             errors.append(message)
     # Wooden parts only -- the sail membrane is fabric, not cut from the board.
     errors += board_width_errors(inputs.board_max_width, [
-        ("top sail bar", d.top_bar_length, d.top_bar_width),
+        ("top sail bar half", d.half_length, d.top_bar_width),
+        ("sail crossbar connector", d.connector_length, d.top_bar_width),
         ("batten", d.batten_width, d.batten_height),
         ("bottom sail bar", d.bottom_bar_length, d.bottom_bar_width),
         ("joint strengthener", d.strengthener_width, d.strengthener_height),
@@ -439,20 +491,40 @@ def write_scad(path: Path, inputs: SailsInputs, d: SailsDerived) -> None:
 # label.
 # ---------------------------------------------------------------------------
 
-def _top_bar_outline(d: SailsDerived):
-    return (0, 0), (d.top_bar_length, d.top_bar_width)
+def _half_notches(d: SailsDerived):
+    """Top Sail Bar Half, drawn with its inner (connector) end at u = 0: one
+    batten slot cut from its upper edge. The other half is the same part
+    turned end for end (its slot then opens from the other edge)."""
+    return ((d.half_slot_u0, d.top_bar_width - d.top_bar_slot_depth, d.top_bar_slot_width, d.top_bar_slot_depth),)
 
 
-def _top_bar_notches(d: SailsDerived):
-    cx = d.top_bar_length / 2
+def _half_circles(d: SailsDerived):
+    return ((d.half_screw_u, d.top_bar_width / 2, d.m3_clear_d),)
+
+
+def _connector_notches(d: SailsDerived):
+    cx = d.connector_length / 2
     return (
         (cx - d.top_bar_slot_centre_radius - d.top_bar_slot_width / 2, 0, d.top_bar_slot_width, d.top_bar_slot_depth),
         (cx + d.top_bar_slot_centre_radius - d.top_bar_slot_width / 2, d.top_bar_width - d.top_bar_slot_depth, d.top_bar_slot_width, d.top_bar_slot_depth),
     )
 
 
-def _batten_outline(d: SailsDerived):
-    return (0, 0), (d.batten_width, d.batten_height)
+def _connector_circles(d: SailsDerived):
+    cx, cy = d.connector_length / 2, d.top_bar_width / 2
+    return (
+        (cx, cy, d.connector_axle_hole_d),
+        (cx - d.connector_screw_offset, cy, d.m3_pilot_d),
+        (cx + d.connector_screw_offset, cy, d.m3_pilot_d),
+    )
+
+
+def _batten_h(d: SailsDerived, sail_type: bool) -> float:
+    return d.batten_height if sail_type else d.non_sail_batten_height
+
+
+def _batten_outline(d: SailsDerived, *, sail_type: bool = True):
+    return (0, 0), (d.batten_width, _batten_h(d, sail_type))
 
 
 def _batten_notches(d: SailsDerived, *, sail_type: bool):
@@ -461,9 +533,10 @@ def _batten_notches(d: SailsDerived, *, sail_type: bool):
         (x0, d.batten_end_margin, d.batten_notch_depth, d.batten_notch_height),
     ]
     if sail_type:
-        notches.append(
-            (x0, d.batten_height - d.batten_end_margin - d.batten_notch_height, d.batten_notch_depth, d.batten_notch_height)
-        )
+        notches.append((
+            x0, d.batten_height - d.batten_end_margin - d.batten_upper_notch_height,
+            d.batten_notch_depth, d.batten_upper_notch_height,
+        ))
     return notches
 
 
@@ -515,6 +588,36 @@ def _c_piece_notches(d: SailsDerived):
     return ((d.bottom_bar_inner_overhang, y0, d.c_piece_slot_width, d.c_piece_slot_depth),)
 
 
+def _rows(d: SailsDerived, full_set: bool, half, connector, bottom_bar, batten, strengthener, c_piece):
+    """(row height, draw(y)) rows shared by the SVG and DXF writers: bars and
+    battens first, longest to shortest; the small joinery parts last."""
+    if full_set:
+        return [
+            (d.bottom_bar_width, lambda y: bottom_bar(y, "Bottom Sail Bar 1")),
+            (d.bottom_bar_width, lambda y: bottom_bar(y, "Bottom Sail Bar 2")),
+            (d.top_bar_width, lambda y: half(y, "Top Sail Bar Half 1")),
+            (d.top_bar_width, lambda y: half(y, "Top Sail Bar Half 2")),
+            (d.top_bar_width, lambda y: connector(y, "Sail Crossbar Connector")),
+            (d.batten_height, lambda y: batten(y, "Sail Batten 1", sail_type=True)),
+            (d.batten_height, lambda y: batten(y, "Sail Batten 2", sail_type=True)),
+            (d.non_sail_batten_height, lambda y: batten(y, "Non-sail Batten 1", sail_type=False)),
+            (d.non_sail_batten_height, lambda y: batten(y, "Non-sail Batten 2", sail_type=False)),
+            (d.strengthener_height, lambda y: strengthener(y, "Joint Strengthener 1")),
+            (d.strengthener_height, lambda y: strengthener(y, "Joint Strengthener 2")),
+            (d.c_piece_width, lambda y: c_piece(y, "C End Piece 1")),
+            (d.c_piece_width, lambda y: c_piece(y, "C End Piece 2")),
+        ]
+    return [
+        (d.bottom_bar_width, lambda y: bottom_bar(y, "Bottom Sail Bar x2")),
+        (d.top_bar_width, lambda y: half(y, "Top Sail Bar Half x2")),
+        (d.top_bar_width, lambda y: connector(y, "Sail Crossbar Connector x1")),
+        (d.batten_height, lambda y: batten(y, "Sail Batten x2", sail_type=True)),
+        (d.non_sail_batten_height, lambda y: batten(y, "Non-sail Batten x2", sail_type=False)),
+        (d.strengthener_height, lambda y: strengthener(y, "Joint Strengthener x2")),
+        (d.c_piece_width, lambda y: c_piece(y, "C End Piece x2")),
+    ]
+
+
 # The sail itself (a soft-goods trapezoid) is intentionally not drawn on any
 # 2D carpenter export - see the module docstring. Its dimensions still live
 # in SailsDerived / the manifest for a future dedicated sail generator.
@@ -534,7 +637,7 @@ def write_svg(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
     margin = 10.0
     gap = 14.0
     widest = max(
-        d.top_bar_length, d.bottom_bar_length, d.c_piece_length,
+        d.half_length, d.connector_length, d.bottom_bar_length, d.c_piece_length,
         d.batten_height, d.strengthener_height,
     )
     width = margin * 2 + widest
@@ -546,15 +649,24 @@ def write_svg(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
         out += "  </g>\n"
         return out
 
-    def top_bar_group(y, name):
-        body = _rect(0, 0, d.top_bar_length, d.top_bar_width)
-        for nx, ny, nw, nh in _top_bar_notches(d):
+    def half_group(y, name):
+        body = _rect(0, 0, d.half_length, d.top_bar_width)
+        for nx, ny, nw, nh in _half_notches(d):
             body += _rect(nx, ny, nw, nh)
-        body += _circle(d.top_bar_length / 2, d.top_bar_width / 2, d.top_bar_axle_hole_d)
+        for cx, cy, dia in _half_circles(d):
+            body += _circle(cx, cy, dia)
+        return group(y, name, body)
+
+    def connector_group(y, name):
+        body = _rect(0, 0, d.connector_length, d.top_bar_width)
+        for nx, ny, nw, nh in _connector_notches(d):
+            body += _rect(nx, ny, nw, nh)
+        for cx, cy, dia in _connector_circles(d):
+            body += _circle(cx, cy, dia)
         return group(y, name, body)
 
     def batten_group(y, name, *, sail_type):
-        body = _rect(0, 0, d.batten_width, d.batten_height)
+        body = _rect(0, 0, d.batten_width, _batten_h(d, sail_type))
         for nx, ny, nw, nh in _batten_notches(d, sail_type=sail_type):
             body += _rect(nx, ny, nw, nh)
         for cx, cy, dia in _batten_circles(d, sail_type=sail_type):
@@ -583,28 +695,8 @@ def write_svg(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
 
     # Bars and battens first, longest to shortest; the small joinery parts
     # last. The sail is soft goods and is not exported.
-    rows_full = [
-        (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten 1", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten 2", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 1", sail_type=False)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 2", sail_type=False)),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 1")),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 2")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 1")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 2")),
-    ]
-    rows_preview = [
-        (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar x1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten x2", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten x2", sail_type=False)),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener x2")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece x2")),
-    ]
-    rows = rows_full if full_set else rows_preview
+    rows = _rows(d, full_set, half_group, connector_group, bottom_bar_group,
+                 batten_group, strengthener_group, c_piece_group)
 
     height = margin + sum(h + gap for h, _ in rows)
     out = _svg_header(width, height, desc=f"Flatpack Sail Apparatus v{DESIGN_VERSION}, 1:1 millimetre geometry")
@@ -635,15 +727,22 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
     margin = 10.0
     gap = 14.0
 
-    def top_bar_group(y, name):
-        _dxf_rect(msp, 0, y, d.top_bar_length, d.top_bar_width, DXF_CUT_LAYER)
-        for nx, ny, nw, nh in _top_bar_notches(d):
+    def bar_group(y, name, length, notches, circles):
+        _dxf_rect(msp, 0, y, length, d.top_bar_width, DXF_CUT_LAYER)
+        for nx, ny, nw, nh in notches:
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
-        _dxf_circle(msp, d.top_bar_length / 2, y + d.top_bar_width / 2, d.top_bar_axle_hole_d, DXF_CUT_LAYER)
+        for cx, cy, dia in circles:
+            _dxf_circle(msp, cx, y + cy, dia, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
+    def half_group(y, name):
+        bar_group(y, name, d.half_length, _half_notches(d), _half_circles(d))
+
+    def connector_group(y, name):
+        bar_group(y, name, d.connector_length, _connector_notches(d), _connector_circles(d))
+
     def batten_group(y, name, *, sail_type):
-        _dxf_rect(msp, 0, y, d.batten_width, d.batten_height, DXF_CUT_LAYER)
+        _dxf_rect(msp, 0, y, d.batten_width, _batten_h(d, sail_type), DXF_CUT_LAYER)
         for nx, ny, nw, nh in _batten_notches(d, sail_type=sail_type):
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
         for cx, cy, dia in _batten_circles(d, sail_type=sail_type):
@@ -672,28 +771,8 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
 
     # Bars and battens first, longest to shortest; the small joinery parts
     # last. The sail is soft goods and is not exported.
-    rows_full = [
-        (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar 2")),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten 1", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten 2", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 1", sail_type=False)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten 2", sail_type=False)),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 1")),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener 2")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 1")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece 2")),
-    ]
-    rows_preview = [
-        (d.top_bar_width, lambda y: top_bar_group(y, "Top Sail Bar x1")),
-        (d.bottom_bar_width, lambda y: bottom_bar_group(y, "Bottom Sail Bar x2")),
-        (d.batten_height, lambda y: batten_group(y, "Sail Batten x2", sail_type=True)),
-        (d.batten_height, lambda y: batten_group(y, "Non-sail Batten x2", sail_type=False)),
-        (d.strengthener_height, lambda y: strengthener_group(y, "Joint Strengthener x2")),
-        (d.c_piece_width, lambda y: c_piece_group(y, "C End Piece x2")),
-    ]
-    rows = rows_full if full_set else rows_preview
+    rows = _rows(d, full_set, half_group, connector_group, bottom_bar_group,
+                 batten_group, strengthener_group, c_piece_group)
 
     y = margin
     for row_h, draw in rows:
@@ -707,7 +786,10 @@ def write_dxf(path: Path, inputs: SailsInputs, d: SailsDerived, *, full_set: boo
 # PDF
 # ---------------------------------------------------------------------------
 
-SAILS_ILLUSTRATION = Path(__file__).resolve().parents[2] / "public" / "images" / "sails-export-high.webp"
+# Rendered from the current turtle_body sail frame by
+# tools/component_previews/render.py (was a hand illustration of the
+# pre-v6.0.0 one-piece crossbar, sails-export-high.webp).
+SAILS_ILLUSTRATION = Path(__file__).resolve().parents[2] / "public" / "images" / "ecojoiners" / "sail-frame-high.webp"
 
 
 def _load_illustration():
@@ -729,7 +811,7 @@ def _load_illustration():
 
 
 def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Optional[Path] = None) -> None:
-    """One-page Letter landscape carpenter reference for the assembly's 6
+    """One-page Letter landscape carpenter reference for the assembly's 7
     wooden part shapes (the sail is soft goods and is not drawn).
 
     Every part is rendered at ONE shared scale so thicknesses stay directly
@@ -762,10 +844,11 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     box_title_size = 8 * 1.2
     derived_lines = [
         f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Battens {_ceil_mm(d.batten_height)} x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
+        f"Battens {_ceil_mm(d.batten_height)} (sail) / {_ceil_mm(d.non_sail_batten_height)} (non-sail) x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
         f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
-        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm wide (fit the rails)",
-        f"Top sail bar {_ceil_mm(d.top_bar_length)} x {_ceil_mm(d.top_bar_width)}mm",
+        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm (rails), {_ceil_mm(d.batten_upper_notch_height)}mm (crossbar: 2 layers)",
+        f"Top bar halves {_ceil_mm(d.half_length)} x {_ceil_mm(d.top_bar_width)}mm, {_ceil_mm(d.top_bar_length)}mm tip to tip",
+        f"Connector {_ceil_mm(d.connector_length)}mm: shaft hole Ø{_ceil_mm(d.connector_axle_hole_d)}, M3 side pilot Ø{_ceil_mm(d.m3_pilot_d)} to it",
         f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
         f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
         f"C end piece {_ceil_mm(d.c_piece_length)} x {_ceil_mm(d.c_piece_width)}mm",
@@ -814,16 +897,23 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     body_top = head_bottom - 16
 
     # ---- part outline / notch / hole geometry (mm, part-local) -------------
-    tb_n1, tb_n2 = _top_bar_notches(d)
-    w1, g1 = _rect_open(*tb_n1, "bottom")
-    w2, g2 = _rect_open(*tb_n2, "top")
-    p0, p1, p2, p3 = (0, 0), (d.top_bar_length, 0), (d.top_bar_length, d.top_bar_width), (0, d.top_bar_width)
-    top_bar_edges = [(p0, p1, [g1]), (p1, p2, []), (p2, p3, [g2]), (p3, p0, [])]
-    top_bar_walls = [w1, w2]
+    cn1, cn2 = _connector_notches(d)
+    w1, g1 = _rect_open(*cn1, "bottom")
+    w2, g2 = _rect_open(*cn2, "top")
+    L = d.connector_length
+    p0, p1, p2, p3 = (0, 0), (L, 0), (L, d.top_bar_width), (0, d.top_bar_width)
+    connector_edges = [(p0, p1, [g1]), (p1, p2, []), (p2, p3, [g2]), (p3, p0, [])]
+    connector_walls = [w1, w2]
+    (hn,) = _half_notches(d)
+    hw_, hg = _rect_open(*hn, "top")
+    L = d.half_length
+    p0, p1, p2, p3 = (0, 0), (L, 0), (L, d.top_bar_width), (0, d.top_bar_width)
+    half_edges = [(p0, p1, []), (p1, p2, []), (p2, p3, [hg]), (p3, p0, [])]
+    half_walls = [hw_]
 
     def batten_edges_walls(sail_type):
         notches = _batten_notches(d, sail_type=sail_type)
-        w_mm, h_mm = d.batten_width, d.batten_height
+        w_mm, h_mm = d.batten_width, _batten_h(d, sail_type)
         p0, p1, p2, p3 = (0, 0), (w_mm, 0), (w_mm, h_mm), (0, h_mm)
         gaps_right, walls = [], []
         for n in notches:
@@ -878,10 +968,13 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     # The battens are drawn rotated 90deg so their length runs across the
     # page like the bars; w_mm/h_mm below are still the part-local axes and
     # prepare() applies the rotation.
-    top_bar = {
-        "name": "Top Sail Bar (x1)", "w_mm": d.top_bar_length, "h_mm": d.top_bar_width, "rotate": False,
-        "edges": top_bar_edges, "notches": top_bar_walls,
-        "circles": [(d.top_bar_length / 2, d.top_bar_width / 2, d.top_bar_axle_hole_d)],
+    half = {
+        "name": "Top Sail Bar Half (x2)", "w_mm": d.half_length, "h_mm": d.top_bar_width, "rotate": False,
+        "edges": half_edges, "notches": half_walls, "circles": list(_half_circles(d)),
+    }
+    connector = {
+        "name": "Sail Crossbar Connector (x1)", "w_mm": d.connector_length, "h_mm": d.top_bar_width, "rotate": False,
+        "edges": connector_edges, "notches": connector_walls, "circles": list(_connector_circles(d)),
     }
     bottom_bar = {
         "name": "Bottom Sail Bar (x2)", "w_mm": d.bottom_bar_length, "h_mm": d.bottom_bar_width, "rotate": False,
@@ -893,7 +986,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         "circles": _batten_circles(d, sail_type=True),
     }
     non_sail_batten = {
-        "name": "Non-sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": True,
+        "name": "Non-sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.non_sail_batten_height, "rotate": True,
         "edges": non_sail_batten_edges, "notches": non_sail_batten_walls,
         "circles": _batten_circles(d, sail_type=False),
     }
@@ -922,13 +1015,14 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
         }
 
-    # Rows, top to bottom: Bottom Sail Bar; the full-width Top Sail Bar;
-    # Sail Batten with the Joint Strengthener to its right; Non-sail Batten
-    # with the C End Piece to its right. Parts in a row share a baseline.
-    bars = [prepare(bottom_bar), prepare(top_bar)]
+    # Rows, top to bottom: Bottom Sail Bar; the two Top Sail Bar pieces (half
+    # and connector) side by side; Sail Batten with the Joint Strengthener to
+    # its right; Non-sail Batten with the C End Piece to its right. Parts in a
+    # row share a baseline.
+    bars = [prepare(bottom_bar), prepare(half), prepare(connector)]
     battens = [prepare(sail_batten), prepare(non_sail_batten)]
     sides = [prepare(strengthener), prepare(c_piece)]
-    rows = [[bars[0]], [bars[1]], [battens[0], sides[0]], [battens[1], sides[1]]]
+    rows = [[bars[0]], [bars[1], bars[2]], [battens[0], sides[0]], [battens[1], sides[1]]]
 
     part_title_size = 6.5 * 1.2
     label_h = 13       # part title, above the shape
@@ -987,7 +1081,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     c_end["dim_h"] = dim_h + tier_h + 3
 
     # ---- one shared mm -> pt scale + layout ------------------------------
-    # Width-limited by the longest part (the top bar); every part is then
+    # Width-limited by the widest row; every part is then
     # drawn at that same scale so board thicknesses stay comparable. Stepped
     # down if a batten + its side part would overrun the page width or the
     # rows would overrun the height below the header band.
@@ -1006,6 +1100,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
                 return False
         if ox + bars[0]["eff_w"] * s > draw_right - box_w - 12:
             return False
+        if ox + (bars[1]["eff_w"] + bars[2]["eff_w"]) * s + side_gap > draw_right:
+            return False
         return column_bottom(s, row_gap) >= col_bottom
 
     # Bottom of the last row for a given scale and inter-row gap. The second
@@ -1017,7 +1113,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             y -= row_above(row, s) + row_below(row) + g
         return y + g
 
-    scale = (draw_right - draw_left - left_pad - 6) / bars[1]["eff_w"]
+    scale = (draw_right - draw_left - left_pad - 6) / max(bars[0]["eff_w"], bars[1]["eff_w"] + bars[2]["eff_w"])
     while not fits(scale) and scale > 0.2:
         scale *= 0.97
 
@@ -1028,8 +1124,10 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
             return "M6"
         if abs(dia - d.cage_mount_hole_diameter) < 0.01:
             return "M3"
-        if abs(dia - d.top_bar_axle_hole_d) < 0.01:
-            return f"Ø{_ceil_mm(TOP_BAR_AXLE_SHAFT_D)}mm"
+        if abs(dia - d.m3_pilot_d) < 0.01:
+            return f"Ø{_ceil_mm(dia)}"     # M3 pilot (named in the Derived box); short enough to clear the slots
+        if abs(dia - d.connector_axle_hole_d) < 0.01:
+            return f"Ø{_ceil_mm(dia)} shaft"
         return f"Ø{_ceil_mm(dia)}mm"
 
     def draw_part(part, ox, oy):

@@ -48,6 +48,7 @@ from common import (
     canvas,
 )
 from objects.sails import (
+    SIDE_BATTEN_BASE,
     DEFAULTS as SAILS_DEFAULTS,
     TUNING as SAILS_TUNING,
     SailsInputs,
@@ -94,12 +95,17 @@ class SailCutoutInputs:
     collar_diameter: float = DEFAULTS["collar_diameter"]
     top_dome_height: float = DEFAULTS["top_dome_height"]
     bottom_dome_height: float = DEFAULTS["bottom_dome_height"]
-    side_batten_height: float = TUNING["side_batten_height"]
+    side_batten_height: Optional[float] = TUNING["side_batten_height"]
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "svg")
     job_id: str = ""
     lang: str = "en"
+
+    def __post_init__(self):
+        # None = derive, exactly as objects/sails.py: p_side_batten_h() = 205 + t.
+        if self.side_batten_height is None:
+            object.__setattr__(self, "side_batten_height", SIDE_BATTEN_BASE + self.wood_thickness)
 
 
 @dataclass(frozen=True)

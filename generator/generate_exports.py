@@ -16,7 +16,8 @@ generator/SYNC_PLAN.md). Do not change a dimension here without checking it
 against that file first.
 
 Object selection: the JSON payload passed via --json may include an
-"object_type" key ("6fc", "fin", "ballast" or "sails"); it defaults to
+"object_type" key ("6fc", "fin", "ballast", "sails", "sail_cutout" or
+"head_fin"); it defaults to
 "6fc" for back-compat with any caller that omits it (including this
 script's own manual CLI flags below, which only ever build 6FC inputs).
 
@@ -36,7 +37,7 @@ import json
 from pathlib import Path
 from typing import Optional, Sequence
 
-from objects import ecojoiner_6fc, back_fin, ballast, sails, sail_cutout
+from objects import ecojoiner_6fc, back_fin, ballast, sails, sail_cutout, head_fin
 
 OBJECT_MODULES = {
     "6fc": ecojoiner_6fc,
@@ -46,6 +47,7 @@ OBJECT_MODULES = {
     "sails": sails,
     "sail": sails,
     "sail_cutout": sail_cutout,
+    "head_fin": head_fin,
 }
 
 

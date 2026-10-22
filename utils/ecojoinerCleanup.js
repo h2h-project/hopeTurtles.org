@@ -23,7 +23,7 @@ export const sweepEcojoinerExports = async () => {
   }
 
   // One prefix per object type — see make_job_slug() in generator/objects/*.py.
-  const JOB_PREFIXES = ["ecojoiner_", "backfin_", "ballast_", "sails_"];
+  const JOB_PREFIXES = ["ecojoiner_", "backfin_", "ballast_", "sails_", "sailcutout_", "headfin_"];
 
   for (const entry of entries) {
     if (!entry.isDirectory() || !JOB_PREFIXES.some((p) => entry.name.startsWith(p))) continue;

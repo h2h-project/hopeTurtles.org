@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Rear_Fin.scad
-//  Turtle Body version 5.7.0
+//  Turtle Body version 6.3.5
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -159,7 +159,7 @@ function p_eco_screw_pair_offset() =
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
 //  the axle (below) is derived to this datum.
-function p_cap_disk_d()      = 100;   // control-cap disk (independent of p_bottle_cap_d)
+function p_cap_disk_d()      = 102;   // control-cap disk (independent of p_bottle_cap_d; was 100, +2 mm)
 function p_cap_roof_t()      = 5;     // disk / roof thickness
 function p_cap_boss_depth()  = 1.5;   // extra projection of the centre boss into the hollow cap
                                        // (was 2; lowered 0.5 mm -> 6.5 mm axle bearing length)
@@ -265,6 +265,10 @@ function p_cage_lower_hole_from_tip() = 10;
 // point (typical M3-into-rigid-plastic self-tap pilots run 2.5-2.8 mm) --
 // verify real thread engagement and tapping torque before relying on it.
 function p_cage_setscrew_pilot_d() = 2.5;
+// v6.0.0: the hub set screw (and its access recess) is switched OFF -- the
+// M3 in the sail crossbar connector now clamps the shaft. Kept, not deleted,
+// so it can be turned back on.
+function p_cage_setscrew_enabled() = false;
 // Flat-floored access recess around the set screw, cut into the hub face the
 // roof button opening uncovers, running the hub's full height (roof top down
 // through the hub bottom). Width is tangential, depth is radial (inward from
@@ -281,15 +285,35 @@ function p_cage_setscrew_recess_depth() = 3;
 function p_cage_roof_bevel() = 3;
 
 // ---- sail apparatus (CLAUDE.md s10) ---------------------------
-function p_side_batten_h()   = 205;
+// SAIL battens. v6.0.0: the upper notch holds two stacked layers (connector
+// below, crossbar half above), so the batten grew by the extra layer: 205 +
+// 2t (229) at first, trimmed back by t to 205 + t (217) in v6.1.0 so 15 mm of
+// batten stands above the notch again. Batten bottom, cage M3 holes and the
+// lower rails do not move. The NON-sail battens are shorter: their top is
+// flush with the cage roof top (derived in lib/sail_frame.scad, 178 mm).
+function p_side_batten_h()   = 205 + p_wood_t();       // 217
 function p_side_batten_w()   = 20;
 function p_side_batten_radial_t() = 10;
-function p_top_crossbar_len() = 6 * p_bottle_d();   // 492
+// Top crossbar span, tip to tip: 6 x bottle_d (504). v6.1.0 briefly made each
+// half a head-fin-slat length (span 843.6); v6.2.0 reverted it -- the sails
+// came out too big. The halves are derived from this span.
+function p_top_crossbar_len() = 6 * p_bottle_d();   // 504 (halves 212.2 each)
 function p_top_crossbar_w()  = 22;
 function p_top_crossbar_t()  = p_wood_t();          // 12
-function p_sail_bar_axle_hole_d() = p_axle_shaft_hole_d();  // TB-08: Ø8.2, same running
-                                                              // clearance as the cage hub bore (was Ø12 for the hex corners)
-function p_bottom_rail_len() = 3 * p_bottle_d();    // 246
+// v6.0.0: the top crossbar is split into a LEFT and RIGHT half plus a
+// centre "sail crossbar connector". The connector lies on the cage roof and
+// spans between the two sail battens; each half lies on top of it and runs
+// out to its tip. Both layers half-lap into the same (now 2t tall) sail-batten
+// notch, and one M3 per side screws the half down into the connector.
+// The shaft passes the connector with generous clearance (no bearing), and an
+// M3 self-tapped in from the connector's side face clamps it, locking frame,
+// cage and shaft together (replaces the cage hub set screw).
+function p_sail_connector_axle_hole_d()  = 9;     // Ø8 shaft, 0.5 mm radial clearance (was Ø8.2 in the one-piece bar)
+function p_sail_m3_pilot_d()             = 2.8;   // self-tap pilot: clamp screw + the half-to-connector screws
+function p_sail_m3_clear_d()             = p_cage_mount_hole_d();   // 3.2, through the top (half) layer
+function p_sail_connector_overhang()     = 15;    // connector past each sail batten's outer face
+function p_sail_bar_half_inboard()       = 15;    // each half runs this far inboard of its batten
+function p_bottom_rail_len() = 3 * p_bottle_d() + p_wood_t();   // 264 (v6.3.0: +t; 252 in v6.2.0, 360 in v6.1.0)
 function p_bottom_rail_bottle_clearance() = 1;
 function p_sail_rail_color()  = [0.56, 0.39, 0.39]; // brown (top AND bottom rails)
 function p_c_piece_color()    = [1.0, 0.52, 0.20];  // orange, retained
@@ -328,6 +352,36 @@ function p_rear_shaft_width()   = p_port_height() - 2 * p_wood_t();            /
 function p_rear_shaft_hole_from_front() =
     p_rear_shaft_len() - p_rear_shaft_rear_x() - p_screw_side_offset()
     - p_bottle_h() + p_bottle_cap_h() + p_port_height();
+
+// ---- head fin: front fin (v5.8.0, EXPERIMENTAL; triangle since v6.3.0) ---------
+// The rear fin's mirror on the front (-X / physical 9 o'clock) port: two
+// flat slats above and below the front bottle bolt to the same Little John
+// M5 pairs and run the length of the bottle; a vertical triangular fin
+// half-laps into their outer ends and abuts the bottle base. Not built or
+// tested. See lib/head_fin.scad.
+//  * fin width (forward, along the bottle axis) = the widest board, so the
+//    fin is cut across one board (its height runs along the board's length)
+//  * the slats reach exactly as far into the Ecojoiner as the rear shafts,
+//    so their M5 pair lands at the same distance from the slat front
+function p_head_fin_w()       = p_fin_board_w();                         // 93
+function p_head_fin_h()       = p_bottle_d() + 6 * p_wood_t();           // 156: 2t of fin beyond each slat
+function p_head_slat_overlap() = 4 * p_wood_t();                         // 48: slat run into the fin
+// v6.3.1 profile (v6.3.0 had the slope the other way): the TOP edge runs
+// out only to this X (where the slats end); the leading edge slopes down and
+// FORWARD from there to a vertical flat "toe" at the full fin width, which
+// meets the bottom edge. Full width along the BOTTOM edge.
+function p_head_fin_heel_x()  = p_head_slat_overlap();                   // 48: top-edge length
+function p_head_fin_toe_h()   = 3 * p_wood_t();                          // 36: vertical flat nose at the bottom front (v6.3.4; was 2t)
+// v6.3.2: the fin extends DOWN below p_head_fin_h()'s bottom by this much (top
+// unchanged), and its new bottom-front corner is set back, giving a raked
+// forefoot below the toe flat.
+function p_head_fin_drop()    = 3 * p_wood_t();                          // 36
+function p_head_fin_forefoot_setback() = p_head_fin_drop();             // 36: = drop -> 45 deg cut (v6.3.3; was 18)
+function p_head_half_lap_engagement() = p_head_slat_overlap() / 2;       // 24
+function p_head_slat_reach()  = p_rear_shaft_len() - p_rear_shaft_rear_x();   // 334: bottle base -> slat front
+function p_head_slat_len()    = p_head_slat_reach() + p_head_slat_overlap();  // 382
+function p_head_slat_width()  = p_rear_shaft_width();                    // 60 == John height
+function p_head_slat_hole_from_front() = p_rear_shaft_hole_from_front(); // 113: same reach -> same John pair
 
 // ---- ballast attachment (CLAUDE.md s12) ---------------------
 function p_ballast_core_w()   = p_port_height() - 2 * p_wood_t();               // 60 == John height

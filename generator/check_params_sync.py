@@ -51,6 +51,7 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
     import bottom_ballast_fin_generator as bal_ref
     from objects import ecojoiner_6fc as eco, sails
     from objects import ballast as bal_obj
+    import head_fin_generator as hf_ref
 
     eco_in = eco.EcojoinerInputs()
     eco_derived = eco.derive_dimensions(eco.EcojoinerInputs())
@@ -58,6 +59,9 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
     bf = bf_ref.DEFAULTS
     bft = bf_ref.TUNING
     bal = bal_ref.DEFAULTS
+    sail_d = sails.derive_dimensions(sail_in)
+    hf = hf_ref.DEFAULTS
+    hf_d = hf_ref.dimensions({**hf_ref.DEFAULTS, **hf_ref.TUNING})
 
     # (json param, where it lives here, generator-side value)
     rows = [
@@ -138,6 +142,33 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         # sail side batten height / cage mount hole  -- p_side_batten_h() / p_cage_mount_hole_d()
         ("p_side_batten_h", "sails SailsInputs.side_batten_height", sail_in.side_batten_height),
         ("p_cage_mount_hole_d", "sails SailsInputs.cage_mount_hole_diameter", sail_in.cage_mount_hole_diameter),
+        # split top crossbar (v6.0.0) and bottom rail  -- p_sail_*() / p_bottom_rail_len() / p_top_crossbar_len()
+        ("p_top_crossbar_len", "sails derive_dimensions().top_bar_length", sail_d.top_bar_length),
+        ("p_bottom_rail_len", "sails derive_dimensions().bottom_bar_length", sail_d.bottom_bar_length),
+        ("p_sail_connector_axle_hole_d", "sails CONNECTOR_AXLE_HOLE_D", sails.CONNECTOR_AXLE_HOLE_D),
+        ("p_sail_m3_pilot_d", "sails SAIL_M3_PILOT_D", sails.SAIL_M3_PILOT_D),
+        ("p_sail_m3_clear_d", "sails SAIL_M3_CLEAR_D", sails.SAIL_M3_CLEAR_D),
+        ("p_sail_connector_overhang", "sails CONNECTOR_OVERHANG", sails.CONNECTOR_OVERHANG),
+        ("p_sail_bar_half_inboard", "sails HALF_INBOARD", sails.HALF_INBOARD),
+        # head fin (v5.8.0+, experimental)  -- p_head_*() / shared inputs
+        ("p_wood_t", "head_fin DEFAULTS['wood_thickness']", hf["wood_thickness"]),
+        ("p_bottle_d", "head_fin DEFAULTS['bottle_diameter']", hf["bottle_diameter"]),
+        ("p_bottle_h", "head_fin DEFAULTS['bottle_height']", hf["bottle_height"]),
+        ("p_bottle_cap_h", "head_fin DEFAULTS['cap_height']", hf["cap_height"]),
+        ("p_fin_board_w", "head_fin DEFAULTS['fin_board_width']", hf["fin_board_width"]),
+        ("p_m5_hole_d", "head_fin TUNING['slat_hole_diameter']", hf_ref.TUNING["slat_hole_diameter"]),
+        ("p_fit_clearance", "head_fin TUNING['half_lap_clearance']", hf_ref.TUNING["half_lap_clearance"]),
+        ("p_head_fin_w", "head_fin dimensions()['fin_width']", hf_d["fin_width"]),
+        ("p_head_fin_h", "head_fin dimensions()['fin_height']", hf_d["fin_height"]),
+        ("p_head_fin_heel_x", "head_fin dimensions()['heel_x']", hf_d["heel_x"]),
+        ("p_head_fin_toe_h", "head_fin dimensions()['toe_h']", hf_d["toe_h"]),
+        ("p_head_fin_drop", "head_fin dimensions()['drop']", hf_d["drop"]),
+        ("p_head_fin_forefoot_setback", "head_fin dimensions()['setback']", hf_d["setback"]),
+        ("p_head_slat_overlap", "head_fin dimensions()['overlap']", hf_d["overlap"]),
+        ("p_head_half_lap_engagement", "head_fin dimensions()['joint_meet_x']", hf_d["joint_meet_x"]),
+        ("p_head_slat_len", "head_fin dimensions()['slat_length']", hf_d["slat_length"]),
+        ("p_head_slat_width", "head_fin dimensions()['slat_width']", hf_d["slat_width"]),
+        ("p_head_slat_hole_from_front", "head_fin dimensions()['slat_hole_from_front']", hf_d["slat_hole_from_front"]),
     ]
 
     out = []

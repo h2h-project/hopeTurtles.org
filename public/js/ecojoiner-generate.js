@@ -50,6 +50,7 @@
       gen_component_fin: "Rear Fin",
       gen_component_ballast: "Ballast",
       gen_component_sails: "Sail Frame",
+      gen_component_head_fin: "Head Fin",
       gen_component_fallback: "Turtle component",
       gen_session_title: "Your session has timed out",
       gen_session_body:
@@ -704,10 +705,21 @@
               `${mm(i.solar_panel_width)} × ${mm(i.solar_panel_height)} × ${mm(i.solar_panel_thickness)}`,
             ],
           ]
+        : data.object_type === "head_fin"
+        ? [
+            [s("gen_dim_head_fin"), `${mm(d.fin_width)} × ${mm(d.fin_total_height)}`],
+            [s("gen_dim_head_fin_slat"), `${mm(d.slat_length)} × ${mm(d.slat_width)}`],
+            [s("gen_dim_head_fin_joint"), `${mm(d.joint_slot_opening)} / ${mm(d.joint_meet_x)}`],
+            [s("gen_dim_head_fin_holes"), mm(d.slat_hole_from_front)],
+          ]
         : data.object_type === "sails"
         ? [
-            [s("gen_dim_sails_top_bar"), `${mm(d.top_bar_length)} × ${mm(d.top_bar_width)}`],
-            [s("gen_dim_sails_batten"), `${mm(d.batten_height)} × ${mm(d.batten_width)}`],
+            [s("gen_dim_sails_top_bar"), mm(d.half_length)],
+            [s("gen_dim_sails_connector"), mm(d.connector_length)],
+            [
+              s("gen_dim_sails_batten"),
+              `${mm(d.batten_height)} / ${mm(d.non_sail_batten_height)} × ${mm(d.batten_width)}`,
+            ],
             [s("gen_dim_sails_bottom_bar"), mm(d.bottom_bar_length)],
             [
               s("gen_dim_sails_cage_holes"),
@@ -940,7 +952,19 @@
     "eco-type",
     "eco-fabrication",
   ];
-  const ORDER_BY_TYPE = { fin: ORDER_FIN, ballast: ORDER_BALLAST };
+  // Head Fin: the rear fin's bottle/board fields, minus the cap diameter and
+  // the solar panel.
+  const ORDER_HEAD_FIN = [
+    "eco-brand",
+    "eco-diameter",
+    "eco-height",
+    "eco-cap-height",
+    "eco-thickness",
+    "eco-board-max-width",
+    "eco-type",
+    "eco-fabrication",
+  ];
+  const ORDER_BY_TYPE = { fin: ORDER_FIN, ballast: ORDER_BALLAST, head_fin: ORDER_HEAD_FIN };
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();

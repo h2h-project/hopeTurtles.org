@@ -47,7 +47,9 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'bottom_ballast_fin', part: 'Bottom Ballast Fin', quantity: 1 }
   ],
   sails: [
-    { key: 'top_sail_bar', part: 'Top Sail Bar', quantity: 1 },
+    // turtle_body v6.0.0: the top crossbar is two halves on a centre connector.
+    { key: 'top_sail_bar_half', part: 'Top Sail Bar Half', quantity: 2 },
+    { key: 'sail_crossbar_connector', part: 'Sail Crossbar Connector', quantity: 1 },
     { key: 'sail_batten', part: 'Sail Batten', quantity: 2 },
     { key: 'non_sail_batten', part: 'Non-sail Batten', quantity: 2 },
     { key: 'bottom_sail_bar', part: 'Bottom Sail Bar', quantity: 2 },
@@ -58,6 +60,10 @@ export const PART_QUANTITIES_BY_TYPE = {
     // One shape, cut twice — the second sail is the same outline rotated
     // 180deg in-plane, not a mirror (see generator/objects/sail_cutout.py).
     { key: 'sail', part: 'Sail', quantity: 2 }
+  ],
+  head_fin: [
+    { key: 'head_fin', part: 'Head Fin', quantity: 1 },
+    { key: 'head_fin_slat', part: 'Head Fin Slat', quantity: 2 }
   ]
 };
 
@@ -110,7 +116,8 @@ const FIELD_MAPPERS = {
   fin: (body) => mapBackFinFields(body),
   ballast: (body) => mapBallastFields(body),
   sails: (body) => mapSailsFields(body),
-  sail_cutout: (body) => mapSailCutoutFields(body)
+  sail_cutout: (body) => mapSailCutoutFields(body),
+  head_fin: (body) => mapHeadFinFields(body)
 };
 
 export const mapFormFields = (body = {}) =>
@@ -464,6 +471,78 @@ const mapSailsFields = (body = {}) => {
       ecojoinerType: 'sails'
     },
     notices: []
+  };
+};
+
+// Head Fin (EXPERIMENTAL, turtle_body v5.8.0+): the front fin and its two
+// bottle-holder slats. Same bottle/board fields as the Fin Attachment minus
+// the cap diameter and solar panel - see generator/objects/head_fin.py. The
+// slats bolt against the front port's Little Johns, so like the rear fin they
+// follow the "Adjust connection" offset (portFitMm).
+const mapHeadFinFields = (body = {}) => {
+  const errors = [];
+
+  const required = {
+    brand: body.brand,
+    diameter: body.diameter,
+    thickness: body.thickness,
+    height: body.height,
+    capHeight: body.capHeight,
+    boardMaxWidth: body.boardMaxWidth
+  };
+
+  const brand = String(required.brand ?? '').trim();
+  if (!brand) errors.push('Please tell us the bottle brand.');
+  if (brand.length > 60) errors.push('Bottle brand must be 60 characters or fewer.');
+
+  const numbers = {};
+  for (const key of ['diameter', 'thickness', 'height', 'capHeight', 'boardMaxWidth']) {
+    const parsed = toNumber(required[key]);
+    if (parsed === null) {
+      errors.push(`Missing value: ${key}.`);
+    } else if (Number.isNaN(parsed)) {
+      errors.push(`${key} must be a number.`);
+    } else {
+      numbers[key] = parsed;
+    }
+  }
+
+  const optional = {};
+  const portFitMm = toNumber(body.portFitMm);
+  if (portFitMm !== null) {
+    if (Number.isNaN(portFitMm)) errors.push('portFitMm must be a number.');
+    else optional.port_fit_mm = portFitMm;
+  }
+
+  // Fabrication checkboxes → generator formats.
+  const formats = new Set();
+  if (isTruthy(body.fabCarpentry)) formats.add('pdf');
+  if (isTruthy(body.fab3d)) formats.add('scad');
+  if (isTruthy(body.fabSvg)) formats.add('svg');
+  if (isTruthy(body.fabDxf)) formats.add('dxf');
+  if (!formats.size) errors.push('Choose at least one fabrication format.');
+
+  if (errors.length) {
+    throw new EcojoinerRequestError('Please check the form values.', errors);
+  }
+
+  return {
+    inputs: {
+      object_type: 'head_fin',
+      bottle_brand: brand,
+      bottle_diameter: numbers.diameter,
+      wood_thickness: numbers.thickness,
+      bottle_height: numbers.height,
+      cap_height: numbers.capHeight,
+      fin_board_width: numbers.boardMaxWidth,
+      formats: SUPPORTED_FORMATS.filter((format) => formats.has(format)),
+      ...optional
+    },
+    context: {
+      material: body.material ? String(body.material) : null,
+      ecojoinerType: 'head_fin'
+    },
+    notices: ['The head fin is experimental - it has not been built or sea-tested yet.']
   };
 };
 
