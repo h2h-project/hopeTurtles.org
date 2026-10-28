@@ -1083,7 +1083,8 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         T(lang, "bottle_diameter", value=_ceil_mm(inputs.port_height - inputs.port_fit_mm)),
         T(lang, "cap_line", value=_ceil_mm(inputs.cap_diameter)),
         T(lang, "collar_line", value=_ceil_mm(inputs.collar_diameter)),
-        T(lang, "fit_clearance_line", value=_ceil_mm(inputs.fit_clearance)),
+        # Exact, not _ceil_mm: a 0.2 mm tolerance would round to "0".
+        T(lang, "fit_clearance_line", value=f"{inputs.fit_clearance:g}"),
         T(lang, "fit_connection_line", value=_fit_connection_label(lang, inputs.port_fit_mm)),
     ]
     derived_lines = [
@@ -1263,7 +1264,7 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         )
         if include_screw_holes:
             _draw_dimension_line(
-                c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label", value=f"{d.screw_side_offset:g}"), body_font, 6.5,
+                c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label", value=_ceil_mm(d.screw_side_offset)), body_font, 6.5,
                 ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
             )
             # Each hole of the pair: its inset from the nearer long edge

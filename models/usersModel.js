@@ -201,13 +201,15 @@ usersModel.upsertFromBuwana = async (user) => {
     last_login:         user.last_login ?? new Date(),
     language_id:        user.language_id ?? 'EN',
     earthling_emoji:    user.earthling_emoji ?? null,
-    profile_pic:        user.profile_pic ?? null,
+    // NOT NULL DEFAULT 'null' in users_tb — the views treat the string 'null' as "no photo"
+    profile_pic:        user.profile_pic ?? 'null',
     community_id:       user.community_id ?? null,
     time_zone:          user.time_zone ?? null,
     birth_date:         user.birth_date ?? null,
     location_full:      user.location_full ?? null,
     watershed_id:       user.watershed_id ?? null,
-    location_watershed: user.location_watershed ?? null,
+    // NOT NULL with no default in users_tb
+    location_watershed: user.location_watershed ?? '',
     location_lat:       user.location_lat ?? null,
     location_long:      user.location_long ?? null
   });

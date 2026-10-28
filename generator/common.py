@@ -78,13 +78,17 @@ def _slugify(text: str, fallback: str = "generic") -> str:
 
 
 def _ceil_mm(value: float) -> str:
-    """Format a millimetre dimension to 1 decimal place for the PDF.
+    """Format a millimetre dimension for the PDF, rounded to the nearest 0.5 mm.
 
     The PDF is a scaled carpenter reference (the SVG/DXF carry the exact 1:1
-    geometry). `round(value, 6)` first absorbs float noise (e.g. 12.000000001)
-    before formatting. Whole-number values drop the trailing ".0" (56.0 -> "56").
+    geometry), so every printed measurement is rounded up or down to a .0 or
+    .5 a builder can mark with a ruler (56.2 -> "56", 56.3 -> "56.5",
+    56.75 -> "57"). Halves round up rather than to even. `round(value, 6)`
+    first absorbs float noise (e.g. 12.000000001). Whole-number values drop
+    the trailing ".0" (56.0 -> "56").
     """
-    text = f"{round(value, 6):.1f}"
+    halves = math.floor(round(value, 6) * 2 + 0.5) / 2
+    text = f"{halves:.1f}"
     return text[:-2] if text.endswith(".0") else text
 
 

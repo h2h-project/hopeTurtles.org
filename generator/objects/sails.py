@@ -123,7 +123,7 @@ TOP_BAR_AXLE_SHAFT_D = 8.0             # p_axle_round_d() -- the shaft the axle 
 
 # Split crossbar (turtle_body v6.0.0). The connector lies on the cage roof;
 # each half lies on top of it and both layers share the sail-batten notch.
-CONNECTOR_AXLE_HOLE_D = 9.0            # p_sail_connector_axle_hole_d() -- clearance, not a bearing
+CONNECTOR_AXLE_HOLE_D = 6.0            # p_sail_connector_axle_hole_d() -- clearance, not a bearing
 SAIL_M3_PILOT_D = 2.8                  # p_sail_m3_pilot_d() -- side clamp screw + connector pilots
 SAIL_M3_CLEAR_D = 3.2                  # p_sail_m3_clear_d() -- through each half
 CONNECTOR_OVERHANG = 15.0              # p_sail_connector_overhang() -- past each sail batten
