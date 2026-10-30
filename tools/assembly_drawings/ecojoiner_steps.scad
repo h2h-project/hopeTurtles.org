@@ -45,13 +45,16 @@ module john_clamps(target_y, inside_sign)
                 translate([hole_x, target_y + inside_sign * t / 2, hole_z])
                     rotate([inside_sign > 0 ? -90 : 90, 0, 0]) eco_m5_clamp(false);
 
-module frame_square(rot, master = false, long2_dz = 0, little1_dz = 0, hardware = false) {
+// skip_long leaves out one Long John (1 or 2), so the square is drawn as the
+// U of two Little Johns on one Long John that step 4 slides in from above.
+module frame_square(rot, master = false, long2_dz = 0, little1_dz = 0, hardware = false,
+                    skip_long = 0) {
     fc = eco_frame_center();
     translate(fc) rotate(rot) translate(-fc) {
         standing_little(0, master, -little1_dz);
         standing_little(eco_rectangle_y(), false);
-        flipped_long(eco_little_slot_1_x());
-        flipped_long(eco_little_slot_2_x(), long2_dz);
+        if (skip_long != 1) flipped_long(eco_little_slot_1_x());
+        if (skip_long != 2) flipped_long(eco_little_slot_2_x(), long2_dz);
         if (hardware) {
             john_clamps(0, +1);
             john_clamps(eco_rectangle_y(), -1);
@@ -95,13 +98,17 @@ module layout() {
 A = [0, 0, 0];
 B = [0, 90, 90];
 C = [90, 0, 90];
+U_DROP = lift * 1.6;   // how far above its seat step 4's U hangs
 
 // Scenes 1-6 are the six sub-steps; 7 and 8 are close-ups that render.py
 // sets into circles on the drawings of steps 6 and 2.
 if (step == 1) layout();
 if (step == 2) master_vs_little();
 if (step == 3) frame_square(A, long2_dz = lift * 1.7);
-if (step == 4) { frame_square(A); frame_square(B, little1_dz = lift * 1.3); }
+// Step 4: the second square's U — two Little Johns hanging from one Long
+// John — drops in from above through the first square's centre. Its last
+// Long John fits under the first square afterwards.
+if (step == 4) { frame_square(A); translate([0, 0, U_DROP]) frame_square(B, skip_long = 2); }
 if (step == 5) { frame_square(A); frame_square(B); frame_square(C, master = true, little1_dz = lift); }
 if (step == 6) {
     frame_square(A, hardware = true);

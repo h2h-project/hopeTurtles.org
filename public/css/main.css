@@ -6765,16 +6765,6 @@ body.ocean-bg {
   gap: 0.9rem;
 }
 
-.build-banner__cta {
-  background: #facc15;
-  color: var(--color-forest, #1f3b22);
-}
-
-.build-banner__cta:hover {
-  background: #fde68a;
-  color: var(--color-forest, #1f3b22);
-}
-
 .build-actions {
   display: flex;
   flex-wrap: wrap;
@@ -6851,6 +6841,13 @@ body.ocean-bg {
 
 .build-stars .fa-regular {
   color: rgba(245, 158, 11, 0.45);
+}
+
+.build-stars__note {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85em;
+  opacity: 0.8;
 }
 
 .build-sections section + section {
@@ -6971,6 +6968,23 @@ body.ocean-bg {
 .build-assembly__figure img {
   display: block;
   background: #fff;
+}
+
+/* Stands in for a drawing that hasn't been made yet, at the drawings' square. */
+.build-assembly__placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.6rem;
+  aspect-ratio: 1;
+  border: 2px dashed rgba(1, 121, 25, 0.3);
+  border-radius: 1rem;
+  color: var(--color-muted, rgba(31, 59, 34, 0.6));
+  font-size: 0.95rem;
+}
+
+.build-assembly__placeholder i {
+  font-size: 2rem;
 }
 
 .build-assembly__parts {

@@ -74,9 +74,11 @@
           </a>
         </div>
 
-        <div class="ecojoiners-actions">
-          <a class="button" href="/turtles/generate">
-            <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.turtles_banner_cta || 'Generate Your Turtle' %>
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_wrangler_title %></h3>
+          <p><%- t.turtles_component_wrangler_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_wrangler" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
           </a>
         </div>
       </div>
@@ -106,6 +108,15 @@
             <h3><%= t.turtles_repo_turtle_body || 'Turtle_body' %></h3>
             <p><%= t.turtles_repo_panel_body_desc %></p>
             <a class="button ghost" href="https://github.com/h2h-project/turtle_body" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+            </a>
+          </div>
+
+          <div class="turtles-repo-panel">
+            <img src="/images/wrangler_cover.webp" alt="<%= t.turtles_repo_wrangler || 'Turtle_Wrangler' %>" loading="lazy" />
+            <h3><%= t.turtles_repo_wrangler || 'Turtle_Wrangler' %></h3>
+            <p><%= t.turtles_repo_panel_wrangler_desc %></p>
+            <a class="button ghost" href="https://github.com/h2h-project/turtle_wrangler" target="_blank" rel="noopener noreferrer">
               <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
             </a>
           </div>

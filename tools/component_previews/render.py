@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pen-and-ink preview cards for the generator's Step 4 component picker.
+"""Pen-and-ink drawings of the turtle's wooden components.
 
 Renders a turtle component straight from its vendored turtle_body bundle
 (generator/turtle_body/scad/, refreshed by generator/sync_from_turtle_body.py)
@@ -10,11 +10,12 @@ axis -- denser on faces turned from the light, cross-hatched in shadow, close
 end-grain lines on cut ends. Reuses the z-buffer and outline code of
 tools/assembly_drawings/render.py.
 
-Writes public/images/ecojoiners/<name>.webp (500 x 500, the card size), plus
-a 1000 px <name>-high.webp for the components in HIGH (the sail frame's goes
-on the sails carpenter PDF):
+Writes public/images/ecojoiners/<name>.webp (500 x 500, the card size) for
+the components in CARDS, plus a 1000 px <name>-high.webp for those in HIGH
+(the /turtles/build sail-components panel; the sail frame's also goes on the
+sails carpenter PDF):
 
-    python3 tools/component_previews/render.py [head_fin] [sail_frame]
+    python3 tools/component_previews/render.py [ballast_fin] [rear_fin] [head_fin] [sail_frame]
 
 Needs openscad on PATH, numpy and Pillow.
 """
@@ -46,6 +47,16 @@ LIGHT /= np.linalg.norm(LIGHT)
 # group is split into boards and grain-hatched; an optional "fabric" group
 # (the sails) is drawn as a light woven mesh in the same coordinates.
 COMPONENTS = {
+    "ballast_fin": (
+        "Turtle_Bottom_Ballast_Fin.scad",
+        {"wood": "local_ballast_assembly(colored = false);"},
+        (-120, 30),
+    ),
+    "rear_fin": (
+        "Turtle_Rear_Fin.scad",
+        {"wood": "rear_fin_assembly(colored = false);"},
+        (-35, 25),
+    ),
     "head_fin": (
         "Turtle_Head_Fin.scad",
         {"wood": "head_fin_assembly(colored = false);"},
@@ -60,7 +71,12 @@ COMPONENTS = {
         (-38, 22),
     ),
 }
-FABRIC_ID = 1_000_000
+# Non-wood groups, drawn in one style each instead of grain-hatched boards.
+# tools/assembly_drawings/turtle_steps.py exports the full-turtle scenes in
+# these groups.
+EXTRA_IDS = {"fabric": 1_000_000, "bottle": 1_000_001, "printed": 1_000_002,
+             "hw": 1_000_003, "panel": 1_000_004}
+FABRIC_ID = EXTRA_IDS["fabric"]
 
 
 def export_mesh(name: str, tmp: Path) -> dict:
@@ -98,8 +114,13 @@ def split_parts(tris: np.ndarray):
 
 
 def draw(name: str, meshes: dict, size: int = SIZE) -> Image.Image:
-    tris = meshes["wood"]
-    part = split_parts(tris)
+    return draw_view(meshes, COMPONENTS[name][2], size)
+
+
+def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN) -> Image.Image:
+    """Ink `meshes` ({group: triangles}) seen from `view` = (azimuth, elevation)."""
+    tris = meshes.get("wood", np.empty((0, 3, 3)))
+    part = split_parts(tris) if len(tris) else np.empty(0, dtype=int)
     keep, grain = [], {}
     for pid in np.unique(part):
         pts = tris[part == pid].reshape(-1, 3)
@@ -112,17 +133,18 @@ def draw(name: str, meshes: dict, size: int = SIZE) -> Image.Image:
         grain[pid] = axis
     mask = np.isin(part, keep)
     tris, part = tris[mask], part[mask]
-    fabric = meshes.get("fabric")
-    if fabric is not None and len(fabric):
-        tris = np.concatenate([tris, fabric])
-        part = np.concatenate([part, np.full(len(fabric), FABRIC_ID)])
-        keep = keep + [FABRIC_ID]
+    for group, gid in EXTRA_IDS.items():
+        extra = meshes.get(group)
+        if extra is not None and len(extra):
+            tris = np.concatenate([tris, extra])
+            part = np.concatenate([part, np.full(len(extra), gid)])
+            keep = keep + [gid]
 
-    m = view_matrix(*COMPONENTS[name][2])
+    m = view_matrix(*view)
     v_all = tris @ m.T
     lo, hi = v_all.reshape(-1, 3).min(0), v_all.reshape(-1, 3).max(0)
     px = size * SS
-    scale = px * (1 - 2 * MARGIN) / max(hi[0] - lo[0], hi[1] - lo[1])
+    scale = px * (1 - 2 * margin) / max(hi[0] - lo[0], hi[1] - lo[1])
     centre = (lo + hi) / 2
 
     depth = np.full((px, px), -np.inf)
@@ -164,9 +186,22 @@ def draw(name: str, meshes: dict, size: int = SIZE) -> Image.Image:
     cloth = gbuf == FABRIC_ID
     ink |= cloth & ((np.mod(xx + yy, 7 * SS) < 0.5 * SS) | (np.mod(xx - yy, 7 * SS) < 0.5 * SS))
 
+    # Bottles: clear plastic, so only a light diagonal hatch on the shadow side.
+    bottle = gbuf == EXTRA_IDS["bottle"]
+    ink |= bottle & (shade < 0.45) & (np.mod(xx - yy, 9 * SS) < line_w)
+    # Printed parts: a stipple that thickens into shadow.
+    printed = gbuf == EXTRA_IDS["printed"]
+    dots = np.random.default_rng(5).random((px, px))
+    ink |= printed & dilate(dots < 0.004 + 0.02 * (1 - shade), 1)
+    # Solar panel: dark glass, in dense cross-hatching with a lit edge.
+    panel = gbuf == EXTRA_IDS["panel"]
+    ink |= panel & ((np.mod(xx + yy, 3.5 * SS) < line_w) | (np.mod(xx - yy, 3.5 * SS) < line_w))
+    # Hardware: solid ink with a small highlight on lit faces.
+    ink |= (gbuf == EXTRA_IDS["hw"]) & ~((shade > 0.85) & (np.mod(xx + yy, 4 * SS) < line_w))
+
     for pid in keep:
         here = gbuf == pid
-        if pid == FABRIC_ID or not here.any():
+        if pid in EXTRA_IDS.values() or not here.any():
             continue
         # Grain direction on screen: the board's long axis, projected.
         g = m @ grain[pid]
@@ -196,7 +231,11 @@ def draw(name: str, meshes: dict, size: int = SIZE) -> Image.Image:
     return img.resize((size, size), Image.LANCZOS).convert("RGB")
 
 
-HIGH = {"sail_frame": 1000}
+# Components with a 1000 px <name>-high.webp: the /turtles/build "Assemble
+# Your Sail Components" panel shows all four, and the sails carpenter PDF
+# uses the sail frame's. Only CARDS also get the 500 px generator card.
+HIGH = {"ballast_fin": 1000, "rear_fin": 1000, "head_fin": 1000, "sail_frame": 1000}
+CARDS = {"head_fin", "sail_frame"}
 
 
 def main() -> None:
@@ -206,7 +245,7 @@ def main() -> None:
         for name in names:
             mesh = export_mesh(name, Path(tmp))
             stem = name.replace("_", "-")
-            outs = [(OUT_DIR / f"{stem}.webp", draw(name, mesh))]
+            outs = [(OUT_DIR / f"{stem}.webp", draw(name, mesh))] if name in CARDS else []
             if name in HIGH:
                 outs.append((OUT_DIR / f"{stem}-high.webp", draw(name, mesh, size=HIGH[name])))
             for out, img in outs:
