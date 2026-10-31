@@ -756,7 +756,7 @@
     const fill = (str) =>
       str
         .replace(/\{component\}/g, component)
-        .replace("{version}", data.design_version || "3.3");
+        .replace("{version}", data.design_version || "");
     const title = fill(s("gen_res_title"));
     const lede = fill(s("gen_res_lede"));
 

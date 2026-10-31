@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
+    DESIGN_VERSION,
     LICENSE_ID,
     GeneratedFile,
     _to_float,
@@ -55,7 +56,6 @@ from objects.ecojoiner_6fc import _fit_connection_label
 import head_fin_generator as _hf
 
 OBJECT_TYPE = "head_fin"
-DESIGN_VERSION = "1.0"
 
 PART_QUANTITIES = {
     "Head Fin": 1,

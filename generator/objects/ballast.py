@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
+    DESIGN_VERSION,
     LICENSE_ID,
     DEFAULT_PORT_ALLOWANCE_MM,
     GeneratedFile,
@@ -65,9 +66,6 @@ from bottom_ballast_fin_generator import (
     BOARD_FRONT_CHAMFER as _BALLAST_BOARD_FRONT_CHAMFER,
 )
 
-# The Bottom Ballast Fin's own design version, matched to the Ecojoiner and
-# Back Fin v3.3 (2026-10-10). common.DESIGN_VERSION stays 3.2 for the sails.
-DESIGN_VERSION = "3.3"
 
 PART_QUANTITIES = {
     "Ballast Bottom Board": 1,

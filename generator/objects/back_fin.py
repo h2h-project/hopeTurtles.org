@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
+    DESIGN_VERSION,
     LICENSE_ID,
     GeneratedFile,
     _to_float,
@@ -59,9 +60,6 @@ from back_fin_generator import (
     shaft_hole_pair_offset as _bf_shaft_hole_pair_offset,
 )
 
-# The Back Fin's own design version, matched to the Ecojoiner's v3.3
-# (2026-10-10). common.DESIGN_VERSION stays 3.2 for the sails / sail cutout.
-DESIGN_VERSION = "3.3"
 
 PART_QUANTITIES = {
     "Rear Fin": 1,

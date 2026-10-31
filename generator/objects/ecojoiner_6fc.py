@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
-    LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
+    DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
     _to_float, _slugify, _ceil_mm, board_width_errors,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
@@ -44,11 +44,6 @@ LICENSE_STATEMENT = (
     "Open Hardware Licence, Strongly Reciprocal license (CERN-OHL-S-2.0)."
 )
 
-# The Ecojoiner's own design version. v3.3 (2026-10-10): the Presser is gone,
-# replaced by the M5 cap-screw + acorn-nut bottle clamp. Kept separate from
-# common.DESIGN_VERSION, which the fin / sails / sail-cutout sheets still
-# report as 3.2.
-DESIGN_VERSION = "3.3"
 
 # Part quantities for the v3.3 flatpack.
 PART_QUANTITIES = {

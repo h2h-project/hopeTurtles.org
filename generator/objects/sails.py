@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from common import (
+    DESIGN_VERSION,
     LICENSE_ID,
     GeneratedFile,
     _to_float,
@@ -69,9 +70,6 @@ import generate_sails as _sails
 
 OBJECT_TYPE = "sails"
 
-# The sail frame's own design version (common.DESIGN_VERSION stays 3.2 for the
-# sail cutout): 4.0 = the split top crossbar of turtle_body v6.0.0-v6.3.4.
-DESIGN_VERSION = "4.1"
 
 SUPPORTED_FORMATS: Tuple[str, ...] = ("scad", "svg", "dxf", "pdf")
 

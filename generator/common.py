@@ -9,6 +9,7 @@ per-object write_* functions) lives in generator/objects/<name>.py instead.
 from __future__ import annotations
 
 import html
+import json
 import math
 import re
 from dataclasses import dataclass
@@ -46,7 +47,20 @@ except Exception:  # pragma: no cover - useful in backend deployments
     ezdxf = None
 
 
-DESIGN_VERSION = "3.2"
+def _turtle_body_version() -> str:
+    """The turtle_body release the vendored snapshot was synced from
+    (generator/turtle_body/params.json, written by sync_from_turtle_body.py).
+    Every export -- PDF, SVG, DXF, SCAD and the JSON manifest -- is stamped
+    with it, so a sheet's version always names the master SCAD it was drawn
+    from. No separate generator-side design versions."""
+    try:
+        params = Path(__file__).resolve().parent / "turtle_body" / "params.json"
+        return str(json.loads(params.read_text(encoding="utf-8"))["version"])
+    except Exception:  # pragma: no cover - a missing snapshot must not break generation
+        return "unknown"
+
+
+DESIGN_VERSION = _turtle_body_version()
 LICENSE_ID = "CERN-OHL-S-2.0"
 DEFAULT_PORT_ALLOWANCE_MM = 20.0
 
@@ -158,7 +172,8 @@ DXF_LABEL_LAYER = "LABEL"
 
 
 def _dxf_setup(doc) -> None:
-    """Create the CUT/MARK/LABEL layers (and DASHED linetype) write_dxf() uses.
+    """Create the CUT/MARK/LABEL layers (and DASHED linetype) write_dxf() uses,
+    and stamp the turtle_body version + licence as DXF custom properties.
 
     Mirrors the SVG output's `.cut` (solid, real cut geometry) and `.mark`
     (dashed, non-cutting reference such as a nut recess) CSS classes.
@@ -171,6 +186,10 @@ def _dxf_setup(doc) -> None:
         doc.layers.add(DXF_MARK_LAYER, color=8, linetype="DASHED")
     if DXF_LABEL_LAYER not in doc.layers:
         doc.layers.add(DXF_LABEL_LAYER, color=3)
+    # Same version stamp as the PDF/SVG/SCAD: the turtle_body release drawn.
+    if not doc.header.custom_vars.has_tag("TURTLE_BODY_VERSION"):
+        doc.header.custom_vars.append("TURTLE_BODY_VERSION", DESIGN_VERSION)
+        doc.header.custom_vars.append("LICENSE", LICENSE_ID)
 
 
 def _dxf_rect(msp, x: float, y: float, w: float, h: float, layer: str = DXF_CUT_LAYER) -> None:
