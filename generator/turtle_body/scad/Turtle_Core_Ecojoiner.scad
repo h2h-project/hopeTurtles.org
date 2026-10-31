@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Core_Ecojoiner.scad
-//  Turtle Body version 6.4.0
+//  Turtle Body version 6.5.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -287,7 +287,10 @@ function p_cage_roof_bevel() = 3;
 // flush with the cage roof top (derived in lib/sail_frame.scad, 178 mm).
 function p_side_batten_h()   = 205 + p_wood_t();       // 217
 function p_side_batten_w()   = 20;
-function p_side_batten_radial_t() = 10;
+// v6.5.0: battens are cut from the same board as every other slat (were a
+// separate 20 x 10 stock), so their radial thickness -- and every slot that
+// takes a batten -- is the board thickness.
+function p_side_batten_radial_t() = p_wood_t();     // 12 (was 10)
 // Top crossbar span, tip to tip: 6 x bottle_d (504). v6.1.0 briefly made each
 // half a head-fin-slat length (span 843.6); v6.2.0 reverted it -- the sails
 // came out too big. The halves are derived from this span.

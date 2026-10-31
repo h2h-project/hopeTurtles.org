@@ -2,7 +2,7 @@
 crossbar connector -- four battens, bottom sail bars, joint strengtheners and
 C end pieces).
 
-turtle_body v6.0.0-v6.3.4 (synced 2026-10-22): the one-piece 6 x bottle_d
+turtle_body v6.0.0-v6.5.0 (synced 2026-10-30): the one-piece 6 x bottle_d
 top bar is now two halves lying on a centre connector that spans the sail
 battens, carries a clearance hole for the sail shaft and clamps it with a
 side M3; sail battens are 205 + t with a 2t two-layer upper notch, non-sail
@@ -117,7 +117,9 @@ TUNING = {
 # parameters either, so there is nothing to thread through.
 # ---------------------------------------------------------------------------
 TOP_BAR_WIDTH = 22.0                  # p_top_crossbar_w()
-TOP_BAR_SLOT_WIDTH = 10.0             # == BATTEN_THICKNESS
+# The batten slot width is the board thickness (p_side_batten_radial_t() =
+# p_wood_t(), turtle_body v6.5.0; a fixed 10 for separate batten stock before)
+# -- derived per builder in derive_dimensions(), not a constant here.
 TOP_BAR_SLOT_DEPTH = 11.0
 TOP_BAR_AXLE_SHAFT_D = 8.0             # p_axle_round_d() -- the shaft the axle hole takes (PDF label only)
 
@@ -131,13 +133,11 @@ HALF_INBOARD = 15.0                    # p_sail_bar_half_inboard() -- half runs 
 SIDE_BATTEN_BASE = 205.0               # p_side_batten_h() = 205 + p_wood_t()
 
 BATTEN_WIDTH = 20.0                   # p_side_batten_w()
-BATTEN_THICKNESS = 10.0
 BATTEN_NOTCH_DEPTH = BATTEN_WIDTH / 2  # 10
 BATTEN_END_MARGIN = 15.0              # lower margin; also the top margin above the 2t notch (v6.1.0)
 CAGE_MOUNT_PITCH = 32.0               # p_cage_mount_pitch()
 
 BOTTOM_BAR_WIDTH = TOP_BAR_WIDTH      # 22
-BOTTOM_BAR_SLOT_WIDTH = BATTEN_THICKNESS   # 10
 BOTTOM_BAR_SLOT_DEPTH = BOTTOM_BAR_WIDTH / 2  # 11
 BOTTLE_CLEARANCE = 1.0
 
@@ -206,7 +206,7 @@ class SailsInputs:
 class SailsDerived:
     top_bar_length: float          # tip-to-tip span of the split crossbar
     top_bar_width: float
-    top_bar_slot_width: float
+    top_bar_slot_width: float      # == batten_thickness
     top_bar_slot_depth: float
     top_bar_slot_centre_radius: float
     half_length: float             # each Top Sail Bar Half
@@ -219,6 +219,7 @@ class SailsDerived:
     m3_clear_d: float
 
     batten_width: float
+    batten_thickness: float        # p_side_batten_radial_t() = board thickness
     batten_height: float           # sail battens
     non_sail_batten_height: float  # flush with the cage roof top
     batten_notch_depth: float
@@ -291,13 +292,16 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     sbh = inputs.side_batten_height
 
     notch_root_r = _cage_notch_root_radius(bd)
+    # p_side_batten_radial_t() = p_wood_t() (v6.5.0): battens are board stock,
+    # so every slot that takes one (halves, connector, rails, C pieces) is t.
+    batten_t = t
 
     # ---- split top crossbar (lib/sail_frame.scad, v6.0.0) -------------
     top_bar_length = 6 * bd                      # p_top_crossbar_len(), tip to tip
-    top_bar_slot_centre_radius = notch_root_r + TOP_BAR_SLOT_WIDTH / 2
-    slot_outer_r = top_bar_slot_centre_radius + TOP_BAR_SLOT_WIDTH / 2
+    top_bar_slot_centre_radius = notch_root_r + batten_t / 2
+    slot_outer_r = top_bar_slot_centre_radius + batten_t / 2
     connector_length = 2 * (slot_outer_r + CONNECTOR_OVERHANG)
-    half_inner_x = top_bar_slot_centre_radius - TOP_BAR_SLOT_WIDTH / 2 - HALF_INBOARD
+    half_inner_x = top_bar_slot_centre_radius - batten_t / 2 - HALF_INBOARD
     half_length = top_bar_length / 2 - half_inner_x
     joint_screw_x = slot_outer_r + CONNECTOR_OVERHANG / 2
 
@@ -317,7 +321,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     # ---- bottom sail bar / strengthener / C piece radial offsets ----
     bottom_bar_inner_radius = bd / 2 + BOTTLE_CLEARANCE
     bottom_bar_inner_overhang = notch_root_r - bottom_bar_inner_radius
-    c_piece_length = bottom_bar_inner_overhang + BATTEN_THICKNESS + C_PIECE_OUTER_EXTENSION
+    c_piece_length = bottom_bar_inner_overhang + batten_t + C_PIECE_OUTER_EXTENSION
     bottom_bar_length = 3 * bd + t               # p_bottom_rail_len() (v6.3.0)
 
     # ---- joint strengthener: a plain block resting on the rail's own top
@@ -331,14 +335,14 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
     bottom_bar_z = batten_bottom_z + BATTEN_END_MARGIN
     sail_bottom_z = bottom_bar_z + t
     sail_top_z = CAGE_TOTAL_HEIGHT + t           # underside of the crossbar halves (v6.0.0)
-    sail_inner_radius = top_bar_slot_centre_radius + BATTEN_THICKNESS / 2 + t
+    sail_inner_radius = top_bar_slot_centre_radius + batten_t / 2 + t
     sail_top_outer_radius = 3 * bd
     sail_bottom_outer_radius = bottom_bar_inner_radius + bottom_bar_length
 
     return SailsDerived(
         top_bar_length=top_bar_length,
         top_bar_width=TOP_BAR_WIDTH,
-        top_bar_slot_width=TOP_BAR_SLOT_WIDTH,
+        top_bar_slot_width=batten_t,
         top_bar_slot_depth=TOP_BAR_SLOT_DEPTH,
         top_bar_slot_centre_radius=top_bar_slot_centre_radius,
         half_length=half_length,
@@ -350,6 +354,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
         m3_pilot_d=SAIL_M3_PILOT_D,
         m3_clear_d=SAIL_M3_CLEAR_D,
         batten_width=BATTEN_WIDTH,
+        batten_thickness=batten_t,
         batten_height=sbh,
         non_sail_batten_height=non_sail_batten_height,
         batten_notch_depth=BATTEN_NOTCH_DEPTH,
@@ -365,7 +370,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
         batten_strengthener_hole_from_bottom=batten_strengthener_hole_from_bottom,
         bottom_bar_length=bottom_bar_length,
         bottom_bar_width=BOTTOM_BAR_WIDTH,
-        bottom_bar_slot_width=BOTTOM_BAR_SLOT_WIDTH,
+        bottom_bar_slot_width=batten_t,
         bottom_bar_slot_depth=BOTTOM_BAR_SLOT_DEPTH,
         bottom_bar_inner_overhang=bottom_bar_inner_overhang,
         strengthener_width=STRENGTHENER_WIDTH,
@@ -373,7 +378,7 @@ def derive_dimensions(inputs: SailsInputs) -> SailsDerived:
         strengthener_m6_z=strengthener_m6_z,
         c_piece_length=c_piece_length,
         c_piece_width=C_PIECE_WIDTH,
-        c_piece_slot_width=BATTEN_THICKNESS,
+        c_piece_slot_width=batten_t,
         c_piece_slot_depth=BOTTOM_BAR_SLOT_DEPTH,
         sail_inner_radius=sail_inner_radius,
         sail_top_outer_radius=sail_top_outer_radius,
@@ -483,8 +488,8 @@ def write_scad(path: Path, inputs: SailsInputs, d: SailsDerived) -> None:
 # ---------------------------------------------------------------------------
 # Shared 2D profile geometry (used by SVG, DXF and PDF writers alike). Each
 # part's "flat" 2D plane matches how it would sit on a saw table: the board
-# thickness (wood_thickness, or the fixed 10 mm batten/top-bar-slot
-# thickness) is always the part's short/extrusion axis and is NOT one of the
+# thickness (wood_thickness -- battens included since turtle_body v6.5.0)
+# is always the part's short/extrusion axis and is NOT one of the
 # two drawn dimensions. Where a real part is one of a mirrored pair (both
 # battens, both C pieces, both strengtheners, both bottom bars, both sails),
 # only one orientation is drawn -- the second is a mirror image, noted in the
@@ -844,7 +849,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     box_title_size = 8 * 1.2
     derived_lines = [
         f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Battens {_ceil_mm(d.batten_height)} (sail) / {_ceil_mm(d.non_sail_batten_height)} (non-sail) x {_ceil_mm(d.batten_width)}mm, {_ceil_mm(BATTEN_THICKNESS)}mm stock",
+        f"Battens {_ceil_mm(d.batten_height)} (sail) / {_ceil_mm(d.non_sail_batten_height)} (non-sail) x {_ceil_mm(d.batten_width)} x {_ceil_mm(d.batten_thickness)}mm",
         f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
         f"Batten notches {_ceil_mm(d.batten_notch_height)}mm (rails), {_ceil_mm(d.batten_upper_notch_height)}mm (crossbar: 2 layers)",
         f"Top bar halves {_ceil_mm(d.half_length)} x {_ceil_mm(d.top_bar_width)}mm, {_ceil_mm(d.top_bar_length)}mm tip to tip",
@@ -866,9 +871,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     intro = (
         "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored "
         "pairs are drawn once. Positions are in mm from the nearest end of the part, and M3/M6 "
-        "name the bolt each hole takes. The sail bars, strengtheners and C end pieces are cut from "
-        f"your {_ceil_mm(inputs.wood_thickness)}mm board; the battens are "
-        f"{_ceil_mm(d.batten_width)} x {_ceil_mm(BATTEN_THICKNESS)}mm stock. "
+        "name the bolt each hole takes. Every part, battens included, is cut from "
+        f"your {_ceil_mm(inputs.wood_thickness)}mm board. "
         "The sail is soft goods and is not on this sheet."
     )
     title_size = 16

@@ -114,7 +114,7 @@
   "p_cage_roof_bevel": 3,
   "p_side_batten_h": 217,
   "p_side_batten_w": 20,
-  "p_side_batten_radial_t": 10,
+  "p_side_batten_radial_t": 12,
   "p_top_crossbar_len": 504,
   "p_top_crossbar_w": 22,
   "p_top_crossbar_t": 12,
@@ -187,5 +187,5 @@
     0.26,
     0.17
   ],
-  "version": "6.4.0"
+  "version": "6.5.0"
 }

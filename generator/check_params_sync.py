@@ -142,6 +142,8 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         # sail side batten height / cage mount hole  -- p_side_batten_h() / p_cage_mount_hole_d()
         ("p_side_batten_h", "sails SailsInputs.side_batten_height", sail_in.side_batten_height),
         ("p_cage_mount_hole_d", "sails SailsInputs.cage_mount_hole_diameter", sail_in.cage_mount_hole_diameter),
+        # batten radial thickness = board thickness (v6.5.0)  -- p_side_batten_radial_t()
+        ("p_side_batten_radial_t", "sails derive_dimensions().batten_thickness", sail_d.batten_thickness),
         # split top crossbar (v6.0.0) and bottom rail  -- p_sail_*() / p_bottom_rail_len() / p_top_crossbar_len()
         ("p_top_crossbar_len", "sails derive_dimensions().top_bar_length", sail_d.top_bar_length),
         ("p_bottom_rail_len", "sails derive_dimensions().bottom_bar_length", sail_d.bottom_bar_length),
