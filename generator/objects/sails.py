@@ -71,7 +71,7 @@ OBJECT_TYPE = "sails"
 
 # The sail frame's own design version (common.DESIGN_VERSION stays 3.2 for the
 # sail cutout): 4.0 = the split top crossbar of turtle_body v6.0.0-v6.3.4.
-DESIGN_VERSION = "4.0"
+DESIGN_VERSION = "4.1"
 
 SUPPORTED_FORMATS: Tuple[str, ...] = ("scad", "svg", "dxf", "pdf")
 
@@ -800,8 +800,9 @@ SAILS_ILLUSTRATION = Path(__file__).resolve().parents[2] / "public" / "images" /
 def _load_illustration():
     """The assembly illustration as (ImageReader, (px_w, px_h)), or None.
 
-    Converted to greyscale (it is line art) and downscaled to roughly 2x its
-    printed size so it doesn't bloat the PDF."""
+    Converted to greyscale (it is line art), cropped to the drawing (the
+    render is a square card with wide blank bands) and downscaled to roughly
+    2x its printed size so it doesn't bloat the PDF."""
     try:
         from PIL import Image
         from reportlab.lib.utils import ImageReader
@@ -809,7 +810,12 @@ def _load_illustration():
         # Flatten the drawing's off-white paper tone to pure white so it
         # doesn't print as a grey box on the sheet.
         img = Image.open(SAILS_ILLUSTRATION).convert("L").point(lambda v: 255 if v > 225 else v)
-        img.thumbnail((720, 720))
+        bbox = img.point(lambda v: 255 - v).getbbox()
+        if bbox:
+            pad = 8
+            img = img.crop((max(bbox[0] - pad, 0), max(bbox[1] - pad, 0),
+                            min(bbox[2] + pad, img.width), min(bbox[3] + pad, img.height)))
+        img.thumbnail((1000, 1000))
         return ImageReader(img), img.size
     except Exception:
         return None
@@ -1171,7 +1177,8 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     while gap > row_gap and column_bottom(scale, gap) < col_bottom:
         gap -= 1
     y = body_top
-    top_bar_bottom, rows_right = body_top, ox
+    top_bar_bottom = body_top
+    row_extents = []   # (bottom incl. dimensions, right edge) of each batten row
     for n, row in enumerate(rows):
         if n == 1:
             y = min(y, box_bottom - row_gap)
@@ -1184,22 +1191,32 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         if n == 1:
             top_bar_bottom = y + gap
         if n >= 2:   # the batten rows share the bottom half with the image
-            rows_right = max(rows_right, px - side_gap)
+            row_extents.append((oy - row_below(row), px - side_gap))
 
-    # Assembly illustration, bottom-right corner, in the open space under
-    # the Top Sail Bar and right of the side parts. Skipped if the image or
-    # Pillow is unavailable.
+    # Assembly illustration in the open bottom-right corner, as large as it
+    # fits. Each candidate region runs from the bottom of the sheet up to
+    # under the Top Sail Bar row, or up to under one of the batten rows, and
+    # sits right of every batten row below that point; the image takes the
+    # one it fills largest, centred in it. Skipped if the image or Pillow is
+    # unavailable.
     illustration = _load_illustration()
     if illustration is not None:
         img_reader, (px_w, px_h) = illustration
-        img_h = min(
-            156.0,
-            top_bar_bottom - row_gap - draw_bottom,
-            (draw_right - rows_right - 24) * px_h / px_w,
-        )
-        if img_h > 0:
+        clear = 16
+        ceilings = [top_bar_bottom] + [bottom for bottom, _ in row_extents]
+        best = None
+        for i, ceiling in enumerate(ceilings):
+            left = max((right for _, right in row_extents[i:]), default=ox) + clear
+            region_w = draw_right - left
+            region_h = ceiling - row_gap - draw_bottom
+            img_h = min(region_h, region_w * px_h / px_w)
+            if img_h > 0 and (best is None or img_h > best[0]):
+                best = (img_h, left, region_w, region_h)
+        if best is not None:
+            img_h, left, region_w, region_h = best
             img_w = img_h * px_w / px_h
-            c.drawImage(img_reader, draw_right - img_w, draw_bottom, img_w, img_h)
+            c.drawImage(img_reader, left + (region_w - img_w) / 2,
+                        draw_bottom + (region_h - img_h) / 2, img_w, img_h)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
