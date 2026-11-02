@@ -3,7 +3,7 @@
 -- ------------------------------------------------------------
 -- Run manually against hopeturtle_db. The app does NOT auto-migrate.
 -- Run this BEFORE deploying the code that reads fin_code, then run
---   node scripts/backfill-fin-codes.js
+--   node backfill-fin-codes.js
 -- to give every existing turtle a code.
 --
 -- A fin code is a 4-character Crockford Base32 ID painted on the turtle's

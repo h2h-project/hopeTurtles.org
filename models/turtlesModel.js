@@ -61,7 +61,7 @@ turtlesModel.exists = async (turtleId) => {
   return rows.length > 0;
 };
 
-// Backfill support (scripts/backfill-fin-codes.js).
+// Backfill support (backfill-fin-codes.js in the repo root).
 turtlesModel.listWithoutFinCode = async () =>
   query('SELECT turtle_id, name FROM turtles_tb WHERE fin_code IS NULL ORDER BY turtle_id');
 
