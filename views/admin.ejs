@@ -238,7 +238,7 @@
                 <div class="turtle-profile">
                   <div class="turtle-profile__photo">
                     <div class="turtle-profile__badge">
-                      <span class="turtle-profile__badge-id">#<%= turtle.turtle_id %></span>
+                      <span class="turtle-profile__badge-id">#<%= turtle.turtle_id %><% if (turtle.fin_code) { %> · <span class="fin-code" title="Fin code">Fin <%= turtle.fin_code %></span><% } %></span>
                       <% if (turtle.name) { %>
                         <span class="turtle-profile__badge-name"><%= turtle.name %></span>
                       <% } %>

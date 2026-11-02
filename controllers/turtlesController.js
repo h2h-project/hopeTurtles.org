@@ -5,6 +5,7 @@ import turtlesModel from '../models/turtlesModel.js';
 import telemetryModel from '../models/telemetryModel.js';
 import photosModel from '../models/photosModel.js';
 import missionsModel from '../models/missionsModel.js';
+import { withUniqueFinCode } from '../utils/finCode.js';
 
 const allowedTurtleStatuses = new Set(['awaiting_serial', 'idle', 'en_route', 'arrived', 'lost']);
 
@@ -114,12 +115,17 @@ export const getTurtleById = async (req, res, next) => {
 export const createTurtle = async (req, res, next) => {
   try {
     const { secret, secretHash } = createTurtleSecret();
-    const turtle = await turtlesModel.create({
-      ...req.body,
-      control_battery_capacity_ah: toOptionalPositiveFloat(req.body?.control_battery_capacity_ah),
-      servo_battery_capacity_ah: toOptionalPositiveFloat(req.body?.servo_battery_capacity_ah),
-      secret_hash: secretHash
-    });
+    // fin_code is always server-generated (and never editable): it gets
+    // painted on the turtle's fin.
+    const turtle = await withUniqueFinCode((finCode) =>
+      turtlesModel.create({
+        ...req.body,
+        control_battery_capacity_ah: toOptionalPositiveFloat(req.body?.control_battery_capacity_ah),
+        servo_battery_capacity_ah: toOptionalPositiveFloat(req.body?.servo_battery_capacity_ah),
+        secret_hash: secretHash,
+        fin_code: finCode
+      })
+    );
     const turtleWithPhoto = await attachProfilePhoto(req, turtle);
 
     return res.status(201).json({ success: true, data: turtleWithPhoto, secret });
@@ -164,7 +170,9 @@ export const launchManagedTurtle = async (req, res, next) => {
       secret_hash: secretHash
     };
 
-    const turtle = await turtlesModel.create(payload);
+    const turtle = await withUniqueFinCode((finCode) =>
+      turtlesModel.create({ ...payload, fin_code: finCode })
+    );
     const turtleWithPhoto = await attachProfilePhoto(req, turtle);
 
     return res.status(201).json({ success: true, data: turtleWithPhoto, secret });

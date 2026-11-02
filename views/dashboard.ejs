@@ -176,7 +176,7 @@
                     <span class="turtle-live-dot" data-live-dot data-last-update="<%= turtle.last_update ? new Date(turtle.last_update).toISOString() : '' %>" aria-hidden="true"></span>
                     <div class="turtle-profile__photo">
                       <div class="turtle-profile__badge">
-                        <span class="turtle-profile__badge-id">#<%= turtle.turtle_id %></span>
+                        <span class="turtle-profile__badge-id">#<%= turtle.turtle_id %><% if (turtle.fin_code) { %> · <span class="fin-code" title="Fin code">Fin <%= turtle.fin_code %></span><% } %></span>
                         <% if (turtle.name) { %>
                           <span class="turtle-profile__badge-name"><%= turtle.name %></span>
                         <% } %>
@@ -774,6 +774,11 @@
         </div>
         <h1>Turtle launched!</h1>
         <p class="copy-feedback launch-copy-feedback" data-launch-config-feedback role="status" aria-live="polite"></p>
+        <section class="launch-fin-code" data-launch-fin-code hidden>
+          <p class="launch-fin-code__label">Fin code — paint this on the turtle's fin</p>
+          <p class="launch-fin-code__value fin-code" data-launch-fin-code-value></p>
+          <p class="muted">Finders type it at hopeturtles.org/report to identify the turtle. You can always look it up again on the dashboard.</p>
+        </section>
         <section class="turtle-secret-panel launch-device-config" data-launch-device-config hidden>
           <div class="device-config-fields">
             <div class="device-config-field">

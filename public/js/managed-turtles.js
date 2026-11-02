@@ -104,6 +104,18 @@ const launchDeviceIdValue = launchSuccessState
 const launchDeviceKeyValue = launchSuccessState
   ? launchSuccessState.querySelector('[data-launch-device-key]')
   : null;
+const launchFinCode = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-fin-code]')
+  : null;
+const launchFinCodeValue = launchSuccessState
+  ? launchSuccessState.querySelector('[data-launch-fin-code-value]')
+  : null;
+
+const showLaunchFinCode = (finCode) => {
+  if (!launchFinCode || !launchFinCodeValue) return;
+  launchFinCodeValue.textContent = finCode || '';
+  launchFinCode.hidden = !finCode;
+};
 const launchCopyApiBaseButton = launchSuccessState
   ? launchSuccessState.querySelector('[data-copy-launch-api-base]')
   : null;
@@ -780,6 +792,7 @@ const preparePhotoThumbnail = async (
 };
 
 const clearLaunchDeviceConfig = () => {
+  showLaunchFinCode('');
   if (launchDeviceConfig) {
     launchDeviceConfig.hidden = true;
   }
@@ -1145,6 +1158,7 @@ if (launchTurtleForm) {
       // surface the device config now instead of sending the user to
       // the manage dialog (which would rotate the secret again).
       showLaunchDeviceConfig(json.data?.turtle_id, json.secret);
+      showLaunchFinCode(json.data?.fin_code);
       toggleLaunchSuccessState(true);
       if (launchSubmitButton) {
         launchSubmitButton.disabled = false;

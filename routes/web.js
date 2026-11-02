@@ -15,7 +15,6 @@ import {
 } from "../middleware/auth.js";
 import { getPlatformSummary, getAboutMetrics } from "../models/summaryModel.js";
 import missionsModel from "../models/missionsModel.js";
-import turtlesModel from "../models/turtlesModel.js";
 import componentsModel from "../models/componentsModel.js";
 import commissionsModel from "../models/commissionsModel.js";
 import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
@@ -63,17 +62,9 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-router.get("/report", async (req, res, next) => {
-  try {
-    const turtles = await turtlesModel.getAll();
-    return res.render("report", {
-      pageTitle: "Report a Found Turtle",
-      turtles,
-    });
-  } catch (error) {
-    return next(error);
-  }
-});
+router.get("/report", (req, res) =>
+  res.render("report", { pageTitle: "Report a Found Turtle" }),
+);
 
 router.get("/about", async (req, res, next) => {
   try {

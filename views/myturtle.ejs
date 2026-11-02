@@ -33,6 +33,11 @@
         <h1><%= turtle.name || `Turtle #${turtle.turtle_id}` %></h1>
         <p class="muted myturtle-header__meta">
           <span class="status-pill status-<%= turtle.status %>"><%= turtle.status %></span>
+          <% if (turtle.fin_code) { %>
+            <span class="status-pill fin-code-pill" title="<%= t.myturtle_fin_code_hint %>">
+              <%= t.myturtle_fin_code %> <span class="fin-code"><%= turtle.fin_code %></span>
+            </span>
+          <% } %>
           <% if (turtle.last_machine_state) { %>
             <span
               class="status-pill machine-state-pill"

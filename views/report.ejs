@@ -2,60 +2,130 @@
 <%- include('partials/nav') %>
 <main id="main" class="layout report-page">
   <section class="page-header">
-    <h1><%= t.report_title || 'Report a Found Turtle' %></h1>
-    <p>
-      <%= t.report_intro ||
-        'Found a Hope Turtle or one of its aid bottles washed ashore? Please tell us about it below.' %>
-    </p>
+    <h1><%= t.report_title %></h1>
+    <p><%= t.report_intro %></p>
   </section>
 
-  <section class="report-intro-copy">
-    <p>
-      <%= t.report_why ||
-        'Every report you send is a huge help. Each found turtle teaches us how our vessels ride the ocean currents, where they make landfall, and how we can build them better — so we can keep improving the turtles and manifest our human-to-human humanitarian vision of carrying food, love, and hope across the sea.' %>
-    </p>
-    <p>
-      <%= t.report_negative ||
-        'We also genuinely appreciate any negative feedback: turtles that landed somewhere they were not meant to, caused any trouble, or were found lost or adrift at sea. Honest reports — good or bad — make the whole project safer and more effective for everyone.' %>
-    </p>
-  </section>
+  <section class="page-split">
+    <div class="page-split__main">
+      <div class="report-intro-copy">
+        <p><%= t.report_why %></p>
+        <p><%= t.report_negative %></p>
+      </div>
 
-  <section class="success-form report-form">
-    <h2><%= t.report_form_title || 'Report a found turtle' %></h2>
-    <form id="successForm" class="form-card" enctype="multipart/form-data">
-      <label>
-        <%= t.success_form_turtle || 'Turtle' %>
-        <select name="turtle_id">
-          <option value=""><%= t.success_form_turtle_unknown || 'Unknown turtle' %></option>
-          <% (turtles || []).forEach(function (turtle) { %>
-            <option value="<%= turtle.turtle_id %>"><%= turtle.name %></option>
-          <% }) %>
-        </select>
-      </label>
-      <label>
-        <%= t.success_form_date || 'Date found' %>
-        <input type="date" name="date_found" />
-      </label>
-      <label>
-        <%= t.success_form_lat || 'Latitude' %>
-        <input type="number" step="0.000001" name="location_lat" />
-      </label>
-      <label>
-        <%= t.success_form_lng || 'Longitude' %>
-        <input type="number" step="0.000001" name="location_lng" />
-      </label>
-      <label>
-        <%= t.report_form_message || 'Your message or feedback' %>
-        <textarea name="thank_you_message" required></textarea>
-      </label>
-      <label>
-        <%= t.success_form_photo || 'Photo upload' %>
-        <input type="file" name="photo" accept="image/*" />
-      </label>
-      <button type="submit" class="button"><%= t.report_form_submit || 'Submit report' %></button>
-      <p id="successFeedback" role="status" aria-live="polite"></p>
-    </form>
+      <%# Step 1 — confirm the turtle by the red number painted on its body. %>
+      <section class="report-step" id="reportStepIdentify" data-report-step="identify">
+        <h2><%= t.report_identify_title %></h2>
+        <p><%= t.report_identify_body %></p>
+        <form id="turtleLookupForm" class="form-card report-lookup" novalidate>
+          <label for="turtleNumber"><%= t.report_identify_label %></label>
+          <div class="report-lookup__row">
+            <input
+              id="turtleNumber"
+              name="fin_code"
+              type="text"
+              autocomplete="off"
+              autocapitalize="characters"
+              autocorrect="off"
+              spellcheck="false"
+              maxlength="5"
+              placeholder="<%= t.report_identify_placeholder %>"
+              required
+            />
+            <button type="submit" class="button"><%= t.report_identify_submit %></button>
+          </div>
+          <p id="turtleLookupFeedback" class="report-feedback" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <%# Step 2 — the report form, shown only once the turtle is confirmed. %>
+      <section class="report-step success-form report-form" id="reportStepForm" data-report-step="form" hidden>
+        <div class="report-confirmed" aria-live="polite">
+          <span class="report-confirmed__badge" id="confirmedTurtleNumber"></span>
+          <div>
+            <p class="report-confirmed__label"><%= t.report_confirmed_label %></p>
+            <p class="report-confirmed__name" id="confirmedTurtleName"></p>
+            <p class="report-confirmed__mission" id="confirmedTurtleMission"></p>
+          </div>
+          <button type="button" class="report-link-button" id="changeTurtleButton"><%= t.report_change_turtle %></button>
+        </div>
+
+        <h2><%= t.report_form_title %></h2>
+        <form id="successForm" class="form-card" enctype="multipart/form-data">
+          <input type="hidden" name="turtle_id" id="reportTurtleId" />
+          <label>
+            <%= t.success_form_date %>
+            <input type="date" name="date_found" id="reportDateFound" />
+          </label>
+
+          <div class="report-location">
+            <div class="report-location__fields">
+              <label>
+                <%= t.success_form_lat %>
+                <input type="number" step="0.000001" min="-90" max="90" name="location_lat" id="reportLat" />
+              </label>
+              <label>
+                <%= t.success_form_lng %>
+                <input type="number" step="0.000001" min="-180" max="180" name="location_lng" id="reportLng" />
+              </label>
+            </div>
+            <button type="button" class="button button--secondary" id="useLocationButton">
+              <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> <%= t.report_use_location %>
+            </button>
+            <p id="locationFeedback" class="report-feedback" role="status" aria-live="polite"></p>
+          </div>
+
+          <label>
+            <%= t.report_form_message %>
+            <textarea name="thank_you_message" required></textarea>
+          </label>
+          <label>
+            <%= t.success_form_photo %>
+            <input type="file" name="photo" accept="image/*" />
+          </label>
+          <button type="submit" class="button"><%= t.report_form_submit %></button>
+          <p id="successFeedback" class="report-feedback" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <%# Step 3 — after the report, ask the finder to wake the turtle's Bluetooth. %>
+      <section class="report-step report-bluetooth" id="reportStepBluetooth" data-report-step="bluetooth" hidden tabindex="-1">
+        <h2><i class="fa-brands fa-bluetooth-b" aria-hidden="true"></i> <%= t.report_bt_title %></h2>
+        <p><%= t.report_bt_intro %></p>
+        <ol class="report-bluetooth__steps">
+          <li><%= t.report_bt_step1 %></li>
+          <li><%= t.report_bt_step2 %></li>
+          <li><%= t.report_bt_step3 %></li>
+          <li><%= t.report_bt_step4 %></li>
+        </ol>
+        <p class="report-bluetooth__note"><%= t.report_bt_note %></p>
+        <p><%= t.report_bt_thanks %></p>
+        <button type="button" class="button button--secondary" id="reportAnotherButton"><%= t.report_another %></button>
+      </section>
+    </div>
+
+    <aside class="page-split__aside">
+      <figure class="report-figure">
+        <img src="/images/turtle-floating.webp" alt="<%= t.report_alt_floating %>" loading="lazy" />
+      </figure>
+    </aside>
   </section>
 </main>
-<% const pageScripts = ['/js/success.js']; %>
+<script type="application/json" id="report-i18n"><%- JSON.stringify({
+  lookupEmpty: t.report_lookup_empty,
+  lookupChecking: t.report_lookup_checking,
+  lookupNotFound: t.report_lookup_not_found,
+  lookupError: t.report_lookup_error,
+  turtleNumber: t.report_turtle_number,
+  missionPrefix: t.report_mission_prefix,
+  locationUnsupported: t.report_location_unsupported,
+  locationLocating: t.report_location_locating,
+  locationDone: t.report_location_done,
+  locationDenied: t.report_location_denied,
+  locationFailed: t.report_location_failed,
+  submitUploading: t.report_submit_uploading,
+  submitFailed: t.report_submit_failed,
+  submitNetwork: t.report_submit_network
+}).replace(/</g, '\\u003c') %></script>
+<% const pageScripts = ['/js/report.js']; %>
 <%- include('partials/footer', { pageScripts }) %>

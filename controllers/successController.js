@@ -1,6 +1,7 @@
 import path from 'path';
 import successModel from '../models/successModel.js';
 import turtlesModel from '../models/turtlesModel.js';
+import { normalizeFinCode } from '../utils/finCode.js';
 
 export const getSuccessLog = async (req, res, next) => {
   try {
@@ -11,9 +12,32 @@ export const getSuccessLog = async (req, res, next) => {
   }
 };
 
+// GET /api/success/turtle/:code — confirm the 4-character code a finder
+// reads off a turtle's fin is a real turtle before the report form is shown.
+export const lookupFoundTurtle = async (req, res, next) => {
+  try {
+    const finCode = normalizeFinCode(req.params.code);
+    if (!finCode) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Please enter the 4-character code on the turtle's fin." });
+    }
+    const turtle = await turtlesModel.getPublicIdentityByFinCode(finCode);
+    if (!turtle) {
+      return res.status(404).json({ success: false, message: 'No turtle found with that code.' });
+    }
+    return res.json({ success: true, data: turtle });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const createSuccessEntry = async (req, res, next) => {
   try {
     const { turtle_id, thank_you_message, location_lat, location_lng, date_found } = req.body;
+    if (turtle_id && !(await turtlesModel.exists(Number(turtle_id)))) {
+      return res.status(400).json({ success: false, message: 'Unknown turtle number.' });
+    }
     const photos = [];
     if (req.file) {
       photos.push(path.join('/uploads', path.basename(req.file.path)));
@@ -49,6 +73,7 @@ export const renderSuccessPage = async (req, res, next) => {
 
 export default {
   getSuccessLog,
+  lookupFoundTurtle,
   createSuccessEntry,
   renderSuccessPage
 };

@@ -3,7 +3,8 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { getSuccessLog, createSuccessEntry } from '../../controllers/successController.js';
+import { getSuccessLog, createSuccessEntry, lookupFoundTurtle } from '../../controllers/successController.js';
+import { rateLimit } from '../../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 router.get('/', getSuccessLog);
+router.get('/turtle/:code', rateLimit({ key: 'report-turtle-lookup', max: 60 }), lookupFoundTurtle);
 router.post('/', upload.single('photo'), createSuccessEntry);
 
 export default router;

@@ -35,6 +35,45 @@ turtlesModel.searchPublic = async (searchQuery, limit = 20) => {
   return query(sql, [`%${searchQuery}%`, turtleIdMatch]);
 };
 
+// Public, minimal identity for the "Report a Found Turtle" flow: a finder
+// types the 4-character code painted on the turtle's fin (turtles_tb.fin_code,
+// already normalized by utils/finCode.js) and we confirm it exists before
+// showing the report form. Only non-sensitive display fields leave here.
+const PUBLIC_IDENTITY_SELECT = `
+  SELECT
+    t.turtle_id,
+    t.fin_code,
+    t.name,
+    m.full_name AS mission_name,
+    photo.url AS profile_photo_url
+  FROM turtles_tb t
+  LEFT JOIN missions_tb m ON t.mission_id = m.mission_id
+  LEFT JOIN photos_tb photo ON photo.photo_id = t.profile_photo_id
+`;
+
+turtlesModel.getPublicIdentityByFinCode = async (finCode) => {
+  const rows = await query(`${PUBLIC_IDENTITY_SELECT} WHERE t.fin_code = ? LIMIT 1`, [finCode]);
+  return rows[0] || null;
+};
+
+turtlesModel.exists = async (turtleId) => {
+  const rows = await query('SELECT 1 FROM turtles_tb WHERE turtle_id = ? LIMIT 1', [turtleId]);
+  return rows.length > 0;
+};
+
+// Backfill support (scripts/backfill-fin-codes.js).
+turtlesModel.listWithoutFinCode = async () =>
+  query('SELECT turtle_id, name FROM turtles_tb WHERE fin_code IS NULL ORDER BY turtle_id');
+
+// Only fills an empty fin_code: a painted code must never be overwritten.
+turtlesModel.setFinCodeIfMissing = async (turtleId, finCode) => {
+  const result = await query(
+    'UPDATE turtles_tb SET fin_code = ? WHERE turtle_id = ? AND fin_code IS NULL',
+    [finCode, turtleId]
+  );
+  return result.affectedRows > 0;
+};
+
 turtlesModel.getAllDetailed = async () => {
   const sql = `
     SELECT t.*, m.full_name AS mission_name, h.name AS hub_name
@@ -50,6 +89,7 @@ turtlesModel.getAllWithRelations = async () => {
   const sql = `
     SELECT
       t.turtle_id,
+      t.fin_code,
       t.name,
       t.status,
       t.profile_photo_id,
@@ -106,6 +146,7 @@ turtlesModel.getManagedWithRelations = async (managerId) => {
   const sql = `
     SELECT
       t.turtle_id,
+      t.fin_code,
       t.name,
       t.status,
       t.last_machine_state,
