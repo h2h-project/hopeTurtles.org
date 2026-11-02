@@ -61,19 +61,6 @@ turtlesModel.exists = async (turtleId) => {
   return rows.length > 0;
 };
 
-// Backfill support (backfill-fin-codes.js in the repo root).
-turtlesModel.listWithoutFinCode = async () =>
-  query('SELECT turtle_id, name FROM turtles_tb WHERE fin_code IS NULL ORDER BY turtle_id');
-
-// Only fills an empty fin_code: a painted code must never be overwritten.
-turtlesModel.setFinCodeIfMissing = async (turtleId, finCode) => {
-  const result = await query(
-    'UPDATE turtles_tb SET fin_code = ? WHERE turtle_id = ? AND fin_code IS NULL',
-    [finCode, turtleId]
-  );
-  return result.affectedRows > 0;
-};
-
 turtlesModel.getAllDetailed = async () => {
   const sql = `
     SELECT t.*, m.full_name AS mission_name, h.name AS hub_name

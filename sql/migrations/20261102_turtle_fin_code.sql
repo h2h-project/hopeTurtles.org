@@ -2,9 +2,9 @@
 -- 🐢 Turtle fin codes
 -- ------------------------------------------------------------
 -- Run manually against hopeturtle_db. The app does NOT auto-migrate.
--- Run this BEFORE deploying the code that reads fin_code, then run
---   node backfill-fin-codes.js
--- to give every existing turtle a code.
+-- Run this BEFORE deploying the code that reads fin_code. Existing turtles
+-- were given codes on 2026-11-02 by a one-off backfill script (since
+-- removed) that set a random unique code wherever fin_code IS NULL.
 --
 -- A fin code is a 4-character Crockford Base32 ID painted on the turtle's
 -- fin, so whoever finds a turtle can identify it on /report. Alphabet:
@@ -12,7 +12,7 @@
 -- codes. Codes are random (not sequential) so they are hard to guess, and
 -- stored upper-case. utils/finCode.js generates and normalizes them.
 --
--- Nullable so this deploys ahead of the backfill; new turtles get a code
+-- Nullable so it could deploy ahead of the backfill; new turtles get a code
 -- on creation (controllers/turtlesController.js).
 -- ------------------------------------------------------------
 
