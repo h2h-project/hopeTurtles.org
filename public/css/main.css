@@ -839,75 +839,59 @@ body.mobile-menu-open {
   flex: 1 0 auto;
 }
 
-.layout--home {
-  padding-top: 0;
-}
-
-.hero {
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 2rem;
-  align-items: center;
-  /* Full-bleed: break out of the centered .layout container to viewport edges. */
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  /* Keep the inner content aligned to the page's 1200px column. */
-  padding: clamp(2rem, 5vw, 4rem) max(1rem, calc(50vw - 600px));
-  background: var(--color-primary);
-}
-
-.hero-image {
-  display: flex;
-  justify-content: center;
-}
-
-.hero-image img {
-  width: 100%;
-  max-width: 520px;
+/* Homepage banner: the shared full-image .page-banner (see /turtles). The
+   turtle sits left of centre in turtle-landed.webp, so the text goes on the
+   right over open water, with the shading gradient mirrored to match. */
+.home-banner {
   height: auto;
-  border-radius: 1.5rem;
-  border: 4px solid #0f3b1a;
+  min-height: max(420px, 66vh);
 }
 
-.hero-metrics {
-  display: grid;
-  gap: 1rem;
+.home-banner .page-banner__bg {
+  object-position: 30% 60%;
 }
 
-.hero-intro {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  justify-content: center;
+.home-banner::after {
+  background: linear-gradient(
+    270deg,
+    rgba(31, 59, 34, 0.85) 0%,
+    rgba(31, 59, 34, 0.6) 45%,
+    rgba(31, 59, 34, 0.1) 100%
+  );
 }
 
-.hero-intro h1 {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: clamp(2.2rem, 3vw, 2.9rem);
+.home-banner .page-banner__inner {
+  justify-content: flex-end;
+}
+
+/* Keep the text physically on the right (over the water) in RTL too. */
+[dir="rtl"] .home-banner .page-banner__inner {
+  justify-content: flex-start;
+}
+
+.home-banner .page-banner__heading {
+  max-width: 36rem;
+}
+
+/* The title is a full sentence, not a page name, so it runs smaller than
+   the other banners' titles. */
+.home-banner__title {
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 1.2;
+}
+
+.home-banner__title strong {
   color: #fff;
-  line-height: 1.25;
 }
 
-.hero-intro h1 strong {
+/* Links and the "bale" tooltip read as white over the photo. */
+.home-banner .page-banner__lead a {
   color: #fff;
-}
-
-.hero-intro p {
-  margin: 0;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.92);
-}
-
-/* On the green hero band, links and the tooltip underline read as white. */
-.hero-intro p a {
-  color: #fff;
+  text-decoration: underline;
   text-decoration-color: rgba(255, 255, 255, 0.85);
 }
 
-.hero-intro p .word-tooltip {
+.home-banner .page-banner__lead .word-tooltip {
   color: #fff;
   border-bottom-color: rgba(255, 255, 255, 0.85);
 }
@@ -4622,15 +4606,6 @@ label.ht-toggle {
     gap: 0.4rem;
   }
 
-  .layout--home {
-    padding-top: 0;
-  }
-
-  .layout--home .hero {
-    padding-top: 1rem;
-    gap: 1.5rem;
-  }
-
   .brand-ascii {
     font-size: calc(0.446 * var(--hw));
   }
@@ -4924,6 +4899,21 @@ label.ht-toggle {
   .page-banner {
     height: 66vh;
     min-height: 360px;
+  }
+
+  /* Stacked, the homepage text spans the full width, over the turtle too,
+     so shade from the bottom up instead of from the right. */
+  .home-banner {
+    height: auto;
+  }
+
+  .home-banner::after {
+    background: linear-gradient(
+      0deg,
+      rgba(31, 59, 34, 0.9) 0%,
+      rgba(31, 59, 34, 0.7) 55%,
+      rgba(31, 59, 34, 0.35) 100%
+    );
   }
 
   .page-banner__inner {
@@ -5553,6 +5543,23 @@ label.ht-toggle {
   opacity: 0.85;
 }
 
+/* Header sits in the left column so the photo's top lines up with the title. */
+.report-split {
+  margin-top: 1.5rem;
+}
+
+.report-header {
+  margin-bottom: 1.5rem;
+}
+
+.report-header h1 {
+  margin-top: 0;
+}
+
+.report-figure {
+  margin: 0;
+}
+
 .report-figure img {
   width: 100%;
   height: auto;
@@ -5681,7 +5688,7 @@ body.ocean-bg {
   gap: 2rem;
   /* .layout's own top padding would otherwise leave a gap above the
      full-bleed banner, which needs to sit flush against the nav bar -
-     same fix as .layout--home for the homepage hero. */
+     the same reason the page-banner pages keep their banner outside .layout. */
   padding-top: 0;
 }
 
@@ -5713,7 +5720,7 @@ body.ocean-bg {
 .generate-banner {
   margin: 0;
   /* Full-bleed background: break out of the centered .layout column to the
-     viewport edges (same technique as .hero), flush against the nav bar
+     viewport edges (the negative-margin full-bleed trick), flush against the nav bar
      above (.generate-page cancels .layout's own top padding for this). */
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);

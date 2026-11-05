@@ -81,6 +81,14 @@
             <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
           </a>
         </div>
+
+        <div class="turtles-component">
+          <h3><%= t.turtles_component_labels_title %></h3>
+          <p><%- t.turtles_component_labels_p1 %></p>
+          <a class="button ghost" href="https://github.com/h2h-project/turtle_labels" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+          </a>
+        </div>
       </div>
 
       <aside class="page-split__aside">
@@ -117,6 +125,15 @@
             <h3><%= t.turtles_repo_wrangler || 'Turtle_Wrangler' %></h3>
             <p><%= t.turtles_repo_panel_wrangler_desc %></p>
             <a class="button ghost" href="https://github.com/h2h-project/turtle_wrangler" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
+            </a>
+          </div>
+
+          <div class="turtles-repo-panel">
+            <img src="/images/turtle_labels.webp" alt="<%= t.turtles_repo_labels || 'Turtle_Labels' %>" width="667" height="453" loading="lazy" />
+            <h3><%= t.turtles_repo_labels || 'Turtle_Labels' %></h3>
+            <p><%= t.turtles_repo_panel_labels_desc %></p>
+            <a class="button ghost" href="https://github.com/h2h-project/turtle_labels" target="_blank" rel="noopener noreferrer">
               <i class="fa-brands fa-github" aria-hidden="true"></i> <%= t.turtles_repo_button || 'View on GitHub' %>
             </a>
           </div>

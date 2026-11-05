@@ -1,20 +1,23 @@
 <%- include('partials/header', { pageTitle, theme }) %>
 <%- include('partials/nav') %>
-<main id="main" class="layout layout--home">
-  <section class="hero">
-    <div class="hero-image">
-      <img
-        src="/images/landing-arrival.webp"
-        alt="<%= t.hero_image_alt || 'Illustration of a Hope Turtle floating in the ocean' %>"
-        loading="lazy"
-      />
-    </div>
-    <div class="hero-intro">
-      <h1><%- t.landing_welcome_title %></h1>
-      <p><%- t.landing_intro_paragraph1 %></p>
+<main id="main" class="home-page">
+  <section class="page-banner home-banner">
+    <img
+      class="page-banner__bg"
+      src="/images/turtle-landed.webp"
+      alt="<%= t.hero_image_alt_landed %>"
+      fetchpriority="high"
+    />
+    <div class="page-banner__inner">
+      <div class="page-banner__heading">
+        <%# Both strings carry inline markup (strong, links, the bale tooltip), so they render unescaped. %>
+        <h1 class="page-banner__title home-banner__title"><%- t.landing_welcome_title %></h1>
+        <p class="page-banner__lead"><%- t.landing_intro_paragraph1 %></p>
+      </div>
     </div>
   </section>
 
+  <div class="layout">
   <% const contributeCards = [
     { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: '/turtleos', image: '/images/help-code.webp', subtitleIcon: 'fa-code' },
     { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Generate the carpentry, 3D printing and CNC files to build with your own bottle.', url: '/ecojoiners', image: '/images/ecojoiner-spec-hero.webp', subtitleIcon: 'fa-screwdriver-wrench' },
@@ -63,6 +66,7 @@
     </div>
   </section>
   <% } %>
+  </div>
 </main>
 <% const pageScripts = ['/js/home.js']; %>
 <%- include('partials/footer', { pageScripts }) %>
