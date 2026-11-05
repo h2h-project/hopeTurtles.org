@@ -873,27 +873,13 @@ body.mobile-menu-open {
   max-width: 36rem;
 }
 
-/* The title is a full sentence, not a page name, so it runs smaller than
-   the other banners' titles. */
 .home-banner__title {
-  font-size: clamp(2rem, 3.6vw, 3rem);
-  line-height: 1.2;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1.1;
 }
 
-.home-banner__title strong {
-  color: #fff;
-}
-
-/* Links and the "bale" tooltip read as white over the photo. */
-.home-banner .page-banner__lead a {
-  color: #fff;
-  text-decoration: underline;
-  text-decoration-color: rgba(255, 255, 255, 0.85);
-}
-
-.home-banner .page-banner__lead .word-tooltip {
-  color: #fff;
-  border-bottom-color: rgba(255, 255, 255, 0.85);
+.home-banner__lead {
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
 }
 
 .landing-metrics {

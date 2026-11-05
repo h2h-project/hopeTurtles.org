@@ -249,7 +249,7 @@
   "landing_commission_action": "Commander une tortue",
   "landing_contribute_action": "Contribuer directement",
   "landing_intro_paragraph1": "Conçues selon les principes <a href=\"https://book.earthen.io\">Earthen</a>, les Tortues de l'Espoir sont régénératives, non-violentes, et bienveillantes envers les humains, les animaux, les océans et les écosystèmes. Elles peuvent être fabriquées presque partout à partir de bouteilles, de bois, d'une électronique simple et de code open source — ainsi, chacun peut rejoindre la <span class=\"word-tooltip\" data-tooltip=\"Le saviez-vous ? En anglais, « bale » est le nom collectif désignant un groupe de tortues nageant ensemble !\">bale</span> et aider à porter la lumière là où elle est le plus nécessaire.",
-  "landing_welcome_title": "Nous déployons des navires organiques et autonomes pour porter <strong>nourriture, amour et espoir</strong> à travers les mers.",
+  "landing_welcome_title": "Nous déployons des navires organiques et autonomes pour porter nourriture, amour et espoir à travers les mers.",
   "login_cta": "Continuer vers Buwana",
   "login_intro": "Authentifiez-vous avec Buwana SSO pour gérer les Tortues de l'Espoir.",
   "login_redirect": "En continuant, vous serez redirigé vers la page de connexion Buwana.",
