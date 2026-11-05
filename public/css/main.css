@@ -839,49 +839,6 @@ body.mobile-menu-open {
   flex: 1 0 auto;
 }
 
-/* Homepage banner: the shared full-image .page-banner (see /turtles). The
-   turtle sits left of centre in turtle-landed.webp, so the text goes on the
-   right over open water, with the shading gradient mirrored to match. */
-.home-banner {
-  height: auto;
-  min-height: max(420px, 66vh);
-}
-
-.home-banner .page-banner__bg {
-  object-position: 30% 60%;
-}
-
-.home-banner::after {
-  background: linear-gradient(
-    270deg,
-    rgba(31, 59, 34, 0.85) 0%,
-    rgba(31, 59, 34, 0.6) 45%,
-    rgba(31, 59, 34, 0.1) 100%
-  );
-}
-
-.home-banner .page-banner__inner {
-  justify-content: flex-end;
-}
-
-/* Keep the text physically on the right (over the water) in RTL too. */
-[dir="rtl"] .home-banner .page-banner__inner {
-  justify-content: flex-start;
-}
-
-.home-banner .page-banner__heading {
-  max-width: 36rem;
-}
-
-.home-banner__title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  line-height: 1.1;
-}
-
-.home-banner__lead {
-  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
-}
-
 .landing-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -4744,6 +4701,59 @@ label.ht-toggle {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.85);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Homepage banner: the shared full-image .page-banner (see /turtles). The
+   turtle sits left of centre in turtle-landed.webp, so the text and the
+   green shading go on the right, over open water. These rules must come
+   after the shared .page-banner rules, which have the same specificity. */
+.home-banner {
+  height: auto;
+  min-height: max(420px, 66vh);
+}
+
+.home-banner .page-banner__bg {
+  object-position: 30% 60%;
+}
+
+.home-banner::after {
+  background: linear-gradient(
+    270deg,
+    rgba(31, 59, 34, 0.85) 0%,
+    rgba(31, 59, 34, 0.6) 45%,
+    rgba(31, 59, 34, 0.1) 100%
+  );
+}
+
+.home-banner .page-banner__inner {
+  justify-content: flex-end;
+}
+
+/* Keep the text physically on the right (over the water) in RTL too. */
+[dir="rtl"] .home-banner .page-banner__inner {
+  justify-content: flex-start;
+}
+
+.home-banner .page-banner__heading {
+  max-width: 36rem;
+}
+
+.home-banner__title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1.1;
+}
+
+.home-banner__lead {
+  font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+}
+
+/* Intro paragraph that follows the homepage banner. */
+.landing-intro {
+  max-width: 48rem;
+  margin: 0 auto 2.5rem;
+  font-size: 1.15rem;
+  line-height: 1.7;
+  text-align: center;
 }
 
 .turtleos-page .page-banner__actions {

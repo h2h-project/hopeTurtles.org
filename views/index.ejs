@@ -17,6 +17,9 @@
   </section>
 
   <div class="layout">
+    <%# Carries an inline link and the "bale" tooltip, so it renders unescaped. %>
+    <p class="landing-intro"><%- t.landing_intro_paragraph1 %></p>
+
   <% const contributeCards = [
     { title: t.contribute_code_title || 'Code', subtitle: t.contribute_code_body || 'Help develop our turtle python code on Github', url: '/turtleos', image: '/images/help-code.webp', subtitleIcon: 'fa-code' },
     { title: t.contribute_build_title || 'Build', subtitle: t.contribute_build_body || 'Generate the carpentry, 3D printing and CNC files to build with your own bottle.', url: '/ecojoiners', image: '/images/ecojoiner-spec-hero.webp', subtitleIcon: 'fa-screwdriver-wrench' },
