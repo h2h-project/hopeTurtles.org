@@ -121,6 +121,17 @@ export const config = {
     jobTtlDays: Number(process.env.ECOJOINER_JOB_TTL_DAYS || 7),
     timeoutMs: Number(process.env.ECOJOINER_TIMEOUT_MS || 30000)
   },
+  // Stripe (contributions). Shares the Stripe account that earthcal.app uses.
+  // Empty secret key = contributions off: the checkout endpoint answers 503.
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    // Where Stripe Checkout sends the visitor back to.
+    siteUrl: (process.env.SITE_URL || 'https://hopeturtles.org').replace(/\/+$/, ''),
+    // Whole US dollars, enforced server-side whatever the form sends.
+    minContributionUsd: Number(process.env.CONTRIBUTION_MIN_USD || 1),
+    maxContributionUsd: Number(process.env.CONTRIBUTION_MAX_USD || 10000)
+  },
   integrations: {
     mapboxToken: process.env.MAPBOX_TOKEN || '',
     includeWebsiteCarbon:

@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Head_Fin.scad
-//  Turtle Body version 6.5.0
+//  Turtle Body version 6.6.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -175,8 +175,8 @@ function p_eco_screw_pair_offset() =
 //  the axle (below) is derived to this datum.
 function p_cap_disk_d()      = 102;   // control-cap disk (independent of p_bottle_cap_d; was 100, +2 mm)
 function p_cap_roof_t()      = 5;     // disk / roof thickness
-function p_cap_boss_depth()  = 1.5;   // extra projection of the centre boss into the hollow cap
-                                       // (was 2; lowered 0.5 mm -> 6.5 mm axle bearing length)
+function p_cap_boss_depth()  = 0;     // extra projection of the centre boss into the hollow cap.
+                                       // 0 = no boss, flat cavity ceiling (v6.5.1; was 1.5, before that 2)
 function p_cap_boss_d()      = 18;
 function p_cap_insert_len()  = 35;    // straight insert shaft length
 function p_cap_insert_wall_t() = 4;
@@ -185,7 +185,7 @@ function p_cap_entry_chamfer_delta() = 1;
 function p_cap_axle_bore_d() = 6;     // loose: 0.5 mm radial clearance to the Ø5 steel shaft (was 8.7 for Ø8 PLA)
 function p_cap_cage_radial_clearance() = 1;   // cap disk -> cage inner wall (radial)
 function p_cap_total_h()     = p_cap_roof_t() + p_cap_insert_len();           // 40
-function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 6.5 (was 7)
+function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 5 (was 6.5, 7)
 
 // buttons (through both cap and cage)
 function p_button_upper_d()  = 17;    // clearance hole in the cap
@@ -243,7 +243,8 @@ function p_axle_oring_mean_r() = (p_axle_oring_id() + p_axle_oring_cs()) / 2;   
 function p_cap_oring_squeeze()      = 0.25;  // radial squeeze on the seal
 function p_cap_oring_gland_od()     = p_axle_oring_od() - 2 * p_cap_oring_squeeze(); // 8.5
 function p_cap_oring_gland_w()      = 1.3 * p_axle_oring_cs();                       // 2.6 axial
-function p_cap_oring_gland_from_face() = 3.5; // gland centre, from the cap outer face, along the bore
+function p_cap_oring_gland_from_face() = p_cap_bearing_len() / 2; // gland centre, from the cap outer face, along the bore
+                                         // (2.5 = mid-roof since the boss went in v6.5.1; was 3.5)
 
 // ---- rotating control cage (CLAUDE.md s6) ------------------------
 function p_cage_wall_t()     = 6.5;   // radial wall thickness
@@ -267,8 +268,8 @@ function p_cage_pocket_depth() = 4;   //   "        "     "
 function p_cage_bearing_d()  = 9;     // hemispherical bearing bump
 function p_cage_bearing_count() = 8;
 function p_cage_bearing_pcd() = p_cap_disk_d() - p_cage_bearing_d() + 0.5;          // 91.5
-function p_cage_top_hole_d() = 22;    // button / access hole through the roof (was 18; +2 mm radius so it
-                                       // opens onto the hub and exposes the set-screw face)
+function p_cage_top_hole_d() = 18;    // button / access hole through the roof (v6.5.2: back to 18 from 22;
+                                       // the 22 opened onto the hub for set-screw access, off since v6.0.0)
 function p_cage_mount_hole_d() = 3.2; // two M3 clearance holes per batten / groove
 function p_cage_mount_pitch()  = 32;  // vertical pitch of the pair
 function p_cage_lower_hole_from_tip() = 10;
@@ -470,6 +471,86 @@ module hex_prism_af(across_flats, h, center = false) {
     cylinder(d = across_flats / cos(30), h = h, $fn = 6, center = center);
 }
 // [bundle] end   <util.scad>
+// [bundle] begin use <fin_ruler.scad>
+// Shared vector engraving: dimensions in mm, digits need no installed font.
+// [bundle] begin use <params.scad>
+// [bundle] already inlined: params.scad
+// [bundle] end   <params.scad>
+function fr_depth() = 0.3;
+function fr_stroke() = 0.25;
+function fr_label_w(s) = len(s) * 2.2;
+function fr_segments(c) =
+    c == "0" ? [0,1,2,3,4,5] : c == "1" ? [1,2] :
+    c == "2" ? [0,1,6,4,3] : c == "3" ? [0,1,6,2,3] :
+    c == "4" ? [5,6,1,2] : c == "5" ? [0,5,6,2,3] :
+    c == "6" ? [0,5,6,4,2,3] : c == "7" ? [0,1,2] :
+    c == "8" ? [0,1,2,3,4,5,6] : c == "9" ? [0,1,2,3,5,6] : [];
+module fr_char(c) {
+    pts = [[[0,3],[1.5,3]], [[1.5,3],[1.5,1.5]],
+           [[1.5,1.5],[1.5,0]], [[0,0],[1.5,0]],
+           [[0,0],[0,1.5]], [[0,1.5],[0,3]], [[0,1.5],[1.5,1.5]]];
+    for (i = fr_segments(c)) hull() for (p = pts[i])
+        translate(p) square(fr_stroke(), center=true);
+    if (c == "+" || c == "-") {
+        translate([0,1.375]) square([1.5,0.25]);
+        if (c == "+") translate([0.625,0.75]) square([0.25,1.5]);
+    }
+    if (c == "m") for (x=[0,0.75,1.5]) {
+        translate([x,0]) square([0.25,1.5]);
+        translate([x,1.25]) square([0.5,0.25]);
+    }
+}
+module fr_label(s, mirrored=false) {
+    translate([mirrored ? fr_label_w(s)-0.7 : 0,0])
+        mirror([mirrored ? 1 : 0,0,0])
+            for (i=[0:len(s)-1]) translate([i*2.2,0]) fr_char(s[i]);
+}
+// kind-specific fit predicates keep WHOLE marks and labels clear of edges/joints.
+function fr_fits(kind, x0, x1, z0, z1) = kind == "head" ?
+    z0 >= -p_head_fin_h()/2-p_head_fin_drop()+5 && z1 <= p_head_fin_h()/2-5 &&
+    x0 >= p_head_slat_overlap()/2+p_fit_clearance()/2+5 &&
+    x1+5 <= p_head_fin_heel_x() + (p_head_fin_w()-p_head_fin_heel_x()) *
+        (p_head_fin_h()/2-z1)/(p_head_fin_h()-p_head_fin_toe_h()) &&
+    x1+5 <= p_head_fin_w()-p_head_fin_forefoot_setback() :
+    z0 >= max(0,(2/3)*p_bottle_d()-x0)+5 && z1 <= 3*p_bottle_d()-5 &&
+    x0 >= (p_fin_board_w()-2*p_wood_t())/2+p_fit_clearance()/2+5 &&
+    x1 <= p_fin_board_w()-2*p_wood_t()-5;
+// Keep rulers beyond the half-lap ends when builders change stock dimensions.
+// These margins preserve the reference build's X=30 / X=42 positions.
+function fr_joint_margin(kind) = kind == "head" ? 5.9 : 7.4;
+function fr_x(kind) = (kind == "head" ? p_head_slat_overlap()/2
+                     : (p_fin_board_w()-2*p_wood_t())/2)
+                     + p_fit_clearance()/2 + fr_joint_margin(kind);
+function fr_tick_length(v) = v%10 == 0 ? 8 : v%5 == 0 ? 6 : 3;
+function fr_tick_width(v) = v == 0 ? 0.6 : 0.25;
+function fr_tick_values(kind, zero) = [for (v=[-500:500])
+    if (fr_fits(kind,fr_x(kind),fr_x(kind)+fr_tick_length(v),
+                zero+v-fr_tick_width(v)/2,zero+v+fr_tick_width(v)/2)) v];
+function fr_range(kind, zero) = let(values=fr_tick_values(kind,zero))
+    assert(len(values)>0,"Fin has no room for a ruler") [min(values),max(values)];
+module fin_ruler_2d(kind, zero, mirrored=false) {
+    x = fr_x(kind);
+    for (v=[-500:500]) {
+        z = zero+v;
+        l = fr_tick_length(v);
+        w = fr_tick_width(v);
+        if (fr_fits(kind,x,x+l,z-w/2,z+w/2))
+            translate([x,z-w/2]) square([l,w]);
+        s = str(v>0 ? "+" : "",v);
+        if (v%10 == 0 && fr_fits(kind,x+10,x+10+fr_label_w(s),z-1.7,z+1.7))
+            translate([x+10,z-1.5]) fr_label(s,mirrored);
+    }
+    if (fr_fits(kind,x+10,x+15,zero+3,zero+6.5))
+        translate([x+10,zero+3]) fr_label("mm",mirrored);
+}
+module fin_ruler_recess(kind, zero, thickness) {
+    assert(thickness > 2*fr_depth(), "Fin must be thicker than both engravings.");
+    for (side=[-1,1])
+        translate([0,side*(thickness/2-fr_depth()/2+p_eps()/2),0])
+            rotate([90,0,0]) linear_extrude(height=fr_depth()+p_eps(),center=true)
+                fin_ruler_2d(kind,zero,side==1);
+}
+// [bundle] end   <fin_ruler.scad>
 
 function hf_t()            = p_wood_t();
 function hf_fin_width()    = p_head_fin_w();          // 93
@@ -523,7 +604,7 @@ module hf_assert_valid(half_lap, hole_from_front, hole_d) {
            "head_fin: slat hole must stay in the unjointed portion, behind the bottle base.");
 }
 
-module head_fin(half_lap = p_fit_clearance(), fn = undef, colored = true) {
+module head_fin_blank(half_lap = p_fit_clearance(), fn = undef, colored = true) {
     t = hf_t(); eps = p_eps();
     nn = fn == undef ? p_fn_wood() : fn;
     W = hf_fin_width(); H2 = hf_fin_height() / 2;
@@ -538,6 +619,13 @@ module head_fin(half_lap = p_fit_clearance(), fn = undef, colored = true) {
                 translate([-eps, z - half_lap / 2])
                     square([hf_joint_meet_x() + half_lap / 2 + eps, t + half_lap]);
         }
+}
+
+module head_fin(half_lap = p_fit_clearance(), fn = undef, colored = true) {
+    difference() {
+        head_fin_blank(half_lap, fn, colored);
+        fin_ruler_recess("head", 0, hf_t());
+    }
 }
 
 module head_slat(z0 = 0, half_lap = p_fit_clearance(),

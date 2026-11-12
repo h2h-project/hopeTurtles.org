@@ -55,6 +55,10 @@
       gen_session_title: "Your session has timed out",
       gen_session_body:
         "You've been signed out, so we couldn't finish that just now. Log back in to carry on generating your files.",
+      gen_save_design_failed:
+        "Your files are ready, but this design was NOT saved to your account.",
+      gen_save_design_missing:
+        "To save it, fill in these bottle fields and export again:",
       gen_session_save_tip:
         "Tip: your bottle and board settings are saved automatically — next time you can pick up right where you left off.",
       gen_session_login: "Login Again",
@@ -652,28 +656,53 @@
     return { ok: response.ok, status: response.status, body };
   };
 
+  // The bottle-profile fields the server's parseProfileFields() reads. Sent
+  // with profile saves and with every design save, so the server can keep the
+  // profile row and the design's profile_snapshot current.
+  const profileFields = (values) => ({
+    brand: values.brand,
+    volume: values.volume,
+    diameter: values.diameter,
+    cap: values.cap,
+    collar: values.collar,
+    height: values.height,
+    topTapper: values.topTapper,
+    bottomTapper: values.bottomTapper,
+    capHeight: values.capHeight,
+    material: values.material,
+    thickness: values.thickness,
+    boardMaxWidth: values.boardMaxWidth,
+    portFitMm: values.portFitMm,
+    solarPanelWidth: values.solarPanelWidth,
+    solarPanelThickness: values.solarPanelThickness,
+    solarPanelHeight: values.solarPanelHeight,
+  });
+
+  // Fields a bottle profile cannot be stored without: the server's
+  // parseProfileFields() requires them and ecojoiner_bottle_profiles_tb has
+  // them NOT NULL — for every ecojoiner type, even those whose generator
+  // ignores collar / top tapper / volume. Returns the missing [key, id, label] rows.
+  const PROFILE_REQUIRED = [
+    ["brand", "eco-brand", "gen_field_brand"],
+    ["volume", "eco-volume", "gen_field_volume"],
+    ["diameter", "eco-diameter", "gen_field_diameter"],
+    ["cap", "eco-cap", "gen_field_cap"],
+    ["collar", "eco-collar", "gen_field_collar"],
+    ["topTapper", "eco-top-tapper", "gen_field_top_tapper"],
+    ["thickness", "eco-thickness", "gen_field_thickness"],
+  ];
+  const missingProfileFields = (values) =>
+    PROFILE_REQUIRED.filter(
+      ([key]) => values[key] === "" || values[key] === null || values[key] === undefined,
+    );
+
   // Builds the multipart body for saving/updating a bottle profile, picking
   // up the photo from Panel 1's own file input (there's no photo field left
   // in any save dialog — the bottle photo always travels with the bottle).
   const profileFormData = (values, extra = {}) => {
     const formData = new FormData();
     Object.entries({
-      brand: values.brand,
-      volume: values.volume,
-      diameter: values.diameter,
-      cap: values.cap,
-      collar: values.collar,
-      height: values.height,
-      topTapper: values.topTapper,
-      bottomTapper: values.bottomTapper,
-      capHeight: values.capHeight,
-      material: values.material,
-      thickness: values.thickness,
-      boardMaxWidth: values.boardMaxWidth,
-      portFitMm: values.portFitMm,
-      solarPanelWidth: values.solarPanelWidth,
-      solarPanelThickness: values.solarPanelThickness,
-      solarPanelHeight: values.solarPanelHeight,
+      ...profileFields(values),
       ...extra,
     }).forEach(([key, value]) => {
       if (value !== null && value !== undefined) formData.set(key, value);
@@ -874,7 +903,7 @@
       // Autosave the working bottle profile + a draft design behind the
       // files just generated — passing the job/files along flips the
       // design's status to "generated" instead of leaving it a draft.
-      await saveWorkingDraft(lastGenerated);
+      renderSaveProblem(await saveWorkingDraft(lastGenerated));
     } catch (error) {
       renderErrors(s("gen_res_err_network"), [error.message], { append: true });
     } finally {
@@ -1201,19 +1230,7 @@
     saveProfileBtn.addEventListener("click", async () => {
       setSaveProfileFeedback("");
       const values = collect();
-      const required = [
-        "brand",
-        "volume",
-        "diameter",
-        "cap",
-        "collar",
-        "topTapper",
-        "thickness",
-      ];
-      const missing = required.some(
-        (key) => values[key] === "" || values[key] === null || values[key] === undefined,
-      );
-      if (missing) {
+      if (missingProfileFields(values).length) {
         setSaveProfileFeedback(s("gen_save_profile_missing_fields"), true);
         return;
       }
@@ -1513,10 +1530,17 @@
   // formats / connection fit. `jobInfo` (job_slug + files), when passed,
   // attaches the just-generated files and flips the design's status to
   // "generated" server-side instead of leaving it a draft.
+  // Throws on failure (with the server's message) so callers can report it.
   const syncDraftDesign = async (profileId, label, jobInfo = null) => {
-    if (!profileId) return;
+    if (!profileId) throw new Error("No bottle profile to attach the design to.");
     const values = collect();
     const formData = new FormData();
+    // The server re-parses the on-screen bottle fields for every design
+    // save (createDesign / updateDesign -> parseProfileFields). Sending only
+    // profile_id made every design save fail with a 422, silently.
+    Object.entries(profileFields(values)).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) formData.set(key, value);
+    });
     formData.set("profile_id", profileId);
     formData.set("ecojoinerType", values.ecojoinerType || "6fc");
     formData.set("portFitMm", values.portFitMm);
@@ -1548,7 +1572,12 @@
       body: formData,
     });
     const body = await response.json().catch(() => ({}));
-    if (!response.ok || !body.success) return;
+    if (!response.ok || !body.success) {
+      const detail = (body.errors || []).join(" ");
+      throw new Error(
+        `${body.message || `Design save failed (HTTP ${response.status}).`}${detail ? ` ${detail}` : ""}`,
+      );
+    }
 
     loadedDesign = {
       design_id: body.data.design_id,
@@ -1560,30 +1589,55 @@
     loadDesignsList();
   };
 
-  // Best-effort: saves the profile, then the draft design behind it. Silent
-  // on failure — this is a convenience autosave, not something that should
-  // block Save and Generate from otherwise succeeding. `jobInfo` is passed
-  // through to syncDraftDesign once files have actually been generated.
+  // Saves the profile, then the design behind it. Never throws: it returns
+  // { ok, missing, message } so Save & Export can tell the user when the
+  // design was NOT saved, instead of failing silently as it used to.
+  // `jobInfo` is passed through to syncDraftDesign once files exist.
   const saveWorkingDraft = async (jobInfo = null) => {
     const values = collect();
-    const required = ["brand", "volume", "diameter", "cap", "collar", "topTapper", "thickness"];
-    const missing = required.some(
-      (key) => values[key] === "" || values[key] === null || values[key] === undefined,
-    );
-    if (missing) return;
+    const missing = missingProfileFields(values);
+    if (missing.length) return { ok: false, missing, message: null };
     const label = values.volume ? `${values.brand} ${values.volume}ml` : values.brand;
     try {
       const profileId = await syncBottleProfile(label);
-      if (!profileId) return;
+      if (!profileId) {
+        console.error("Ecojoiner autosave: bottle profile save failed");
+        return { ok: false, missing: [], message: s("gen_save_profile_error") };
+      }
       await loadProfiles();
       loadedProfileSpecs = currentSpecValues();
       updateSaveProfileVisibility();
       updateSaveChangesVisibility();
       await syncDraftDesign(profileId, label, jobInfo);
-    } catch {
-      // Autosave failures shouldn't surface — Save Bottle Profile / Generate
-      // already show their own success/error feedback for the parts that matter.
+      return { ok: true, missing: [], message: null };
+    } catch (error) {
+      console.error("Ecojoiner autosave: design save failed", error);
+      return { ok: false, missing: [], message: error.message || null };
     }
+  };
+
+  // Shown under the download links when the final save did not go through.
+  const renderSaveProblem = (result) => {
+    if (!result || result.ok) return;
+    const slot = el("eco-results-ready");
+    const missingList = result.missing.length
+      ? `<p class="eco-results__notice">${esc(s("gen_save_design_missing"))} ${esc(
+          result.missing.map(([, , labelKey]) => s(labelKey) || labelKey).join(", "),
+        )}</p>`
+      : "";
+    const reason =
+      !result.missing.length && result.message
+        ? `<p class="eco-results__notice">${esc(result.message)}</p>`
+        : "";
+    const html = `<div class="eco-results__card eco-results__card--error" role="alert">
+         <h3 class="eco-results__subtitle">
+           <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> ${esc(
+             s("gen_save_design_failed"),
+           )}
+         </h3>${missingList}${reason}
+       </div>`;
+    if (slot) slot.insertAdjacentHTML("beforeend", html);
+    else appendResults(html);
   };
 
 })();

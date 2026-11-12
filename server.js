@@ -22,6 +22,7 @@ import { loadLocales } from './utils/localization.js';
 import { isAdminRole } from './utils/roles.js';
 import { scheduleEcojoinerCleanup } from './utils/ecojoinerCleanup.js';
 import { checkGeneratorHealth } from './utils/ecojoinerGenerator.js';
+import { handleStripeWebhook } from './controllers/contributionsController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -69,6 +70,9 @@ app.use(
 );
 app.use(compression());
 app.use(morgan(config.env === 'production' ? 'combined' : 'dev'));
+// Stripe webhook: must see the raw body (for its signature check), so it is
+// mounted before express.json() would parse it.
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());

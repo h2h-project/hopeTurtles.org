@@ -147,6 +147,7 @@ def build_scad(overrides: dict | None = None, part: str = "assembly") -> str:
         "p_fin_board_w": p["fin_board_width"],
         "p_port_height": port_height(p),
         "p_m5_hole_d": p["slat_hole_diameter"],
+        "p_fit_clearance": p["half_lap_clearance"],
     })
     text = tbb.override_customizer(text, {
         "half_lap_clearance": p["half_lap_clearance"],

@@ -20,6 +20,7 @@ import commissionsModel from "../models/commissionsModel.js";
 import ecojoinerProfilesModel from "../models/ecojoinerProfilesModel.js";
 import { renderManagementPage } from "../controllers/usersController.js";
 import config from "../config/env.js";
+import { renderThanks as renderContributionThanks } from "../controllers/contributionsController.js";
 import {
   THEME_COOKIE,
   THEME_COOKIE_OPTIONS,
@@ -209,6 +210,9 @@ router.get("/contribute", (req, res) => {
     bodyClass: "ocean-bg",
   });
 });
+
+// Stripe Checkout's success_url for contributions.
+router.get("/contribute/thanks", renderContributionThanks);
 
 router.get("/lookup", (req, res) => {
   res.render("lookup", {

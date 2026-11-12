@@ -11,6 +11,7 @@ reference script only ever produced a 3D .scad file.
 from __future__ import annotations
 
 import json
+import fin_rulers
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -341,6 +342,8 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         ("bottle holder shaft", inputs.shaft_width, d.shaft_length),
         ("solar panel holder", d.solar_holder_length, d.solar_holder_height),
     ])
+    if not errors and not _ruler(inputs, d)["zero_tick_present"]:
+        errors.append("The requested stock leaves no room for the fin ruler zero; adjust board width or thickness.")
     return errors
 
 
@@ -353,6 +356,11 @@ def make_job_slug(inputs: BackFinInputs, derived: BackFinDerived) -> str:
 # ---------------------------------------------------------------------------
 # SCAD - delegates straight to the validated reference generator
 # ---------------------------------------------------------------------------
+
+
+def _ruler(inputs, d):
+    return fin_rulers.ruler_geometry("rear", inputs, d)[1]
+
 
 def write_scad(path: Path, inputs: BackFinInputs, d: BackFinDerived) -> None:
     overrides = {key: getattr(inputs, key) for key in _BF_DEFAULTS}
@@ -392,9 +400,11 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
     def fin_group(y, name):
         out = f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
+        out += f'<g transform="translate(0 {d.fin_height:.6f}) scale(1 -1)">\n'
         out += _polygon(_fin_outline(d))
         for nx, ny, nw, nh in _fin_notches(inputs, d):
             out += _rect(nx, ny, nw, nh)
+        out += fin_rulers.svg_paths("rear", inputs, d) + '</g>\n'
         out += _label(0, -3, name)
         out += "  </g>\n"
         return out
@@ -465,6 +475,7 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
         _dxf_polygon(msp, out_points, DXF_CUT_LAYER)
         for nx, ny, nw, nh in _fin_notches(inputs, d):
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
+        fin_rulers.draw_dxf(msp, "rear", inputs, d, offset_y=y)
         _dxf_label(msp, 0, y - 3, name)
 
     def shaft_group(y, name):
@@ -621,7 +632,7 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     lower_top = lower[1] + lower[3]
     upper_top = upper[1] + upper[3]
     dims.append((
-        (slot_end + 14, upper_top), (slot_end + 14, d.fin_height),
+        (d.fin_width + 8, upper_top), (d.fin_width + 8, d.fin_height),
         f"{_ceil_mm(d.fin_height - upper_top)}mm",
         {"ext1": (slot_end, upper_top), "ext2": (slot_end, d.fin_height), "rotate_label": True},
     ))
@@ -629,10 +640,8 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     # (anchored at solar_dim_x below) - both are long vertical lines running
     # up to fin_height, and if they land within a label-width of each other
     # the solar slot's rotated label gets struck through by this line.
-    solar_dim_x = solar[0] - 5
-    lower_dim_x = slot_end + 30
-    if abs(lower_dim_x - solar_dim_x) < 20:
-        lower_dim_x = max(slot_end + 22, solar_dim_x - 20)
+    solar_dim_x = d.fin_width + 36  # third external dimension, clear of ruler labels
+    lower_dim_x = d.fin_width + 22  # outside the engraving column
     dims.append((
         (lower_dim_x, lower_top), (lower_dim_x, d.fin_height),
         f"{_ceil_mm(d.fin_height - lower_top)}mm",
@@ -731,6 +740,10 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     # shared top line rather than a shared baseline, since the smallest
     # part (the solar panel holder, rightmost) then leaves open space at
     # the bottom of its own column for the input/derived-dimension boxes.
+    c.setFont(body_font, 7)
+    c.drawString(margin, title_y - 29,
+                 "Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts.")
+
     draw_left = margin
     draw_right = page_w - margin
     draw_top = title_y - 44
@@ -743,7 +756,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     # its vertical dimension line + label) and a small gap to the right,
     # before the next column starts.
     col_left_pad = 40
-    col_right_pad = 10
+    col_right_pad = 34  # room for fin dimensions outside the ruler column
     col_gap = 16
 
     shaft_dims, shaft_labels = _shaft_annotations(inputs, d)
@@ -856,6 +869,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
 
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
 
+        if part["name"] == "Rear Fin":
+            fin_rulers.draw_pdf(c, "rear", inputs, d, ox, oy, scale)
         for wall in part["notches"]:
             _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
         for cx, cy, dia in part["circles"]:
@@ -970,7 +985,7 @@ def generate(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "job_slug": slug,
             "inputs": asdict(inputs),
-            "derived": asdict(d),
+            "derived": {**asdict(d), "ruler": _ruler(inputs, d)},
             "files": [],
         }
 
@@ -1002,6 +1017,11 @@ def generate(
         write_dxf(preview_dxf_path, inputs, d, full_set=False)
         files.append(GeneratedFile("dxf", "1:1 DXF one-each layout", str(preview_dxf_path), f"{public_url_prefix}/{slug}/{preview_dxf_path.name}"))
 
+    if "dxf" in inputs.formats:
+        p = job_dir / f"{slug}_fin_face_b_engrave_1to1.dxf"
+        fin_rulers.write_opposite_dxf(p, "rear", inputs, d)
+        files.append(GeneratedFile("dxf", "Fin face B engraving only: flip about X=0, do not auto-centre", str(p), f"{public_url_prefix}/{slug}/{p.name}"))
+
     if "pdf" in inputs.formats:
         pdf_path = job_dir / f"{slug}_carpenter_sheet.pdf"
         write_pdf(pdf_path, inputs, d, font_dir=font_dir)
@@ -1015,7 +1035,7 @@ def generate(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "job_slug": slug,
         "inputs": asdict(inputs),
-        "derived": asdict(d),
+        "derived": {**asdict(d), "ruler": _ruler(inputs, d)},
         "files": [asdict(f) for f in files],
     }
 

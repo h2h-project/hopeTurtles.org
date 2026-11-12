@@ -45,7 +45,7 @@
   "p_eco_screw_pair_offset": 18,
   "p_cap_disk_d": 102,
   "p_cap_roof_t": 5,
-  "p_cap_boss_depth": 1.5,
+  "p_cap_boss_depth": 0,
   "p_cap_boss_d": 18,
   "p_cap_insert_len": 35,
   "p_cap_insert_wall_t": 4,
@@ -54,7 +54,7 @@
   "p_cap_axle_bore_d": 6,
   "p_cap_cage_radial_clearance": 1,
   "p_cap_total_h": 40,
-  "p_cap_bearing_len": 6.5,
+  "p_cap_bearing_len": 5,
   "p_button_upper_d": 17,
   "p_button_axis": "y",
   "p_button_radius": 25,
@@ -84,7 +84,7 @@
   "p_cap_oring_squeeze": 0.25,
   "p_cap_oring_gland_od": 8.5,
   "p_cap_oring_gland_w": 2.6,
-  "p_cap_oring_gland_from_face": 3.5,
+  "p_cap_oring_gland_from_face": 2.5,
   "p_cage_wall_t": 6.5,
   "p_cage_roof_t": 4,
   "p_cage_inner_d": 104,
@@ -103,7 +103,7 @@
   "p_cage_bearing_d": 9,
   "p_cage_bearing_count": 8,
   "p_cage_bearing_pcd": 93.5,
-  "p_cage_top_hole_d": 22,
+  "p_cage_top_hole_d": 18,
   "p_cage_mount_hole_d": 3.2,
   "p_cage_mount_pitch": 32,
   "p_cage_lower_hole_from_tip": 10,
@@ -187,5 +187,5 @@
     0.26,
     0.17
   ],
-  "version": "6.5.0"
+  "version": "6.6.0"
 }

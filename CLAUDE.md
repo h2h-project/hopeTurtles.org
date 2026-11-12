@@ -278,25 +278,33 @@ global `pip install` will not work).
 
 ### Upstream contract — turtle_body is the source of truth
 
-The geometry here is **downstream of the sibling repository `../turtle_body`**
-(`~/WebstormProjects/turtle_body`, [github](https://github.com/h2h-project/turtle_body)). Its
+The geometry here is **downstream of the turtle_body repository**
+(`/home/russs/PycharmProjects/turtle_body`, [github](https://github.com/h2h-project/turtle_body)). Its
 `lib/params.scad` (every shared dimension as a `function p_*()`) and the wooden-component modules
 `lib/ecojoiner.scad`, `lib/rear_fin.scad`, `lib/ballast_fin.scad`, `lib/sail_frame.scad` are
 authoritative. When a value or formula here differs from upstream, **the generator is wrong.**
+
+**Checkout locations (2026-11-12).** turtle_body moved out of WebstormProjects into
+`/home/russs/PycharmProjects/turtle_body`, so it is **not** a sibling of this repo. Wherever
+this file or a generator docstring says `../turtle_body`, read it as that path. The sync script
+and `tools/assembly_drawings/turtle_steps.py` look in `~/PycharmProjects/turtle_body` first, then
+fall back to `../turtle_body`. `--turtle-body` / `$TURTLE_BODY_DIR` (or `$TURTLE_BODY` for
+turtle_steps) override both. `/home/russs/WebstormProjects/turtle_body_OLD- nov11` is a stale older
+clone. Never sync from it or edit it.
 
 Rules:
 
 - **Never change a geometry default, formula or part list in `generator/` on its own.** Check the
   upstream `p_*()` / `rf_*` / `bl_*` / `eco_*` definition first and cite its name in a comment next
   to the generator constant (see `generator/objects/sails.py` for the pattern).
-- **When `../turtle_body/VERSION.json` changes**, read its `changelog` entry and turtle_body's
+- **When turtle_body's `VERSION.json` changes**, read its `changelog` entry and turtle_body's
   `CLAUDE.md` §19 (the mapping table + propagation rule), then run the sync (below), update any
   generator the checker flags or the formula review turns up, and add/close an entry in
   `generator/SYNC_LOG.md`. A minor or major upstream bump almost always touches a generator; a
   patch bump to a PLA part (cap, cage, axle, mold) never does.
-- **Syncing (S-5, built 2026-09-08).** `../turtle_body`'s `build/build.py` writes
+- **Syncing (S-5, built 2026-09-08).** turtle_body's `build/build.py` writes
   `build/params.json` (every `p_*()` value + version). Here:
-  - `python3 generator/sync_from_turtle_body.py` vendors that + the four wooden bundles into
+  - `python3 generator/sync_from_turtle_body.py` vendors that + the five wooden bundles into
     `generator/turtle_body/` (`params.json`, `scad/*.scad`, `VERSION`) — a pure copy.
   - `python3 generator/check_params_sync.py` asserts every generator's shared-**input** default
     (39 rows: `slat_thickness`/`wood_thickness`↔`p_wood_t`, `cap_diameter`↔`p_bottle_cap_d`,
@@ -357,10 +365,10 @@ has hardcoded, lift the rule upstream instead of flattening the generator.
 | `generator/objects/ballast.py` + `generator/bottom_ballast_fin_generator.py` | Core slat ×2, ballast bottom board ×1, lock foot ×2, ballast fin ×1. Same split. |
 | `generator/objects/sails.py` + `generator/generate_sails.py` | Split top crossbar since turtle_body v6.0.0: Top Sail Bar Half ×2 + Sail Crossbar Connector ×1 (Ø6 shaft hole since v6.4.0, M3 side clamp into a Ø2.8 pilot), sail battens ×2 (205 + t, 2t two-layer upper notch; board-thickness stock since v6.5.0, so every batten slot is t), non-sail battens ×2 (flush with the cage roof), bottom bars ×2 (3·bd + t), strengtheners ×2, C end pieces ×2, sails ×2. `generate_sails.build_scad()` writes the vendored `Turtle_Sail_Apparatus.scad` bundle (no hand template since 2026-10-22). Full SCAD/SVG/DXF/PDF. |
 | `generator/objects/head_fin.py` + `generator/head_fin_generator.py` | **Head Fin (experimental, turtle_body v5.8.0+):** front fin ×1 (one board wide, raked front edge, 3t flat nose, 45° bottom cut) + head fin slat ×2 that bolt to the front-port Little Johns like the rear shafts (reuses `back_fin_generator`'s port-height / M5-pair / hole-position rules, so it follows "Adjust connection"). SCAD = the vendored `Turtle_Head_Fin.scad` bundle; SVG/DXF/PDF in the back fin's shape. Profile needs 7·t < board width (4t top edge + 3t cut). |
-| `generator/sync_from_turtle_body.py` | Vendors `../turtle_body/build/params.json` + the 5 wooden bundles (incl. `Turtle_Head_Fin.scad`) into `generator/turtle_body/`. Pure copy; `--check` reports staleness. |
+| `generator/sync_from_turtle_body.py` | Vendors turtle_body's `build/params.json` (default `~/PycharmProjects/turtle_body`, else `../turtle_body`) + the 5 wooden bundles (incl. `Turtle_Head_Fin.scad`) into `generator/turtle_body/`. Pure copy; `--check` reports staleness. |
 | `generator/check_params_sync.py` | Asserts 81 shared-input / key-derived defaults across the generators against `generator/turtle_body/params.json`. Runs in `npm run lint`. Mostly the input layer — the rest of `derive_dimensions()` still needs a human eye. |
 | `tools/component_previews/render.py` | Renders the generator's Step 4 pen-and-ink cards `public/images/ecojoiners/head-fin.webp` and `sail-frame.webp`, plus 1000 px `ballast-fin-high` / `rear-fin-high` / `head-fin-high` / `sail-frame-high.webp` for the `/turtles/build` "Assemble Sail Components" panel (`sail-frame-high` is also on the sails PDF) from the vendored bundles, reusing `tools/assembly_drawings/render.py`. Re-run after an upstream shape change. Needs openscad, numpy, Pillow. |
-| `tools/assembly_drawings/turtle_steps.py` | Renders the `/turtles/build` "Put It All Together" drawings `public/images/ecojoiners/assembly/together-{1..3}.webp` from the sibling repo's `src/Full_Turtle.scad` (not vendored — reads `../turtle_body` or `$TURTLE_BODY`). Patches a temp copy so each `color()` filters one material, then inks via `component_previews/render.py`'s `draw_view()`. The Turtle Shell in scene 2 is a stand-in board. |
+| `tools/assembly_drawings/turtle_steps.py` | Renders the `/turtles/build` "Put It All Together" drawings `public/images/ecojoiners/assembly/together-{1..3}.webp` from turtle_body's `src/Full_Turtle.scad` (not vendored — reads `~/PycharmProjects/turtle_body`, else `../turtle_body`, or `$TURTLE_BODY` / `$TURTLE_BODY_DIR`). Patches a temp copy so each `color()` filters one material, then inks via `component_previews/render.py`'s `draw_view()`. The Turtle Shell in scene 2 is a stand-in board. |
 | `generator/turtle_body/` | Vendored, do not hand-edit: `params.json` (upstream `p_*()` snapshot), `scad/*.scad` (the 4 bundles), `VERSION`. See its `README.md`. |
 | `generator/SYNC_PLAN.md` / `generator/SYNC_LOG.md` | The upstream-sync assessment and its running log. |
 | `generator/claude_code_ecojoiner_backend_prompt_v3_2.md` | Historical: the original brief for the 6FC backend. Not current documentation. |
@@ -404,6 +412,21 @@ Safety rules: user values are passed only inside a temp JSON file (`--json`), ne
 never through a shell. Output is confined to `public/ecojoiner_exports/<jobSlug>/` (served at
 `/ecojoiner_exports`); the trusted `generator/` source directory is never a write target.
 
+### Fin calibration rulers (turtle_body v6.6.0)
+
+Front/head and rear/back fin exports include signed millimetre rulers at the
+horizontal bottle axis, 0.3 mm engraved on both faces. `generator/fin_rulers.py`
+shares the 2D implementation across SVG/DXF/PDF; the rear SCAD template embeds the
+upstream ruler definitions from its vendored bundle. Existing cut paths and part
+quantities stay unchanged. DXF marks use ENGRAVE, plus an engraving-only opposite
+face file registered about X=0 at the same Y=10 mm origin. See
+`generator/FIN_RULERS.md` for manufacturing registration and the developer check
+`generator/.venv/bin/python generator/verify_fin_rulers.py` (OpenSCAD only for
+verification, never in the website runtime).
+
+Upstream is `/home/russs/PycharmProjects/turtle_body`, which the sync script now finds by
+default (see "Checkout locations" above).
+
 ## Contributions, Commissioning & OpenBooks
 
 Beyond mission/turtle/bottle logistics, the platform is expanding into the project's financial
@@ -431,8 +454,30 @@ All three entry points exist today as **UI-only placeholders** — no money move
   OpenBooks button (`data-openbooks-notice` in `public/js/dashboard.js`) currently intercepts the
   click and shows `alert('Sorry! Our entire financial system is still in development.')` instead
   of navigating, since there's nothing to show yet — remove that intercept once the ledger is real.
-- The Contribute modal's submit handler (`public/js/dashboard.js`) just shows an inline "thanks,
-  check back soon" message — no Stripe call, no DB write.
+- ~~The Contribute modal is a placeholder~~ — it now goes to Stripe Checkout; see below. (The
+  modal lives on `/contribute`, `public/js/contribute.js`, not the dashboard.)
+
+### Contributions via Stripe (built 2026-11-05)
+
+The landing page's **Contribute Directly** button links to `/contribute#give`, which opens the
+Contribute modal. Its submit calls `POST /api/contributions/checkout` with `{ amount }`. The server
+checks for whole USD within `CONTRIBUTION_MIN_USD`–`CONTRIBUTION_MAX_USD`, then creates a Stripe
+Checkout session (`mode: payment`, inline `price_data`, so no Product or Price in the Stripe
+dashboard) and the browser is redirected to it. Stripe then returns the visitor to
+`/contribute/thanks`. `POST /api/stripe/webhook` (mounted in `server.js` with `express.raw()`
+ahead of `express.json()`) verifies the signature and, on `checkout.session.completed` /
+`checkout.session.async_payment_succeeded` with `payment_status: paid`, writes a `completed`
+`contribution` row to `transactions_tb` (idempotent on `stripe_payment_intent_id`). If the insert
+fails it answers 500, so Stripe retries. Code: `controllers/contributionsController.js`,
+`utils/stripe.js`, `models/transactionsModel.js`. Off (503) until `STRIPE_SECRET_KEY` is set.
+
+**Shared Stripe account.** The account is shared with **earthcal.app**
+(`~/WebstormProjects/earthcal/api/v1/stripe_webhook.php`), and each webhook endpoint receives
+every event it subscribes to. Sessions created here carry `metadata.app = 'hopeturtles'`, and
+our webhook ignores anything without it. The contributor's ID is stored as
+`metadata.ht_buwana_id` and **must never be `buwana_id`**: earthcal's webhook reads
+`metadata.buwana_id` on `checkout.session.completed` and would link that earthcal user to the
+Stripe customer. We also never create Stripe Customers.
 
 ### Schema draft: `sql/migrations/20260731_commissioning_transactions.sql`
 

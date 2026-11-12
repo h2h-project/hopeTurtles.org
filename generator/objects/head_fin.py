@@ -14,6 +14,7 @@ the same shape as objects/back_fin.py.
 from __future__ import annotations
 
 import json
+import fin_rulers
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -192,6 +193,8 @@ def validate_inputs(inputs: HeadFinInputs) -> List[str]:
         ("head fin", d.fin_width, d.fin_total_height),
         ("head fin slat", d.slat_width, d.slat_length),
     ])
+    if not _ruler(inputs, d)["zero_tick_present"]:
+        errors.append("The requested stock leaves no room for the fin ruler zero; adjust board width or thickness.")
     return errors
 
 
@@ -239,6 +242,11 @@ def _slat_hole_ys(d: HeadFinDerived) -> Tuple[float, float]:
     return (c - d.slat_hole_pair_offset, c + d.slat_hole_pair_offset)
 
 
+
+def _ruler(inputs, d):
+    return fin_rulers.ruler_geometry("head", inputs, d)[1]
+
+
 def write_scad(path: Path, inputs: HeadFinInputs, d: HeadFinDerived) -> None:
     path.write_text(_hf.build_scad(inputs.params()), encoding="utf-8")
 
@@ -268,9 +276,11 @@ def write_svg(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, full_set:
     for row_h, kind, name in rows:
         out += f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
         if kind == "fin":
+            out += f'<g transform="translate(0 {d.fin_total_height:.6f}) scale(1 -1)">\n'
             out += _polygon(_fin_outline(d))
             for nx, ny, nw, nh in _fin_notches(inputs, d):
                 out += _rect(nx, ny, nw, nh)
+            out += fin_rulers.svg_paths("head", inputs, d) + '</g>\n'
         else:
             out += _rect(0, 0, d.slat_length, d.slat_width)
             for hy in _slat_hole_ys(d):
@@ -297,6 +307,7 @@ def write_dxf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, full_set:
             _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _fin_outline(d)], DXF_CUT_LAYER)
             for nx, ny, nw, nh in _fin_notches(inputs, d):
                 _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
+            fin_rulers.draw_dxf(msp, "head", inputs, d, offset_y=y)
         else:
             _dxf_rect(msp, 0, y, d.slat_length, d.slat_width, DXF_CUT_LAYER)
             for hy in _slat_hole_ys(d):
@@ -355,13 +366,13 @@ def _fin_annotations(inputs: HeadFinInputs, d: HeadFinDerived):
         # slot is too short at sheet scale to hold both labels.
         dims.append(((nx, ny - 9), (nx + nw, ny - 9), f"{_ceil_mm(nw)}mm deep",
                      {"ext1": (nx, ny), "ext2": (nx + nw, ny)}))
-        labels.append(((nx + nw + 9, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
+        labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
     # Slot positions, both measured down from the fin's top edge to the top
     # of each slot (two parallel dimensions off one datum, as the rear fin).
     slot_end = upper[0] + upper[2] + 18      # clear of the "wide" labels
-    for x_off, (nx, ny, nw, nh) in ((6, upper), (20, lower)):
+    for x_off, (nx, ny, nw, nh) in ((8, upper), (22, lower)):
         top = ny + nh
-        dims.append(((slot_end + x_off, top), (slot_end + x_off, H), f"{_ceil_mm(H - top)}mm",
+        dims.append(((W + x_off, top), (W + x_off, H), f"{_ceil_mm(H - top)}mm",
                      {"ext1": (slot_end, top), "ext2": (slot_end, H), "rotate_label": True}))
     # Top edge: how far the fin runs forward before the raked edge starts.
     dims.append(((0, H + 8), (d.heel_x, H + 8), f"{_ceil_mm(d.heel_x)}mm",
@@ -397,6 +408,10 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16,
                  "Reference sheet only - the SVG/DXF exports are the 1:1 cut files. Experimental: not yet sea-tested.")
+
+    c.setFont(body_font, 7)
+    c.drawString(margin, title_y - 29,
+                 "Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts.")
 
     draw_left, draw_right = margin, page_w - margin
     draw_top = title_y - 44
@@ -466,6 +481,8 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
         c.setFillColor(colors.HexColor("#222222"))
         c.drawString(ox, draw_top - 10, part["name"])
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
+        if part["name"] == "Head Fin":
+            fin_rulers.draw_pdf(c, "head", inputs, d, ox, oy, scale)
         for wall in part["notches"]:
             _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
         for cx, cy, dia in part["circles"]:
@@ -545,7 +562,7 @@ def generate(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "job_slug": slug,
         "inputs": asdict(inputs),
-        "derived": asdict(d),
+        "derived": {**asdict(d), "ruler": _ruler(inputs, d)},
         "notices": notices(inputs),
     }
     if dry_run:
@@ -573,6 +590,11 @@ def generate(
         p = job_dir / f"{slug}_one_each_1to1.dxf"
         write_dxf(p, inputs, d, full_set=False)
         files.append(GeneratedFile("dxf", "1:1 DXF one-each layout", str(p), f"{public_url_prefix}/{slug}/{p.name}"))
+    if "dxf" in inputs.formats:
+        p = job_dir / f"{slug}_fin_face_b_engrave_1to1.dxf"
+        fin_rulers.write_opposite_dxf(p, "head", inputs, d)
+        files.append(GeneratedFile("dxf", "Fin face B engraving only: flip about X=0, do not auto-centre", str(p), f"{public_url_prefix}/{slug}/{p.name}"))
+
     if "pdf" in inputs.formats:
         p = job_dir / f"{slug}_carpenter_sheet.pdf"
         write_pdf(p, inputs, d, font_dir=font_dir)

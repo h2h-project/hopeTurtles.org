@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Optional
 
 from common import DESIGN_VERSION
+from fin_rulers import scad_definitions
 
 DEFAULTS = {
     "cap_diameter": 31.0,
@@ -176,7 +177,7 @@ assert(shaft_hole_from_front>shaft_hole_diameter/2
        "Shaft hole must remain in the forward, unjointed portion.");
 assert(exploded>=0);
 
-module rear_fin() {
+module rear_fin_blank() {
     color([1,0.72,0.05]) rotate([90,0,0])
         linear_extrude(height=t,center=true) difference() {
             polygon([[0,fin_diagonal_rise],[fin_diagonal_run,0],
@@ -192,6 +193,13 @@ module rear_fin() {
                 square([t+solar_slot_clearance,
                         fin_height-solar_meet_z+solar_slot_clearance/2+eps]);
         }
+}
+
+module rear_fin() {
+    difference() {
+        rear_fin_blank();
+        fin_ruler_recess("rear", lower_shaft_z0+t+port_height/2, t);
+    }
 }
 
 module bottle_holder_shaft(z0=0) {
@@ -377,7 +385,16 @@ def build_scad(overrides: dict[str, float] | None = None) -> str:
                   "// Clearance means TOTAL extra slot width, centered on the mating board."])
     lines.extend(f"{k} = {p[k]:.12g};" for k in TUNING)
     lines.append(f"exploded = {p['exploded']:.12g};")
-    return "\n".join(lines)+"\n"+SCAD_BODY
+    # The website keeps its legacy rear-fin template, but the engraving
+    # implementation comes verbatim from turtle_body/lib/fin_ruler.scad.
+    ruler_params = """
+function p_bottle_d() = bottle_diameter;
+function p_fin_board_w() = fin_board_width;
+function p_wood_t() = wood_thickness;
+function p_fit_clearance() = half_lap_clearance;
+function p_eps() = 0.02;
+"""
+    return "\n".join(lines)+"\n"+ruler_params+scad_definitions()+SCAD_BODY
 
 
 def build_parser() -> argparse.ArgumentParser:

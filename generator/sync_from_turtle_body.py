@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Vendor the turtle_body contract into this repo.
 
-turtle_body (`../turtle_body`, the upstream geometry source — see CLAUDE.md
+turtle_body (`~/PycharmProjects/turtle_body`, the upstream geometry source — see CLAUDE.md
 "Turtle Generator" and that repo's CLAUDE.md section 19) ships two things this
 generator needs to stay in step with:
 
@@ -19,7 +19,9 @@ upstream release, then run `generator/check_params_sync.py` and review the diff.
     generator/sync_from_turtle_body.py --check         # exit nonzero if stale
     generator/sync_from_turtle_body.py --turtle-body /path/to/turtle_body
 
-The upstream path defaults to `$TURTLE_BODY_DIR`, then `../turtle_body`.
+The upstream path is `--turtle-body`, else `$TURTLE_BODY_DIR`, else the first of
+`~/PycharmProjects/turtle_body` (the maintainer's checkout since 2026-11-12) and
+`../turtle_body` (a sibling checkout) that contains build/params.json.
 """
 
 from __future__ import annotations
@@ -30,6 +32,13 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent            # .../generator
+# Default upstream locations, in order. The maintainer's turtle_body moved out of
+# WebstormProjects (no longer a sibling of this repo) on 2026-11-12; the sibling
+# fallback stays for other checkout layouts.
+DEFAULT_UPSTREAMS = (
+    Path.home() / "PycharmProjects" / "turtle_body",
+    HERE.parent.parent / "turtle_body",
+)
 VENDOR = HERE / "turtle_body"                     # where the copies land
 
 PARAMS_SRC = "build/params.json"
@@ -44,7 +53,7 @@ BUNDLES = (
 
 
 def _resolve_upstream(cli_value: str | None) -> Path:
-    for candidate in (cli_value, os.environ.get("TURTLE_BODY_DIR"), HERE.parent.parent / "turtle_body"):
+    for candidate in (cli_value, os.environ.get("TURTLE_BODY_DIR"), *DEFAULT_UPSTREAMS):
         if not candidate:
             continue
         path = Path(candidate).expanduser().resolve()
@@ -52,7 +61,8 @@ def _resolve_upstream(cli_value: str | None) -> Path:
             return path
     raise SystemExit(
         "sync_from_turtle_body: could not find turtle_body. Pass --turtle-body "
-        "PATH, set $TURTLE_BODY_DIR, or check out ../turtle_body and run "
+        "PATH, set $TURTLE_BODY_DIR, or check out ~/PycharmProjects/turtle_body "
+        "(or ../turtle_body) and run "
         "`python3 build/build.py` there first (it writes build/params.json)."
     )
 

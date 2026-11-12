@@ -14,7 +14,8 @@ Writes public/images/ecojoiners/assembly/together-{1..3}.webp.
 
     python3 tools/assembly_drawings/turtle_steps.py [scene ...]
 
-Needs openscad on PATH, numpy, Pillow and ../turtle_body (or TURTLE_BODY).
+Needs openscad on PATH, numpy, Pillow and turtle_body (~/PycharmProjects/turtle_body,
+../turtle_body, or $TURTLE_BODY / $TURTLE_BODY_DIR).
 """
 from __future__ import annotations
 
@@ -31,7 +32,18 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
-TURTLE_BODY = Path(os.environ.get("TURTLE_BODY", ROOT.parent / "turtle_body"))
+def _find_turtle_body() -> Path:
+    """$TURTLE_BODY / $TURTLE_BODY_DIR, else ~/PycharmProjects/turtle_body, else ../turtle_body."""
+    for env in ("TURTLE_BODY", "TURTLE_BODY_DIR"):
+        if os.environ.get(env):
+            return Path(os.environ[env]).expanduser()
+    for path in (Path.home() / "PycharmProjects" / "turtle_body", ROOT.parent / "turtle_body"):
+        if (path / "src" / "Full_Turtle.scad").is_file():
+            return path
+    return ROOT.parent / "turtle_body"
+
+
+TURTLE_BODY = _find_turtle_body()
 OUT_DIR = ROOT / "public" / "images" / "ecojoiners" / "assembly"
 SIZE = 1000
 

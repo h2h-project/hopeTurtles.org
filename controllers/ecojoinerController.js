@@ -118,6 +118,17 @@ const parseProfileFields = (body = {}, { requireLabel = true } = {}) => {
   return { ...(label ? { label } : {}), brand, ...numbers, ...optional };
 };
 
+// True when a design save carries the on-screen bottle fields. A design save
+// that only names an existing profile_id (and sends no bottle fields) must
+// snapshot the stored profile as-is, not fail parseProfileFields() with a
+// 422 -- that failure is what silently dropped every design save from the
+// generator page.
+const PROFILE_BODY_KEYS = ["brand", "volume", "diameter", "cap", "collar", "topTapper", "thickness"];
+const hasProfileFields = (body = {}) =>
+  PROFILE_BODY_KEYS.some(
+    (key) => body[key] !== undefined && body[key] !== null && String(body[key]).trim() !== "",
+  );
+
 // ecojoiner_designs_tb.formats and .profile_snapshot are native MySQL JSON
 // columns. Depending on the mysql2 code path, a JSON column can come back
 // either pre-parsed (object/array) or as raw text — this codebase already
@@ -394,8 +405,10 @@ export const createDesign = async (req, res, next) => {
           .status(404)
           .json({ success: false, message: "Bottle profile not found." });
       }
-      const fields = parseProfileFields(body, { requireLabel: false });
-      await ecojoinerProfilesModel.update(requestedProfileId, fields);
+      if (hasProfileFields(body)) {
+        const fields = parseProfileFields(body, { requireLabel: false });
+        await ecojoinerProfilesModel.update(requestedProfileId, fields);
+      }
 
       if (bottlePhotoFile) {
         const bottlePhotoId = await attachPhoto({
@@ -562,8 +575,10 @@ export const updateDesign = async (req, res, next) => {
 
     let profileSnapshot = parseIfString(existing.profile_snapshot, {});
     if (existing.profile_id) {
-      const fields = parseProfileFields(body, { requireLabel: false });
-      await ecojoinerProfilesModel.update(existing.profile_id, fields);
+      if (hasProfileFields(body)) {
+        const fields = parseProfileFields(body, { requireLabel: false });
+        await ecojoinerProfilesModel.update(existing.profile_id, fields);
+      }
 
       if (bottlePhotoFile) {
         const bottlePhotoId = await attachPhoto({

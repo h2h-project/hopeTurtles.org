@@ -1,0 +1,17 @@
+<%- include('partials/header', { pageTitle, theme, bodyClass }) %>
+<%- include('partials/nav') %>
+<main id="main" class="layout generate-page">
+  <div class="generate-intro">
+    <h1><%= t.contribute_thanks_title %></h1>
+    <% if (amountUsd) { %>
+      <p><%= t.contribute_thanks_amount.replace('{amount}', '$' + amountUsd.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })) %></p>
+    <% } %>
+    <p><%= t.contribute_thanks_body %></p>
+  </div>
+
+  <div class="mission-dialog__actions">
+    <a class="button ghost" href="/"><%= t.contribute_thanks_home %></a>
+    <a class="button" href="/turtles"><%= t.contribute_thanks_turtles %></a>
+  </div>
+</main>
+<%- include('partials/footer') %>
