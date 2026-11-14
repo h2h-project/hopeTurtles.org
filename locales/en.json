@@ -415,6 +415,7 @@
   "turtles_repo_panel_body_desc": "The parametric geometry behind the turtle's body, distilled into code so anyone can generate their own build files from local bottles.",
   "turtles_repo_panel_labels_desc": "Our multilingual labels and iconography, in English, Arabic, and Hebrew, that tell anyone who finds a Hope Turtle what it is. Editable SVG masters and print-ready sticker sheets.",
   "turtles_repo_panel_wrangler_desc": "Our Android app for connecting to a Hope Turtle over Bluetooth — check its vitals, set its destination, and launch its journey from your phone.",
+  "turtles_photo_caption": "A hope turtle prepares to set sail for a test run",
   "turtles_intro_title": "What exactly is a Hope Turtle?",
   "turtles_intro_p1": "Hope Turtles are a way for anyone, anywhere, to grab local materials and build a marine vehicle that can self-navigate across water to a designated target zone, delivering food and building materials along the way.",
   "turtles_intro_p2": "To keep the raw cost of a turtle as low as possible, we've gone out of our way to use locally available materials, simple assembly, and readily available electronics. We've also made every plan and design that makes up a Hope Turtle open source — and better yet, we host an online <a href=\"/turtles/generate\">turtle generator</a>, where you can automatically generate the build files you need to make your own.",

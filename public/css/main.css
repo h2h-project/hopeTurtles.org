@@ -4983,6 +4983,30 @@ label.ht-toggle {
   line-height: 1.2;
 }
 
+.page-split__aside .turtles-photo-card {
+  margin: 0 0 1.5rem;
+  padding: 1.25rem;
+  border-radius: 1.2rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.turtles-photo-card img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.9rem;
+  display: block;
+}
+
+.turtles-photo-card figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  opacity: 0.75;
+  text-align: center;
+}
+
 .turtles-repos {
   margin-bottom: 3rem;
 }
