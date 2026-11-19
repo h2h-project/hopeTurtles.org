@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Head_Fin.scad
-//  Turtle Body version 6.6.0
+//  Turtle Body version 6.6.9
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -169,6 +169,23 @@ function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt botto
 function p_eco_screw_edge_inset()  = 12;   // was 10 until v5.2.0
 function p_eco_screw_pair_offset() =
     (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 18
+
+// ---- pressor (EXPERIMENTAL, v6.6.1; lib/pressor.scad, CLAUDE.md s13a) ----
+//  A 12 mm board block in the port gap between a Little John and the bottle,
+//  concave-cut to the bottle radius. It rides on the John's M5 pair (both
+//  ends bite) and is pushed onto the bottle as the screws are turned in --
+//  replaces the acorn nut. Two per port, one each side of the bottle.
+function p_pressor_wrap()       = p_bottle_d() / 4;  // 21: inner edge reaches this far past the
+                                                      // bottle's tangent line, toward its axis
+function p_pressor_travel()     = 1;     // screw-in travel: gap left at the John face when pressed
+function p_pressor_hole_d()     = 5.3;   // M5 hole in the pressor's back edge (v6.6.2; the Johns keep p_m5_hole_d() 5.2)
+function p_pressor_hole_depth() = 8;     // M5 slot depth into the pressor's back edge (v6.6.4: was 10;
+                                          // the slot's inner end sits where the bottle curve is closest)
+function p_pressor_min_wall()   = 3;     // least wood around / beyond a screw hole (asserted)
+function p_pressor_end_trim()   = 1.5;   // v6.6.4: taken off EACH end (top/bottom edge) -- the printed
+                                          // prototype was 3 mm too long to enter the port
+function p_pressor_slot_ext()   = 10;    // v6.6.4: each M5 hole stretched this far EACH way along the
+                                          // edge into a pill slot, so the John's screws find it easily
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
@@ -495,9 +512,10 @@ module fr_char(c) {
         translate([0,1.375]) square([1.5,0.25]);
         if (c == "+") translate([0.625,0.75]) square([0.25,1.5]);
     }
-    if (c == "m") for (x=[0,0.75,1.5]) {
-        translate([x,0]) square([0.25,1.5]);
-        translate([x,1.25]) square([0.5,0.25]);
+    // v6.6.7: one top bar over three legs (was a separate flag per leg, which read "rrr")
+    if (c == "m") {
+        translate([0,1.25]) square([1.75,0.25]);
+        for (x=[0,0.75,1.5]) translate([x,0]) square([0.25,1.5]);
     }
 }
 module fr_label(s, mirrored=false) {
@@ -521,27 +539,37 @@ function fr_joint_margin(kind) = kind == "head" ? 5.9 : 7.4;
 function fr_x(kind) = (kind == "head" ? p_head_slat_overlap()/2
                      : (p_fin_board_w()-2*p_wood_t())/2)
                      + p_fit_clearance()/2 + fr_joint_margin(kind);
+// v6.6.9: the scale runs PAST +-bottle radius, by 10 mm plus a 5 mm margin
+// shown above that (fr_range_beyond() = 15), rounded up to the next 5 mm mark
+// so it ends on a half-centimetre tick: +-60 at Ø84 / Ø90. The buoyancy
+// workbench predicted a waterline above the bottle top (stern awash), which the
+// old scale could not show. History: v6.6.5 stopped 10 mm SHORT of the radius
+// ("the waterline cannot pass one radius" -- wrong for a heavy turtle), v6.6.8
+// rounded that up to +-35. Marks that do not fit the fin are still dropped.
+function fr_range_beyond() = 15;
+function fr_half_range() = ceil((p_bottle_d()/2 + fr_range_beyond()) / 5) * 5;
+// value label; the zero carries the unit as one string so it reads "0 mm"
+// on both faces (face B is engraved mirrored) -- v6.6.8, was "mm" above the 0
+function fr_value_text(v) = v == 0 ? "0 mm" : str(v > 0 ? "+" : "", v);
 function fr_tick_length(v) = v%10 == 0 ? 8 : v%5 == 0 ? 6 : 3;
 function fr_tick_width(v) = v == 0 ? 0.6 : 0.25;
-function fr_tick_values(kind, zero) = [for (v=[-500:500])
+function fr_tick_values(kind, zero) = [for (v=[-fr_half_range():fr_half_range()])
     if (fr_fits(kind,fr_x(kind),fr_x(kind)+fr_tick_length(v),
                 zero+v-fr_tick_width(v)/2,zero+v+fr_tick_width(v)/2)) v];
 function fr_range(kind, zero) = let(values=fr_tick_values(kind,zero))
     assert(len(values)>0,"Fin has no room for a ruler") [min(values),max(values)];
 module fin_ruler_2d(kind, zero, mirrored=false) {
     x = fr_x(kind);
-    for (v=[-500:500]) {
+    for (v=[-fr_half_range():fr_half_range()]) {
         z = zero+v;
         l = fr_tick_length(v);
         w = fr_tick_width(v);
         if (fr_fits(kind,x,x+l,z-w/2,z+w/2))
             translate([x,z-w/2]) square([l,w]);
-        s = str(v>0 ? "+" : "",v);
+        s = fr_value_text(v);
         if (v%10 == 0 && fr_fits(kind,x+10,x+10+fr_label_w(s),z-1.7,z+1.7))
             translate([x+10,z-1.5]) fr_label(s,mirrored);
     }
-    if (fr_fits(kind,x+10,x+15,zero+3,zero+6.5))
-        translate([x+10,zero+3]) fr_label("mm",mirrored);
 }
 module fin_ruler_recess(kind, zero, thickness) {
     assert(thickness > 2*fr_depth(), "Fin must be thicker than both engravings.");
@@ -549,6 +577,25 @@ module fin_ruler_recess(kind, zero, thickness) {
         translate([0,side*(thickness/2-fr_depth()/2+p_eps()/2),0])
             rotate([90,0,0]) linear_extrude(height=fr_depth()+p_eps(),center=true)
                 fin_ruler_2d(kind,zero,side==1);
+}
+// v6.6.6: the bare scale for a printed (paper / sticker) ruler. Same ticks,
+// labels and +-fr_half_range() span as the engraving, but no fin-fit
+// predicates, so one print serves both the head and the rear fin. Ticks start
+// at X = 0; the zero mark is on Y = 0. build/export_ruler_svg.py exports it.
+// font = "" draws the font-free stroke digits used for the engraving. v6.6.8:
+// the paper export passes a real font ("Mulish:style=Regular", registered by
+// the caller with use <...ttf>); size = text size, 3 -> ~3 mm tall digits,
+// matching the stroke digits. The engraved fins always keep the strokes.
+module fin_ruler_scale_2d(font = "", size = 3) {
+    h = fr_half_range();
+    for (v = [-h:h]) {
+        translate([0, v - fr_tick_width(v)/2]) square([fr_tick_length(v), fr_tick_width(v)]);
+        if (v % 10 == 0) {
+            if (font == "") translate([10, v - 1.5]) fr_label(fr_value_text(v));
+            else translate([10, v]) text(fr_value_text(v), font = font, size = size,
+                                         halign = "left", valign = "center", $fn = 48);
+        }
+    }
 }
 // [bundle] end   <fin_ruler.scad>
 

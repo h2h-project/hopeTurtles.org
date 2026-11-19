@@ -275,59 +275,68 @@ def write_svg(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived) -> Non
 
 
 # ---------------------------------------------------------------------------
-# PDF - printed 1:1 on A3. Tiled across multiple A3 pages (with an overlap
-# margin and registration crosses) whenever the pattern is too large for a
-# single sheet, which only happens for a bottle well outside the reference
-# size -- the default 82mm-bottle sail (~213 x 175mm) fits one landscape A3
-# comfortably.
+# PDF - printed 1:1 on A4. The pattern fills the sheet: the title sits inside
+# the pattern area (top-left, which is always inside the sail) and the
+# "print at 100%" box stands vertically down the right-hand edge, so the
+# default 82mm-bottle sail (~228 x 187mm incl. tabs) fits one landscape A4.
+# A pattern too large for one sheet (a bottle well outside the reference
+# size) is tiled across multiple A4 pages with an overlap margin and
+# registration crosses.
 # ---------------------------------------------------------------------------
 
-_A3_MARGIN_MM = 15.0
-_A3_HEADER_MM = 22.0
-_A3_OVERLAP_MM = 15.0
-_A3_TICK_STEP_MM = 50.0
+_PAGE_MARGIN_L_MM = 12.0
+_PAGE_MARGIN_R_MM = 10.0
+_PAGE_MARGIN_T_MM = 8.0
+_PAGE_MARGIN_B_MM = 13.0   # leaves room for the licence footer under the pattern
+_WARN_GAP_MM = 5.0         # between the pattern area and the vertical warning box
+_OVERLAP_MM = 15.0
+_TICK_STEP_MM = 50.0
+
+_WARN_BOX_W_MM = 120.0     # along the box's long (vertical, once rotated) side
+_WARN_BOX_H_MM = 21.0      # across it - the strip it takes from the page width
+_WARN_BAR_MM = 100.0
 
 
 def _usable_area_mm(page_w_mm: float, page_h_mm: float) -> Tuple[float, float]:
     return (
-        page_w_mm - 2 * _A3_MARGIN_MM,
-        page_h_mm - 2 * _A3_MARGIN_MM - _A3_HEADER_MM,
+        page_w_mm - _PAGE_MARGIN_L_MM - _PAGE_MARGIN_R_MM - _WARN_BOX_H_MM - _WARN_GAP_MM,
+        page_h_mm - _PAGE_MARGIN_T_MM - _PAGE_MARGIN_B_MM,
     )
 
 
 def _tile_counts(width_mm: float, height_mm: float, page_w_mm: float, page_h_mm: float) -> Tuple[int, int]:
     usable_w, usable_h = _usable_area_mm(page_w_mm, page_h_mm)
     cols = 1 if width_mm <= usable_w else 1 + math.ceil(
-        (width_mm - usable_w) / (usable_w - _A3_OVERLAP_MM)
+        (width_mm - usable_w) / (usable_w - _OVERLAP_MM)
     )
     rows = 1 if height_mm <= usable_h else 1 + math.ceil(
-        (height_mm - usable_h) / (usable_h - _A3_OVERLAP_MM)
+        (height_mm - usable_h) / (usable_h - _OVERLAP_MM)
     )
     return cols, rows
 
 
 def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, font_dir: Optional[Path] = None) -> None:
-    """A3 sail cutting pattern, 1:1 scale.
+    """A4 sail cutting pattern, 1:1 scale.
 
-    Single landscape-A3 page for any bottle at or near the reference size.
+    Single landscape-A4 page for any bottle at or near the reference size.
     If the pattern is too large for one sheet, it is tiled across multiple
-    A3 pages (constant _A3_OVERLAP_MM overlap, with registration crosses on
-    a _A3_TICK_STEP_MM grid printed identically on every page that covers a
+    A4 pages (constant _OVERLAP_MM overlap, with registration crosses on a
+    _TICK_STEP_MM grid printed identically on every page that covers a
     given point) so the sheets can be taped together into the full 1:1
-    pattern -- each page's header names its position in the sheet grid.
+    pattern -- each page's title names its position in the sheet grid.
     """
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
-    from reportlab.lib.pagesizes import A3, landscape, portrait
+    from reportlab.lib.pagesizes import A4, landscape, portrait
     from reportlab.lib.units import mm as MM
 
     title_font, body_font, _mono_font = _register_fonts(font_dir)
 
-    # Pick landscape or portrait A3, whichever needs fewer tiles for this
+    # Pick landscape or portrait A4, whichever needs fewer tiles for this
     # pattern (landscape wins ties, since the default reference sail is
     # wider than it is tall).
-    land_w, land_h = landscape(A3)
-    port_w, port_h = portrait(A3)
+    land_w, land_h = landscape(A4)
+    port_w, port_h = portrait(A4)
     land_cols, land_rows = _tile_counts(d.width_mm, d.height_mm, land_w / MM, land_h / MM)
     port_cols, port_rows = _tile_counts(d.width_mm, d.height_mm, port_w / MM, port_h / MM)
     if port_cols * port_rows < land_cols * land_rows:
@@ -339,8 +348,10 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
 
     page_w_mm, page_h_mm = page_w / MM, page_h / MM
     usable_w, usable_h = _usable_area_mm(page_w_mm, page_h_mm)
-    step_w = usable_w if cols == 1 else usable_w - _A3_OVERLAP_MM
-    step_h = usable_h if rows == 1 else usable_h - _A3_OVERLAP_MM
+    step_w = usable_w if cols == 1 else usable_w - _OVERLAP_MM
+    step_h = usable_h if rows == 1 else usable_h - _OVERLAP_MM
+    area_x0, area_y0 = _PAGE_MARGIN_L_MM, _PAGE_MARGIN_B_MM
+    area_top = area_y0 + usable_h
 
     # Shift the polygon so its bounding box starts at the drawing origin
     # (0, 0) in "pattern space" mm, independent of any page.
@@ -366,13 +377,16 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             # Pattern-space y grows upward; PDF/tile rows are laid out top
             # to bottom, so row 0 is the tile covering the tallest y values.
             tile_oy = (rows - 1 - row) * step_h
+            # A single-sheet pattern sits flush with the top of the area,
+            # so the spare height lands under it, above the footer.
+            lift = (usable_h - d.height_mm) if rows == 1 else 0.0
 
             c.saveState()
-            # Clip to the printable area (inside the outer margin) so a
-            # polygon edge that runs past this tile's usable region does
-            # not bleed into the header/margin whitespace.
+            # Clip to the pattern area so a polygon edge that runs past this
+            # tile's usable region does not bleed into the margins or the
+            # warning box.
             clip = c.beginPath()
-            clip.rect(mmx(_A3_MARGIN_MM), mmx(_A3_MARGIN_MM), mmx(usable_w), mmx(usable_h))
+            clip.rect(mmx(area_x0), mmx(area_y0), mmx(usable_w), mmx(usable_h))
             c.clipPath(clip, stroke=0, fill=0)
 
             # ---- registration grid (drawn first, under the cut line) ----
@@ -384,9 +398,9 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             c.setLineWidth(0.3)
             tick = 4.0
             for xg in _grid_lines(tile_ox, usable_w):
-                px = mmx(_A3_MARGIN_MM + (xg - tile_ox))
+                px = mmx(area_x0 + (xg - tile_ox))
                 for yg in _grid_lines(tile_oy, usable_h):
-                    py = mmx(_A3_MARGIN_MM + (yg - tile_oy))
+                    py = mmx(area_y0 + lift + (yg - tile_oy))
                     c.line(px - mmx(tick), py, px + mmx(tick), py)
                     c.line(px, py - mmx(tick), px, py + mmx(tick))
                     c.setFont(body_font, 4)
@@ -399,8 +413,8 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             path_obj = c.beginPath()
             first = True
             for px, py in poly:
-                ppx = mmx(_A3_MARGIN_MM + (px - tile_ox))
-                ppy = mmx(_A3_MARGIN_MM + (py - tile_oy))
+                ppx = mmx(area_x0 + (px - tile_ox))
+                ppy = mmx(area_y0 + lift + (py - tile_oy))
                 if first:
                     path_obj.moveTo(ppx, ppy)
                     first = False
@@ -410,10 +424,11 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
             c.drawPath(path_obj, stroke=1, fill=0)
             c.restoreState()
 
-            # ---- header (outside the clip, always fully drawn) ----
+            # ---- title, inside the pattern area's top-left corner ----
+            text_x = mmx(area_x0 + 5)
             c.setFont(title_font, 11)
             c.setFillColor(colors.HexColor("#111111"))
-            c.drawString(mmx(_A3_MARGIN_MM), page_h - mmx(_A3_MARGIN_MM + 8), f"Flatpack Sail Cutout v{DESIGN_VERSION}")
+            c.drawString(text_x, mmx(area_top - 12), f"Flatpack Sail Cutout v{DESIGN_VERSION}")
             c.setFont(body_font, 7)
             c.setFillColor(colors.HexColor("#555555"))
             sheet_note = (
@@ -421,18 +436,18 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
                 if cols * rows > 1
                 else "1:1 scale - do not scale to fit when printing."
             )
-            c.drawString(mmx(_A3_MARGIN_MM), page_h - mmx(_A3_MARGIN_MM + 16), sheet_note)
+            c.drawString(text_x, mmx(area_top - 19), sheet_note)
             if cols * rows > 1:
                 c.drawString(
-                    mmx(_A3_MARGIN_MM), page_h - mmx(_A3_MARGIN_MM + 22),
-                    f"Overlap {_A3_OVERLAP_MM:g}mm on each shared edge - align the numbered grid crosses, then tape.",
+                    text_x, mmx(area_top - 25),
+                    f"Overlap {_OVERLAP_MM:g}mm on each shared edge - align the numbered grid crosses, then tape.",
                 )
             _draw_print_warning(c, page_w, page_h, title_font, body_font)
 
             c.setFont(body_font, 6)
             c.setFillColor(colors.HexColor("#777777"))
             c.drawString(
-                mmx(_A3_MARGIN_MM), mmx(_A3_MARGIN_MM) - 10,
+                mmx(area_x0), mmx(area_y0 - 5),
                 f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate "
                 f"- Sail {_ceil_mm(d.width_mm)} x {_ceil_mm(d.height_mm)}mm incl. {_ceil_mm(d.tab_height)}mm tabs. Cut x2.",
             )
@@ -442,39 +457,42 @@ def write_pdf(path: Path, inputs: SailCutoutInputs, d: SailCutoutDerived, *, fon
     c.save()
 
 
-_WARN_BOX_W_MM = 120.0
-_WARN_BOX_H_MM = 21.0
-_WARN_BAR_MM = 100.0
-
-
 def _draw_print_warning(c, page_w: float, page_h: float, title_font: str, body_font: str) -> None:
-    """Black-and-white "print at 100%" box in the header's top-right corner,
-    with a 100mm check bar so the printed sheet can be verified with a ruler.
-    Pure black on white so it survives greyscale/mono printers. Sits inside
-    the _A3_HEADER_MM band, clear of the clipped pattern area."""
+    """Black-and-white "print at 100%" box standing vertically down the
+    page's right-hand edge (rotated 90deg clockwise, read top to bottom),
+    with a 100mm check bar so the printed sheet can be verified with a
+    ruler. Pure black on white so it survives greyscale/mono printers. Sits
+    in its own strip, clear of the clipped pattern area."""
     from reportlab.lib.units import mm as MM
 
-    x = page_w - (_A3_MARGIN_MM + _WARN_BOX_W_MM) * MM
-    top = page_h - _A3_MARGIN_MM * MM
-    y = top - _WARN_BOX_H_MM * MM
+    box_left = page_w - (_PAGE_MARGIN_R_MM + _WARN_BOX_H_MM) * MM
+    box_top = page_h - _PAGE_MARGIN_T_MM * MM
+    w = _WARN_BOX_W_MM * MM
+    h = _WARN_BOX_H_MM * MM
     pad = 3 * MM
 
     c.saveState()
+    # Local frame: origin at the box's unrotated bottom-left, x along the
+    # long side. rotate(-90) sends local +x down the page and local +y to
+    # the right, so the box's "top" (the heading) faces the page edge.
+    c.translate(box_left, box_top)
+    c.rotate(-90)
+
     c.setStrokeColor(colors.black)
     c.setFillColor(colors.white)
     c.setLineWidth(1.5)
-    c.rect(x, y, _WARN_BOX_W_MM * MM, _WARN_BOX_H_MM * MM, stroke=1, fill=1)
+    c.rect(0, 0, w, h, stroke=1, fill=1)
 
     c.setFillColor(colors.black)
     c.setFont(title_font, 10)
-    c.drawString(x + pad, top - pad - 8, "! PRINT AT 100% / ACTUAL SIZE")
+    c.drawString(pad, h - pad - 8, "! PRINT AT 100% / ACTUAL SIZE")
     c.setFont(body_font, 6.5)
-    c.drawString(x + pad, top - pad - 17,
+    c.drawString(pad, h - pad - 17,
                  "Turn OFF 'Fit to page', 'Shrink oversized pages' and any printer auto-fit.")
 
     # 100mm check bar, with 10mm ticks.
-    bar_y = y + pad + 2
-    bar_x0 = x + pad
+    bar_y = pad + 2
+    bar_x0 = pad
     bar_x1 = bar_x0 + _WARN_BAR_MM * MM
     c.setLineWidth(0.8)
     c.line(bar_x0, bar_y, bar_x1, bar_y)
@@ -487,16 +505,16 @@ def _draw_print_warning(c, page_w: float, page_h: float, title_font: str, body_f
 
 
 def _grid_lines(origin: float, span: float):
-    """Absolute pattern-space coordinates, on the fixed _A3_TICK_STEP_MM
-    grid, that fall within [origin, origin + span] (plus a one-step pad so a
+    """Absolute pattern-space coordinates, on the fixed _TICK_STEP_MM grid,
+    that fall within [origin, origin + span] (plus a one-step pad so a
     boundary tick is never dropped by floor rounding - the caller clips the
     canvas to the exact usable rect, so the pad never actually draws
     outside it)."""
-    y = math.floor(origin / _A3_TICK_STEP_MM) * _A3_TICK_STEP_MM
-    while y <= origin + span + _A3_TICK_STEP_MM:
+    y = math.floor(origin / _TICK_STEP_MM) * _TICK_STEP_MM
+    while y <= origin + span + _TICK_STEP_MM:
         if y >= origin - 1:
             yield y
-        y += _A3_TICK_STEP_MM
+        y += _TICK_STEP_MM
 
 
 # ---------------------------------------------------------------------------
@@ -545,9 +563,9 @@ def generate(
         files.append(GeneratedFile("svg", "1:1 SVG sail pattern", str(svg_path), f"{public_url_prefix}/{slug}/{svg_path.name}"))
 
     if "pdf" in inputs.formats:
-        pdf_path = job_dir / f"{slug}_a3_pattern.pdf"
+        pdf_path = job_dir / f"{slug}_a4_pattern.pdf"
         write_pdf(pdf_path, inputs, d, font_dir=font_dir)
-        files.append(GeneratedFile("pdf", "A3 PDF sail pattern, 1:1", str(pdf_path), f"{public_url_prefix}/{slug}/{pdf_path.name}"))
+        files.append(GeneratedFile("pdf", "A4 PDF sail pattern, 1:1", str(pdf_path), f"{public_url_prefix}/{slug}/{pdf_path.name}"))
 
     manifest = {**common, "files": [asdict(f) for f in files]}
     manifest_path = job_dir / "manifest.json"

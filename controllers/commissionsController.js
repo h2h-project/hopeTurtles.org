@@ -3,7 +3,8 @@ import commissionsModel from '../models/commissionsModel.js';
 import missionsModel from '../models/missionsModel.js';
 
 const DEPLOYMENT_TYPES = ['flotilla', 'self'];
-const SHIPPING_ESTIMATE_USD = 20;
+// Euros, like every price in the commission catalog (and the OpenBooks).
+const SHIPPING_ESTIMATE_EUR = 20;
 
 const getCurrentUserId = (req) => req.session?.user?.buwanaId ?? null;
 
@@ -64,7 +65,7 @@ export const createCommission = async (req, res, next) => {
       return res.status(422).json({ success: false, message: 'Selected engraving is not available.' });
     }
 
-    let subtotal = Number(turtleBase.price_usd);
+    let subtotal = Number(turtleBase.price_eur);
     const lineItems = [];
     for (const item of items) {
       const component = componentsById.get(String(item.component_id));
@@ -72,13 +73,13 @@ export const createCommission = async (req, res, next) => {
         return res.status(422).json({ success: false, message: 'One of the selected components is not available.' });
       }
       const quantity = Number(item.quantity) > 0 ? Number(item.quantity) : 1;
-      const unitPrice = Number(component.price_usd);
+      const unitPrice = Number(component.price_eur);
       subtotal += unitPrice * quantity;
       lineItems.push({
         component_id: component.component_id,
         bottle_slot: item.bottle_slot ?? null,
         quantity,
-        unit_price_usd: unitPrice
+        unit_price_eur: unitPrice
       });
     }
 
@@ -90,8 +91,8 @@ export const createCommission = async (req, res, next) => {
         turtle_base_component_id: turtleBase.component_id,
         engraving_component_id: engraving?.component_id || null,
         status,
-        estimated_subtotal_usd: subtotal,
-        shipping_estimate_usd: SHIPPING_ESTIMATE_USD
+        estimated_subtotal_eur: subtotal,
+        shipping_estimate_eur: SHIPPING_ESTIMATE_EUR
       },
       lineItems
     );

@@ -6,6 +6,7 @@ geometric parity against the vendored SCAD at defaults and custom dimensions.
 SCAD definitions themselves are extracted verbatim from the vendored bundle.
 """
 from __future__ import annotations
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -68,8 +69,10 @@ def _glyph(char):
         result.append(_rect(0,1.375,1.5,.25))
         if char=='+':result.append(_rect(.625,.75,.25,1.5))
     if char=='m':
+        # one top bar over three legs (turtle_body v6.6.7)
+        result.append(_rect(0,1.25,1.75,.25))
         for x in (0,.75,1.5):
-            result.extend([_rect(x,0,.25,1.5),_rect(x,1.25,.5,.25)])
+            result.append(_rect(x,0,.25,1.5))
     return result
 
 
@@ -104,17 +107,19 @@ def ruler_geometry(kind, inputs, derived, *, mirrored=False):
             return (z0>=max(0,(2/3)*bd-x0)+5 and z1<=3*bd-5
                 and x0>=(width-2*t)/2+clearance/2+5 and x1<=width-2*t-5)
     paths=[];ticks=[]
-    for value in range(-500,501):
+    # fr_half_range(): fr_range_beyond() PAST +-bottle radius (10 mm + a 5 mm
+    # margin), rounded up to the next 5 mm mark (turtle_body v6.6.9).
+    half=math.ceil((bd/2+_literal('fr_range_beyond'))/5)*5
+    for value in range(-half,half+1):
         z=zero+value
         length=8 if value%10==0 else 6 if value%5==0 else 3
         weight=.6 if value==0 else .25
         if fits(x,x+length,z-weight/2,z+weight/2):
             paths.append(_rect(x,z-weight/2,length,weight));ticks.append(value)
-        label=('+' if value>0 else '')+str(value)
+        # fr_value_text(): the zero label carries the unit, "0 mm" (v6.6.8)
+        label='0 mm' if value==0 else ('+' if value>0 else '')+str(value)
         if value%10==0 and fits(x+10,x+10+len(label)*2.2,z-1.7,z+1.7):
             paths.extend(_label(label,x+10,z-1.5,mirrored))
-    if fits(x+10,x+15,zero+3,zero+6.5):
-        paths.extend(_label('mm',x+10,zero+3,mirrored))
     return paths,{'units':'mm','zero_local_z_mm':zero,'drawing_shift_z_mm':shift_z,
                   'reading_sign':'positive above horizontal bottle axis',
                   'engraving_depth_mm':_literal('fr_depth'),

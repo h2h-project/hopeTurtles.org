@@ -149,7 +149,7 @@
                         value="<%= base.key_name %>"
                         data-commission-field
                         data-component-id="<%= base.component_id %>"
-                        data-price="<%= base.price_usd %>"
+                        data-price="<%= base.price_eur %>"
                         <%
                           const isDraftTurtleBase = draftCommission && String(base.component_id) === String(draftCommission.turtle_base_component_id);
                           const isDefaultTurtleBase = !draftCommission && index === 0;
@@ -159,7 +159,7 @@
                       <span class="eco-choice-card__icon" aria-hidden="true"><i class="fa-solid <%= turtleBaseIcons[base.key_name] || 'fa-turtle' %>"></i></span>
                       <span class="eco-choice-card__title"><%= base.label %></span>
                       <span class="eco-choice-card__desc"><%= base.description %></span>
-                      <span class="eco-choice-card__price">$<%= Number(base.price_usd) %></span>
+                      <span class="eco-choice-card__price">€<%= Number(base.price_eur) %></span>
                     </label>
                   <% }) %>
                 </div>
@@ -198,10 +198,10 @@
                           <option
                             value="<%= foodstuff.key_name %>"
                             data-component-id="<%= foodstuff.component_id %>"
-                            data-price="<%= foodstuff.price_usd %>"
+                            data-price="<%= foodstuff.price_eur %>"
                             <% if (draftItemsByBottleSlot[bottleIndex] === String(foodstuff.component_id)) { %>selected<% } %>
                           >
-                            <%= foodstuff.label %><%= Number(foodstuff.price_usd) ? ' — $' + Number(foodstuff.price_usd) : '' %>
+                            <%= foodstuff.label %><%= Number(foodstuff.price_eur) ? ' — €' + Number(foodstuff.price_eur) : '' %>
                           </option>
                         <% }) %>
                       </select>
@@ -236,7 +236,7 @@
                         value="<%= engraving.key_name %>"
                         data-commission-field
                         data-component-id="<%= engraving.component_id %>"
-                        data-price="<%= engraving.price_usd %>"
+                        data-price="<%= engraving.price_eur %>"
                         <%
                           const isDraftEngraving = draftCommission && String(engraving.component_id) === String(draftCommission.engraving_component_id);
                           const isDefaultEngraving = !draftCommission && index === 0;
@@ -275,13 +275,13 @@
                         <span class="eco-fab-option__title"><%= addon.label %><%= isMandatory ? ' (required)' : '' %></span>
                         <span class="eco-fab-option__desc"><%= addon.description %></span>
                       </span>
-                      <span class="eco-fab-option__price">~$<%= Number(addon.price_usd) %></span>
+                      <span class="eco-fab-option__price">~€<%= Number(addon.price_eur) %></span>
                       <label class="ht-toggle">
                         <input
                           type="checkbox"
                           name="addon-<%= addon.key_name %>"
                           data-component-id="<%= addon.component_id %>"
-                          data-price="<%= addon.price_usd %>"
+                          data-price="<%= addon.price_eur %>"
                           <% if (isMandatory) { %>
                             checked disabled
                           <% } else { %>
@@ -327,7 +327,7 @@
         </ul>
         <div class="commission-summary__total">
           <span>Estimated total</span>
-          <strong data-commission-total>$0</strong>
+          <strong data-commission-total>€0</strong>
         </div>
         <div class="commission-actions commission-actions--sidebar">
           <button type="button" class="button ghost" data-commission-save>
@@ -353,11 +353,11 @@
       <ul class="commission-summary__list" data-commission-modal-list></ul>
       <div class="commission-summary__row commission-summary__row--shipping">
         <span>Shipping (estimated)</span>
-        <strong data-commission-modal-shipping>$20</strong>
+        <strong data-commission-modal-shipping>€20</strong>
       </div>
       <div class="commission-summary__total">
         <span>Estimated total</span>
-        <strong data-commission-modal-total>$0</strong>
+        <strong data-commission-modal-total>€0</strong>
       </div>
       <p class="muted">
         Payment isn't wired up yet — confirming submits your build for the team to follow up on,

@@ -25,7 +25,8 @@
   const feedback = document.querySelector("[data-commission-feedback]");
   const SHIPPING_ESTIMATE = 20;
 
-  const currency = (value) => `$${Number(value || 0).toLocaleString()}`;
+  // Commission prices are in euros, like the OpenBooks.
+  const currency = (value) => `€${Number(value || 0).toLocaleString()}`;
 
   const getChecked = (name) =>
     form.querySelector(`input[name="${name}"]:checked`);

@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
       const amount = Number(contributeAmountInput?.value);
       if (!Number.isInteger(amount) || amount < 1) {
-        showFeedback("Please enter a whole-dollar amount of at least $1.");
+        showFeedback("Please enter a whole-euro amount of at least €1.");
         return;
       }
 

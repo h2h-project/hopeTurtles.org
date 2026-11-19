@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Core_Ecojoiner.scad
-//  Turtle Body version 6.6.0
+//  Turtle Body version 6.6.9
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -149,6 +149,23 @@ function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt botto
 function p_eco_screw_edge_inset()  = 12;   // was 10 until v5.2.0
 function p_eco_screw_pair_offset() =
     (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 18
+
+// ---- pressor (EXPERIMENTAL, v6.6.1; lib/pressor.scad, CLAUDE.md s13a) ----
+//  A 12 mm board block in the port gap between a Little John and the bottle,
+//  concave-cut to the bottle radius. It rides on the John's M5 pair (both
+//  ends bite) and is pushed onto the bottle as the screws are turned in --
+//  replaces the acorn nut. Two per port, one each side of the bottle.
+function p_pressor_wrap()       = p_bottle_d() / 4;  // 21: inner edge reaches this far past the
+                                                      // bottle's tangent line, toward its axis
+function p_pressor_travel()     = 1;     // screw-in travel: gap left at the John face when pressed
+function p_pressor_hole_d()     = 5.3;   // M5 hole in the pressor's back edge (v6.6.2; the Johns keep p_m5_hole_d() 5.2)
+function p_pressor_hole_depth() = 8;     // M5 slot depth into the pressor's back edge (v6.6.4: was 10;
+                                          // the slot's inner end sits where the bottle curve is closest)
+function p_pressor_min_wall()   = 3;     // least wood around / beyond a screw hole (asserted)
+function p_pressor_end_trim()   = 1.5;   // v6.6.4: taken off EACH end (top/bottom edge) -- the printed
+                                          // prototype was 3 mm too long to enter the port
+function p_pressor_slot_ext()   = 10;    // v6.6.4: each M5 hole stretched this far EACH way along the
+                                          // edge into a pill slot, so the John's screws find it easily
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;

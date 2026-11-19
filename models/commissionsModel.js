@@ -4,7 +4,7 @@ import { createModel } from './baseModel.js';
 const commissionsModel = createModel('commissions_tb', 'commission_id');
 
 // Creates a commission header row plus its line items in one transaction.
-// `items` is an array of { component_id, bottle_slot, quantity, unit_price_usd }.
+// `items` is an array of { component_id, bottle_slot, quantity, unit_price_eur }.
 commissionsModel.createWithItems = async (commissionData, items = []) => {
   const connection = await getConnection();
   try {
@@ -21,14 +21,14 @@ commissionsModel.createWithItems = async (commissionData, items = []) => {
     for (const item of items) {
       await connection.execute(
         `INSERT INTO commission_items_tb
-           (commission_id, component_id, bottle_slot, quantity, unit_price_usd)
+           (commission_id, component_id, bottle_slot, quantity, unit_price_eur)
          VALUES (?, ?, ?, ?, ?)`,
         [
           commissionId,
           item.component_id,
           item.bottle_slot ?? null,
           item.quantity ?? 1,
-          item.unit_price_usd
+          item.unit_price_eur
         ]
       );
     }

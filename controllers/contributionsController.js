@@ -3,13 +3,15 @@ import { getStripe, STRIPE_APP_TAG } from '../utils/stripe.js';
 import { recordStripeContribution } from '../models/transactionsModel.js';
 
 const CONTRIBUTION_NAME = 'Contribution to the Hope Turtle Project';
+// The OpenBooks are kept in euros, so contributions are charged in euros.
+const CURRENCY = 'eur';
 
 const sessionBuwanaId = (req) => {
   const id = Number(req.session?.user?.buwanaId ?? req.session?.user?.id);
   return Number.isInteger(id) && id > 0 ? id : null;
 };
 
-// POST /api/contributions/checkout  { amount: <whole USD> }
+// POST /api/contributions/checkout  { amount: <whole euros> }
 // Creates a Stripe Checkout session and answers with its URL. The amount is
 // validated here, never trusted from the form, and the price is built inline.
 // No Product or Price has to exist in the Stripe dashboard.
@@ -22,12 +24,12 @@ export const createCheckoutSession = async (req, res) => {
     });
   }
 
-  const { minContributionUsd: min, maxContributionUsd: max, siteUrl } = config.stripe;
+  const { minContributionEur: min, maxContributionEur: max, siteUrl } = config.stripe;
   const amount = Number(req.body?.amount);
   if (!Number.isInteger(amount) || amount < min || amount > max) {
     return res.status(422).json({
       success: false,
-      message: `Please enter a whole-dollar amount between $${min} and $${max.toLocaleString('en-US')}.`
+      message: `Please enter a whole-euro amount between €${min} and €${max.toLocaleString('en-US')}.`
     });
   }
 
@@ -49,7 +51,7 @@ export const createCheckoutSession = async (req, res) => {
         {
           quantity: 1,
           price_data: {
-            currency: 'usd',
+            currency: CURRENCY,
             unit_amount: amount * 100,
             product_data: { name: CONTRIBUTION_NAME }
           }
@@ -75,11 +77,17 @@ const recordPaidSession = async (session) => {
   if (session?.metadata?.app !== STRIPE_APP_TAG) return 'ignored: not a hopeturtles session';
   if (session.metadata.kind !== 'contribution') return 'ignored: not a contribution';
   if (session.payment_status !== 'paid') return 'ignored: not paid yet';
+  // amount_eur must really be euros. We only create EUR sessions, so anything
+  // else means a change elsewhere: throw, so Stripe retries once it's fixed.
+  if (session.currency !== CURRENCY) {
+    throw new Error(`Contribution session ${session.id} is in ${session.currency}, expected ${CURRENCY}`);
+  }
 
   const buwanaId = Number(session.metadata.ht_buwana_id);
   await recordStripeContribution({
     buwanaId: Number.isInteger(buwanaId) && buwanaId > 0 ? buwanaId : null,
-    amountUsd: (session.amount_total ?? 0) / 100,
+    amountEur: (session.amount_total ?? 0) / 100,
+    occurredOn: new Date((session.created ?? Date.now() / 1000) * 1000).toISOString().slice(0, 10),
     paymentIntentId: session.payment_intent,
     description: CONTRIBUTION_NAME
   });
@@ -133,14 +141,18 @@ export const handleStripeWebhook = async (req, res) => {
 // Shows the amount when the session is genuinely ours and paid. The ledger
 // row itself is written by the webhook, not here.
 export const renderThanks = async (req, res) => {
-  let amountUsd = null;
+  let amountEur = null;
   const stripe = getStripe();
   const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id : '';
   if (stripe && /^cs_[A-Za-z0-9_]+$/.test(sessionId)) {
     try {
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      if (session.metadata?.app === STRIPE_APP_TAG && session.payment_status === 'paid') {
-        amountUsd = (session.amount_total ?? 0) / 100;
+      if (
+        session.metadata?.app === STRIPE_APP_TAG &&
+        session.payment_status === 'paid' &&
+        session.currency === CURRENCY
+      ) {
+        amountEur = (session.amount_total ?? 0) / 100;
       }
     } catch (error) {
       console.warn('Could not load Stripe session for thanks page:', error.message);
@@ -149,6 +161,6 @@ export const renderThanks = async (req, res) => {
   res.render('contribute-thanks', {
     pageTitle: res.locals.t.contribute_thanks_title || 'Thank you',
     bodyClass: 'ocean-bg',
-    amountUsd
+    amountEur
   });
 };

@@ -435,7 +435,7 @@ run on **radical financial transparency** — every dollar in and out should eve
 to anyone, not just admins. Three user-facing entry points anchor this on `/dashboard` (right-hand
 action sidebar, `views/dashboard.ejs`):
 
-1. **Make a Contribution** — a modal (`#contributeDialog`) where a user picks/enters a USD amount
+1. **Make a Contribution** — a modal (`#contributeDialog`) where a user picks/enters a euro amount
    and hits Contribute. Eventually this redirects to Stripe checkout and records the pledge.
 2. **Manifest a Turtle** (`/commission`) — a from-scratch turtle "build your own" flow, styled like
    `/turtles/generate`: the user steps through component panels (hull, power, navigation,
@@ -461,8 +461,8 @@ All three entry points exist today as **UI-only placeholders** — no money move
 
 The landing page's **Contribute Directly** button links to `/contribute#give`, which opens the
 Contribute modal. Its submit calls `POST /api/contributions/checkout` with `{ amount }`. The server
-checks for whole USD within `CONTRIBUTION_MIN_USD`–`CONTRIBUTION_MAX_USD`, then creates a Stripe
-Checkout session (`mode: payment`, inline `price_data`, so no Product or Price in the Stripe
+checks for whole euros within `CONTRIBUTION_MIN_EUR`–`CONTRIBUTION_MAX_EUR`, then creates a Stripe
+Checkout session (`mode: payment`, `currency: eur`, inline `price_data`, so no Product or Price in the Stripe
 dashboard) and the browser is redirected to it. Stripe then returns the visitor to
 `/contribute/thanks`. `POST /api/stripe/webhook` (mounted in `server.js` with `express.raw()`
 ahead of `express.json()`) verifies the signature and, on `checkout.session.completed` /
@@ -481,10 +481,10 @@ Stripe customer. We also never create Stripe Customers.
 
 ### Schema draft: `sql/migrations/20260731_commissioning_transactions.sql`
 
-The tables below are **drafted, not yet applied** — the migration is written but hasn't been run
-against `hopeturtle_db`, and no model/controller code reads or writes them yet. `/commission`
-still runs entirely on the hardcoded sample data in `views/commission.ejs` /
-`public/js/commission.js` (foodstuffs, engraving messages, turtle types, add-on pricing).
+**Applied to production** (`hopeturtle_db`), as is the 20261116 euro/vendors/documents
+migration below (applied 2026-11-19, verified: no `*_usd` columns remain).
+`models/componentsModel.js`, `models/commissionsModel.js` and `models/transactionsModel.js`
+read and write them.
 
 - **`components_tb`** — single catalog for everything a turtle can be built from, distinguished by
   `category` (`turtle_base`, `foodstuff`, `electronics_addon`, `engraving`) with a stable
@@ -507,11 +507,21 @@ still runs entirely on the hardcoded sample data in `views/commission.ejs` /
   `commissions_tb` (not the reverse) since one commission can have several transactions — a
   deposit, a balance payment, a refund.
 
+**The OpenBooks are kept in euros** (decided 2026-11-16).
+`sql/migrations/20261116_openbooks_ledger_eur_vendors_documents.sql` (applied to production
+2026-11-19) renames `amount_usd` → `amount_eur`; adds `payment_method`,
+`category`, `occurred_on`, `original_amount`/`original_currency`/`exchange_rate` (EUR per one
+unit) for non-EUR money, `fee_eur`, `vendor_id`/`counterparty`, `reverses_transaction_id`,
+`stripe_refund_id`; and creates **`vendors_tb`** (payees admins pick from a list, with
+pre-fill defaults; deactivate, never delete; `public_label` hides private individuals'
+names) and **`transaction_documents_tb`** (receipt/invoice photos and PDFs, stored outside
+`public/`, private unless `is_public`). It also moves the commission catalog to euros
+(`price_eur`, `estimated_subtotal_eur`, `shipping_estimate_eur`, `unit_price_eur`; same
+numbers, ballpark prices).
+Plan for the rest: `docs/financial_open_books_system_roadmap.md`.
+
 ### What still needs to be built
 
-- **Run the migration** against `hopeturtle_db` and write the corresponding models
-  (`models/componentsModel.js`, `models/commissionsModel.js`, `models/transactionsModel.js`) plus
-  controllers/routes to read/write them.
 - **Stripe integration** — the Contribute modal and the Commission flow both need a real checkout
   session created server-side (never trust a client-supplied amount straight to a charge) and a
   webhook that confirms payment before writing a `completed` row to `transactions_tb`.

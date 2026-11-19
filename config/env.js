@@ -128,9 +128,9 @@ export const config = {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
     // Where Stripe Checkout sends the visitor back to.
     siteUrl: (process.env.SITE_URL || 'https://hopeturtles.org').replace(/\/+$/, ''),
-    // Whole US dollars, enforced server-side whatever the form sends.
-    minContributionUsd: Number(process.env.CONTRIBUTION_MIN_USD || 1),
-    maxContributionUsd: Number(process.env.CONTRIBUTION_MAX_USD || 10000)
+    // Whole euros (the OpenBooks currency), enforced server-side whatever the form sends.
+    minContributionEur: Number(process.env.CONTRIBUTION_MIN_EUR || 1),
+    maxContributionEur: Number(process.env.CONTRIBUTION_MAX_EUR || 10000)
   },
   integrations: {
     mapboxToken: process.env.MAPBOX_TOKEN || '',

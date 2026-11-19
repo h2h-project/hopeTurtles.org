@@ -43,6 +43,13 @@
   "p_m5_acorn_thread_depth": 7,
   "p_eco_screw_edge_inset": 12,
   "p_eco_screw_pair_offset": 18,
+  "p_pressor_wrap": 21,
+  "p_pressor_travel": 1,
+  "p_pressor_hole_d": 5.3,
+  "p_pressor_hole_depth": 8,
+  "p_pressor_min_wall": 3,
+  "p_pressor_end_trim": 1.5,
+  "p_pressor_slot_ext": 10,
   "p_cap_disk_d": 102,
   "p_cap_roof_t": 5,
   "p_cap_boss_depth": 0,
@@ -187,5 +194,5 @@
     0.26,
     0.17
   ],
-  "version": "6.6.0"
+  "version": "6.6.9"
 }
