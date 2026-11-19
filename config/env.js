@@ -121,7 +121,8 @@ export const config = {
     jobTtlDays: Number(process.env.ECOJOINER_JOB_TTL_DAYS || 7),
     timeoutMs: Number(process.env.ECOJOINER_TIMEOUT_MS || 30000)
   },
-  // Stripe (contributions). Shares the Stripe account that earthcal.app uses.
+  // Stripe (contributions). hopeturtles.org's own Stripe account, separate from
+  // earthcal.app's (same Stripe organization).
   // Empty secret key = contributions off: the checkout endpoint answers 503.
   stripe: {
     secretKey: process.env.STRIPE_SECRET_KEY || '',

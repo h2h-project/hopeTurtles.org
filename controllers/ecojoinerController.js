@@ -156,6 +156,31 @@ const attachPhoto = async ({ relatedType, relatedId, uploadedBy, file }) => {
   return photo.photo_id;
 };
 
+// Bottle profile names are unique per user (uq_profile_owner_label). Rather
+// than letting the INSERT/UPDATE fail with ER_DUP_ENTRY (an unhandled 500),
+// answer 409 with the existing profile and a free name, so the page can ask
+// the user to overwrite it or save under a new name.
+const PROFILE_LABEL_TAKEN = "profile_label_taken";
+
+const isProfileLabelDuplicate = (error) =>
+  error?.code === "ER_DUP_ENTRY" &&
+  String(error.sqlMessage || "").includes("uq_profile_owner_label");
+
+const sendProfileLabelTaken = async (res, buwanaId, label) => {
+  const existing = await ecojoinerProfilesModel.getByLabelForUser(buwanaId, label);
+  const suggestedLabel = await ecojoinerProfilesModel.suggestFreeLabel(buwanaId, label);
+  return res.status(409).json({
+    success: false,
+    code: PROFILE_LABEL_TAKEN,
+    message: "You already have a bottle profile with this name.",
+    data: {
+      label: existing?.label ?? label,
+      existing_profile_id: existing?.profile_id ?? null,
+      suggested_label: suggestedLabel,
+    },
+  });
+};
+
 export const listProfiles = async (req, res, next) => {
   try {
     const buwanaId = getCurrentUserId(req);
@@ -167,9 +192,13 @@ export const listProfiles = async (req, res, next) => {
 };
 
 export const createProfile = async (req, res, next) => {
+  const buwanaId = getCurrentUserId(req);
+  let fields;
   try {
-    const buwanaId = getCurrentUserId(req);
-    const fields = parseProfileFields(req.body);
+    fields = parseProfileFields(req.body);
+    if (await ecojoinerProfilesModel.getByLabelForUser(buwanaId, fields.label)) {
+      return await sendProfileLabelTaken(res, buwanaId, fields.label);
+    }
     const profile = await ecojoinerProfilesModel.create({
       buwana_id: buwanaId,
       ...fields,
@@ -196,6 +225,14 @@ export const createProfile = async (req, res, next) => {
     );
     return res.json({ success: true, data: saved });
   } catch (error) {
+    // Two saves racing past the label check, or a rename onto a taken name.
+    if (isProfileLabelDuplicate(error)) {
+      return sendProfileLabelTaken(
+        res,
+        getCurrentUserId(req),
+        String(req.body?.label ?? "").trim(),
+      ).catch(next);
+    }
     if (error instanceof EcojoinerRequestError) {
       return res
         .status(error.status)
@@ -242,6 +279,14 @@ export const updateProfile = async (req, res, next) => {
     );
     return res.json({ success: true, data: saved });
   } catch (error) {
+    // Two saves racing past the label check, or a rename onto a taken name.
+    if (isProfileLabelDuplicate(error)) {
+      return sendProfileLabelTaken(
+        res,
+        getCurrentUserId(req),
+        String(req.body?.label ?? "").trim(),
+      ).catch(next);
+    }
     if (error instanceof EcojoinerRequestError) {
       return res
         .status(error.status)
@@ -538,6 +583,14 @@ export const createDesign = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Two saves racing past the label check, or a rename onto a taken name.
+    if (isProfileLabelDuplicate(error)) {
+      return sendProfileLabelTaken(
+        res,
+        getCurrentUserId(req),
+        String(req.body?.label ?? "").trim(),
+      ).catch(next);
+    }
     if (error instanceof EcojoinerRequestError) {
       return res
         .status(error.status)
@@ -677,6 +730,14 @@ export const updateDesign = async (req, res, next) => {
       },
     });
   } catch (error) {
+    // Two saves racing past the label check, or a rename onto a taken name.
+    if (isProfileLabelDuplicate(error)) {
+      return sendProfileLabelTaken(
+        res,
+        getCurrentUserId(req),
+        String(req.body?.label ?? "").trim(),
+      ).catch(next);
+    }
     if (error instanceof EcojoinerRequestError) {
       return res
         .status(error.status)

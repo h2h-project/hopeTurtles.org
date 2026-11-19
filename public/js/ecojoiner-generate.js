@@ -719,6 +719,138 @@
     return formData;
   };
 
+  // --- Bottle profile name conflicts ---------------------------------------
+  // Profile names are unique per user. When a save hits a name that's already
+  // taken, the API answers 409 { code: "profile_label_taken", data: { label,
+  // existing_profile_id, suggested_label } } and we ask the user what to do.
+
+  const conflictDialog = el("ecoProfileConflictDialog");
+
+  // Resolves { action: "overwrite" } | { action: "new", label } | { action: "cancel" }.
+  const askProfileConflict = (conflict) =>
+    new Promise((resolve) => {
+      if (!conflictDialog || typeof conflictDialog.showModal !== "function") {
+        resolve({ action: "cancel" });
+        return;
+      }
+      const takenLabel = String(conflict.label || "");
+      const form = conflictDialog.querySelector("[data-eco-conflict-form]");
+      const bodyText = conflictDialog.querySelector("[data-eco-conflict-body]");
+      const nameInput = conflictDialog.querySelector("[data-eco-conflict-name]");
+      const feedback = conflictDialog.querySelector("[data-eco-conflict-feedback]");
+      const overwriteBtn = conflictDialog.querySelector("[data-eco-conflict-overwrite]");
+
+      bodyText.textContent = s("gen_profile_conflict_body").replace("{label}", takenLabel);
+      nameInput.value = conflict.suggested_label || "";
+      feedback.hidden = true;
+      feedback.textContent = "";
+      overwriteBtn.hidden = !conflict.existing_profile_id;
+
+      const listeners = new AbortController();
+      const finish = (choice) => {
+        listeners.abort();
+        if (conflictDialog.open) conflictDialog.close();
+        resolve(choice);
+      };
+      const showError = (key) => {
+        feedback.textContent = s(key);
+        feedback.hidden = false;
+        nameInput.focus();
+      };
+      const { signal } = listeners;
+
+      overwriteBtn.addEventListener("click", () => finish({ action: "overwrite" }), { signal });
+      conflictDialog.querySelectorAll("[data-eco-conflict-cancel]").forEach((button) =>
+        button.addEventListener("click", () => finish({ action: "cancel" }), { signal }),
+      );
+      // Esc key.
+      conflictDialog.addEventListener(
+        "cancel",
+        (event) => {
+          event.preventDefault();
+          finish({ action: "cancel" });
+        },
+        { signal },
+      );
+      form.addEventListener(
+        "submit",
+        (event) => {
+          event.preventDefault();
+          const label = nameInput.value.trim();
+          if (!label) return showError("gen_profile_conflict_name_required");
+          if (label.toLowerCase() === takenLabel.trim().toLowerCase()) {
+            return showError("gen_profile_conflict_name_same");
+          }
+          return finish({ action: "new", label });
+        },
+        { signal },
+      );
+
+      conflictDialog.showModal();
+      nameInput.focus();
+      nameInput.select();
+    });
+
+  // A name the user chose not to save under (Cancel in the dialog). The
+  // Generate flow autosaves the profile more than once per click, so without
+  // this the dialog would pop up again straight after being dismissed. It
+  // asks again as soon as the name changes (brand or volume edited).
+  let declinedProfileLabel = null;
+  const isDeclinedLabel = (label) =>
+    declinedProfileLabel !== null &&
+    String(label).trim().toLowerCase() === declinedProfileLabel;
+
+  // Creates a bottle profile from the on-screen values, asking the user what
+  // to do if the name is taken. Returns
+  //   { ok: true, profile, label }               saved (new or overwritten)
+  //   { ok: false, cancelled: true }             user cancelled the dialog
+  //   { ok: false, status, message }             any other failure
+  // The FormData is built once and reused for retries, because building it
+  // consumes the photo input's file.
+  const createBottleProfile = async (values, label) => {
+    const formData = profileFormData(values, { label });
+    let currentLabel = label;
+    for (;;) {
+      const response = await fetch("/api/ecojoiner/profiles", {
+        method: "POST",
+        body: formData,
+      });
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && body.success) {
+        return { ok: true, profile: body.data, label: currentLabel };
+      }
+      if (response.status !== 409 || body.code !== "profile_label_taken") {
+        return { ok: false, status: response.status, message: body.message };
+      }
+
+      const conflict = body.data || {};
+      const choice = await askProfileConflict(conflict);
+      if (choice.action === "new") {
+        currentLabel = choice.label;
+        formData.set("label", currentLabel);
+        continue; // the new name could be taken too, so go round again
+      }
+      if (choice.action === "overwrite" && conflict.existing_profile_id) {
+        formData.delete("label"); // keep the existing profile's name
+        const putResponse = await fetch(
+          `/api/ecojoiner/profiles/${encodeURIComponent(conflict.existing_profile_id)}`,
+          { method: "PUT", body: formData },
+        );
+        const putBody = await putResponse.json().catch(() => ({}));
+        if (!putResponse.ok || !putBody.success) {
+          return { ok: false, status: putResponse.status, message: putBody.message };
+        }
+        return {
+          ok: true,
+          profile: putBody.data,
+          label: (putBody.data && putBody.data.label) || conflict.label || currentLabel,
+        };
+      }
+      declinedProfileLabel = String(currentLabel).trim().toLowerCase();
+      return { ok: false, cancelled: true };
+    }
+  };
+
   const renderPreview = (data) => {
     const d = data.derived || {};
     const i = data.inputs || {};
@@ -1244,33 +1376,32 @@
       saveProfileBtn.textContent = s("gen_save_profile_saving");
 
       try {
-        const formData = profileFormData(values, { label: trimmedLabel });
-        const response = await fetch("/api/ecojoiner/profiles", {
-          method: "POST",
-          body: formData,
-        });
-        const body = await response.json().catch(() => ({}));
-        const ok = response.ok;
-        if (!ok || !body.success) {
+        // An explicit click always asks, even about a name declined before.
+        const result = await createBottleProfile(values, trimmedLabel);
+        if (result.cancelled) return;
+        if (!result.ok) {
           setSaveProfileFeedback(
-            body.message || s("gen_save_profile_error"),
+            result.message || s("gen_save_profile_error"),
             true,
           );
           return;
         }
+        const savedId = result.profile && result.profile.profile_id;
         setSaveProfileFeedback(s("gen_save_profile_success"), false);
         await loadProfiles();
-        if (profilePicker && body.data && body.data.profile_id) {
-          profilePicker.value = String(body.data.profile_id);
+        if (profilePicker && savedId) {
+          profilePicker.value = String(savedId);
         }
+        loadedProfileSpecs = currentSpecValues();
         updateSaveProfileVisibility();
+        updateSaveChangesVisibility();
 
         // Saving the bottle profile also saves a draft ecojoiner design
         // behind it, so the working design isn't lost before it's named
         // and officially saved via the Save dialog.
-        if (body.data && body.data.profile_id) {
+        if (savedId) {
           try {
-            await syncDraftDesign(String(body.data.profile_id), trimmedLabel);
+            await syncDraftDesign(String(savedId), result.label);
           } catch (designError) {
             console.error("Failed to save draft ecojoiner design", designError);
           }
@@ -1498,8 +1629,10 @@
   // attach them) flips it to "generated".
 
   // Creates a new bottle profile, or updates the one already loaded, from
-  // whatever is currently on screen. Returns the profile_id, or null if the
-  // save failed.
+  // whatever is currently on screen. A new profile whose name is taken goes
+  // through the overwrite / save-as-new dialog. Returns
+  //   { profileId, label }            saved; label is the name actually used
+  //   { profileId: null, message }    not saved (failure, or name declined)
   const syncBottleProfile = async (label) => {
     const values = collect();
     const existingProfileId = profilePicker && profilePicker.value;
@@ -1510,19 +1643,24 @@
         { method: "PUT", body: formData },
       );
       const body = await response.json().catch(() => ({}));
-      if (!response.ok || !body.success) return null;
-      return existingProfileId;
+      if (!response.ok || !body.success) {
+        return { profileId: null, message: body.message || s("gen_save_profile_error") };
+      }
+      return { profileId: existingProfileId, label: (body.data && body.data.label) || label };
     }
-    const formData = profileFormData(values, { label });
-    const response = await fetch("/api/ecojoiner/profiles", {
-      method: "POST",
-      body: formData,
-    });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok || !body.success) return null;
-    const profileId = body.data && body.data.profile_id;
+    if (isDeclinedLabel(label)) {
+      return { profileId: null, message: s("gen_profile_conflict_skipped") };
+    }
+    const result = await createBottleProfile(values, label);
+    if (result.cancelled) {
+      return { profileId: null, message: s("gen_profile_conflict_skipped") };
+    }
+    if (!result.ok) {
+      return { profileId: null, message: result.message || s("gen_save_profile_error") };
+    }
+    const profileId = result.profile && result.profile.profile_id;
     if (profilePicker && profileId) profilePicker.value = String(profileId);
-    return profileId;
+    return { profileId, label: result.label };
   };
 
   // Creates or (for an already-owned design) updates the draft design tied
@@ -1597,18 +1735,18 @@
     const values = collect();
     const missing = missingProfileFields(values);
     if (missing.length) return { ok: false, missing, message: null };
-    const label = values.volume ? `${values.brand} ${values.volume}ml` : values.brand;
+    const proposedLabel = values.volume ? `${values.brand} ${values.volume}ml` : values.brand;
     try {
-      const profileId = await syncBottleProfile(label);
+      const { profileId, label, message } = await syncBottleProfile(proposedLabel);
       if (!profileId) {
-        console.error("Ecojoiner autosave: bottle profile save failed");
-        return { ok: false, missing: [], message: s("gen_save_profile_error") };
+        console.error("Ecojoiner autosave: bottle profile not saved:", message);
+        return { ok: false, missing: [], message: message || s("gen_save_profile_error") };
       }
       await loadProfiles();
       loadedProfileSpecs = currentSpecValues();
       updateSaveProfileVisibility();
       updateSaveChangesVisibility();
-      await syncDraftDesign(profileId, label, jobInfo);
+      await syncDraftDesign(profileId, label || proposedLabel, jobInfo);
       return { ok: true, missing: [], message: null };
     } catch (error) {
       console.error("Ecojoiner autosave: design save failed", error);

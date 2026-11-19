@@ -12,7 +12,9 @@ export const getStripe = () => {
   return client;
 };
 
-// This Stripe account is shared with earthcal.app, and every webhook endpoint
+// hopeturtles.org has its own Stripe account, separate from earthcal.app's
+// (same Stripe organization). This tag predates that and is kept as a
+// safeguard: if the accounts were ever shared, every webhook endpoint
 // on the account receives every event it subscribes to. Each Checkout session
 // created here is tagged with this value in its metadata. The webhook only
 // acts on tagged events and ignores earthcal's.

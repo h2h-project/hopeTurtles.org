@@ -475,6 +475,34 @@
       </div>
     </div>
   </dialog>
+
+  <%# Shown by ecojoiner-generate.js when a bottle profile save hits a name
+      the user already has (the API answers 409 profile_label_taken). %>
+  <dialog id="ecoProfileConflictDialog" class="mission-dialog" aria-labelledby="ecoProfileConflictTitle">
+    <form class="form-card" method="dialog" data-eco-conflict-form novalidate>
+      <header class="mission-dialog__header">
+        <div>
+          <h2 id="ecoProfileConflictTitle"><%= t.gen_profile_conflict_title %></h2>
+          <p class="panel-subtitle" data-eco-conflict-body></p>
+        </div>
+        <button type="button" class="dialog-close" data-eco-conflict-cancel aria-label="<%= t.gen_profile_conflict_cancel %>">&times;</button>
+      </header>
+      <label class="full-width">
+        <%= t.gen_profile_conflict_new_label %>
+        <input type="text" maxlength="80" autocomplete="off" data-eco-conflict-name />
+      </label>
+      <p class="form-feedback eco-feedback--error" role="alert" data-eco-conflict-feedback hidden></p>
+      <div class="mission-dialog__actions">
+        <button type="button" class="button ghost" data-eco-conflict-cancel><%= t.gen_profile_conflict_cancel %></button>
+        <button type="button" class="button ghost" data-eco-conflict-overwrite>
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i> <%= t.gen_profile_conflict_overwrite %>
+        </button>
+        <button type="submit" class="button" data-eco-conflict-save-new>
+          <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_profile_conflict_save_new %>
+        </button>
+      </div>
+    </form>
+  </dialog>
   <% } %>
 </main>
 <%# Strings the generator script paints into the page at runtime. %>

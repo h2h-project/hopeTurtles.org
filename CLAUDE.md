@@ -471,13 +471,15 @@ ahead of `express.json()`) verifies the signature and, on `checkout.session.comp
 fails it answers 500, so Stripe retries. Code: `controllers/contributionsController.js`,
 `utils/stripe.js`, `models/transactionsModel.js`. Off (503) until `STRIPE_SECRET_KEY` is set.
 
-**Shared Stripe account.** The account is shared with **earthcal.app**
-(`~/WebstormProjects/earthcal/api/v1/stripe_webhook.php`), and each webhook endpoint receives
-every event it subscribes to. Sessions created here carry `metadata.app = 'hopeturtles'`, and
-our webhook ignores anything without it. The contributor's ID is stored as
-`metadata.ht_buwana_id` and **must never be `buwana_id`**: earthcal's webhook reads
-`metadata.buwana_id` on `checkout.session.completed` and would link that earthcal user to the
-Stripe customer. We also never create Stripe Customers.
+**Stripe account (confirmed 2026-11-19).** hopeturtles.org has its **own Stripe account**,
+"HopeTurtles.org" (+ a "HopeTurtles.org sandbox" for testing), separate from **earthcal.app**'s
+but under the same Stripe organization. Separate accounts have separate keys, events and
+webhook endpoints, so earthcal's webhook (`~/WebstormProjects/earthcal/api/v1/stripe_webhook.php`)
+never sees our sessions. The earlier safeguards stay anyway, as belt and braces: sessions carry
+`metadata.app = 'hopeturtles'` and our webhook ignores anything without it; the contributor's
+ID is `metadata.ht_buwana_id`, never `buwana_id` (the key earthcal's webhook acts on); and we
+never create Stripe Customers. Test with the sandbox (`stripe login` → "HopeTurtles.org
+sandbox", not "Test mode").
 
 ### Schema draft: `sql/migrations/20260731_commissioning_transactions.sql`
 

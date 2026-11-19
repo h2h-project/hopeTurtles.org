@@ -77,12 +77,12 @@ contribution's webhook answers 500 until it does.
      `STRIPE_WEBHOOK_SECRET=whsec_…`, `SITE_URL=http://localhost:3000`).
    - Make a contribution with test card `4242 4242 4242 4242` and confirm a `completed`
      row lands in the local `transactions_tb`, with `amount_eur` set.
-3. **Live API key.** In live mode, create a key used **only** by hopeturtles.org (not
-   earthcal's key), so either app's key can be rotated or revoked without breaking the other.
+3. **Live API key.** In the **HopeTurtles.org** live account (its own account, separate from
+   earthcal's, under the same Stripe organization), create a restricted key for the website.
 4. **Live webhook endpoint.** Add a webhook destination for
    `https://hopeturtles.org/api/stripe/webhook`, subscribed to
    `checkout.session.completed` and `checkout.session.async_payment_succeeded` (more events
-   are added in Phase 2). Copy its signing secret. It is different from earthcal's.
+   are added in Phase 2). Copy its signing secret.
 5. **Production `.env`.** On the server (`/root/hopeturtles.org/.env`), set
    `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL=https://hopeturtles.org` and
    the `CONTRIBUTION_MIN_EUR`/`MAX_EUR` limits, then `pm2 restart` the app.
@@ -90,8 +90,8 @@ contribution's webhook answers 500 until it does.
    delivery shows `200` in Stripe, and that the row is in production `transactions_tb`.
    Refund it from the Stripe dashboard afterwards if wanted (it stays in the ledger until
    Phase 2 adds refund handling; reverse it by hand then).
-7. **Check the Stripe account's settlement currency.** The account is shared with
-   earthcal. If its balance settles in USD, every EUR charge is converted, and the fee and
+7. **Check the Stripe account's settlement currency.** HopeTurtles.org is its own account,
+   so this can be set without affecting earthcal. If its balance settles in USD, every EUR charge is converted, and the fee and
    payout figures Stripe reports are in USD. Either add a EUR balance/bank account in Stripe
    (Settings → Bank accounts and currencies) or accept that Phase 2 must convert fees back to
    EUR. Decide before Phase 2.
@@ -166,8 +166,8 @@ the books match the bank:
    in `fee_eur`. If the balance transaction's `currency` isn't `eur` (see Phase 0, step 7),
    convert with its `exchange_rate`, never store a USD fee in `fee_eur`.
 2. **Record refunds.** Subscribe to `charge.refunded` (or `refund.created`). Filter on
-   `metadata.app === 'hopeturtles'` as the session handler does: the account is shared with
-   earthcal. Insert a `refund` / `out` row keyed on `stripe_refund_id`, with
+   `metadata.app === 'hopeturtles'` as the session handler does (a safeguard; the account is
+   no longer shared with earthcal). Insert a `refund` / `out` row keyed on `stripe_refund_id`, with
    `reverses_transaction_id` pointing at the original contribution, and set the original's
    `status = 'refunded'` (only on full refunds).
 3. **Record async failures.** Handle `checkout.session.async_payment_failed` by logging only;
@@ -350,7 +350,7 @@ whereas Stripe already keeps its own history that can be backfilled later.
 3. **Currencies.** ✅ EUR is the books' currency. Still open: which local currencies come up
    (IDR, USD, others), and where exchange rates come from (manual entry, the bank's rate on
    the day, or a rates API)?
-4. **Stripe settlement currency.** Does the shared Stripe account have a EUR balance, or
+4. **Stripe settlement currency.** Does the HopeTurtles.org Stripe account have a EUR balance, or
    does everything settle in USD? (Phase 0, step 7.)
 5. **Commission prices.** ✅ Moved to euros, same numbers. Still open: are the ballpark
    prices (Simple €250, Smart €400, add-ons, €20 shipping) right in euros?
