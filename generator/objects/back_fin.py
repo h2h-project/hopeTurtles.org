@@ -51,6 +51,8 @@ from common import (
     canvas,
     ezdxf,
 )
+from pdf_i18n import pdf_lang, title_font_for, translator
+_EN = lambda s, **k: s.format(**k) if k else s  # English, for non-PDF callers
 from objects.ecojoiner_6fc import _fit_connection_label  # same Panel 5 step names as the 6FC sheet
 from back_fin_generator import (
     DEFAULTS as _BF_DEFAULTS,
@@ -58,7 +60,7 @@ from back_fin_generator import (
     build_scad as _bf_build_scad,
     default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
     default_shaft_width as _bf_default_shaft_width,
-    shaft_hole_pair_offset as _bf_shaft_hole_pair_offset,
+    lock_from_clamp as _bf_lock_from_clamp,
 )
 
 
@@ -105,6 +107,9 @@ class BackFinInputs:
     # "Adjust connection" offset from the form (Panel 5), mm; see
     # back_fin_generator.TUNING["port_fit_mm"].
     port_fit_mm: float = _BF_TUNING["port_fit_mm"]
+    # Bottle top-dome height ("top tapper"); sets the collar-lock hole
+    # position via the Ecojoiner port length -- back_fin_generator.TUNING.
+    taper_height: float = _BF_TUNING["taper_height"]
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
@@ -146,14 +151,15 @@ class BackFinDerived:
     shaft_notch_v0: float
     shaft_notch_height: float
     shaft_hole_from_front: float
-    # turtle_body v5.0.0: M5 hole PAIR at shaft_width/2 +- this offset.
-    shaft_hole_pair_offset: float
+    # turtle_body v7.0.0: centred collar-lock hole, nearer the shaft front.
+    shaft_lock_hole_from_front: float
 
 
-def _shaft_hole_ys(inputs, d) -> Tuple[float, float]:
-    """The two M5 hole centres across the shaft width (shaft-local v)."""
+def _shaft_holes(inputs, d) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """The two centred M5 hole centres (shaft-local u from the front, v):
+    the clamp hole and the collar-lock hole (turtle_body v7.0.0)."""
     c = inputs.shaft_width / 2
-    return (c - d.shaft_hole_pair_offset, c + d.shaft_hole_pair_offset)
+    return ((d.shaft_hole_from_front, c), (d.shaft_lock_hole_from_front, c))
 
 
 def parse_inputs_from_dict(data: Dict[str, object]) -> BackFinInputs:
@@ -229,7 +235,7 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
     shaft_notch_v0 = inputs.shaft_width / 2 - joint_slot_opening / 2
 
     # TB-07: not a free tuning knob. None means "derive it" -- the value
-    # must put the shaft's M5 hole pair exactly where the mating Ecojoiner Little
+    # must put the shaft's M5 clamp hole exactly where the mating Ecojoiner Little
     # John's own hole is (see back_fin_generator.default_shaft_hole_from_front()).
     shaft_hole_from_front = (
         inputs.shaft_hole_from_front
@@ -265,10 +271,8 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         shaft_notch_v0=shaft_notch_v0,
         shaft_notch_height=shaft_notch_height,
         shaft_hole_from_front=shaft_hole_from_front,
-        shaft_hole_pair_offset=_bf_shaft_hole_pair_offset(
-            {"wood_thickness": t, "bottle_diameter": inputs.bottle_diameter,
-             "port_fit_mm": inputs.port_fit_mm}
-        ),
+        shaft_lock_hole_from_front=shaft_hole_from_front - _bf_lock_from_clamp(
+            {"taper_height": inputs.taper_height}),
     )
 
 
@@ -326,10 +330,10 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         (d.fin_width > d.fin_diagonal_run, "Board width is too small for the fin's diagonal edge."),
         (s < t and d.shaft_rear_x > s / 2, "Solar slot clearance leaves too little fin material."),
         (inputs.solar_panel_width > 4 * t + s, "Solar panel width is too narrow for the holder's slot and chamfers."),
-        (2 * d.shaft_hole_pair_offset + inputs.shaft_hole_diameter < inputs.shaft_width,
-         "The shaft's two M5 holes would run off its edges."),
+        (inputs.shaft_hole_diameter < inputs.shaft_width,
+         "The shaft's M5 holes are wider than the shaft."),
         (
-            d.shaft_hole_from_front > inputs.shaft_hole_diameter / 2
+            d.shaft_lock_hole_from_front > inputs.shaft_hole_diameter / 2
             and d.shaft_front_x + d.shaft_hole_from_front + inputs.shaft_hole_diameter / 2 < 0,
             "The shaft hole must sit inside the forward, unjointed part of the shaft.",
         ),
@@ -412,8 +416,8 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
     def shaft_group(y, name):
         out = f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
         out += _rect(0, 0, d.shaft_length, inputs.shaft_width)
-        for hy in _shaft_hole_ys(inputs, d):
-            out += _circle(d.shaft_hole_from_front, hy, inputs.shaft_hole_diameter)
+        for hu, hv in _shaft_holes(inputs, d):
+            out += _circle(hu, hv, inputs.shaft_hole_diameter)
         out += _rect(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)
         out += _label(0, -3, name)
         out += "  </g>\n"
@@ -480,8 +484,8 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
 
     def shaft_group(y, name):
         _dxf_rect(msp, 0, y, d.shaft_length, inputs.shaft_width, DXF_CUT_LAYER)
-        for hy in _shaft_hole_ys(inputs, d):
-            _dxf_circle(msp, d.shaft_hole_from_front, y + hy, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
+        for hu, hv in _shaft_holes(inputs, d):
+            _dxf_circle(msp, hu, y + hv, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
         _dxf_rect(msp, d.shaft_notch_u0, y + d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
@@ -551,52 +555,51 @@ def _solar_edges_with_gaps(inputs: BackFinInputs, d: BackFinDerived):
 # centered text (e.g. a hole's diameter, written on the hole itself).
 # ---------------------------------------------------------------------------
 
-def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived):
+def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
     hole_x = d.shaft_hole_from_front
-    hole_y_lo, hole_y_hi = _shaft_hole_ys(inputs, d)
+    lock_x = d.shaft_lock_hole_from_front
+    hole_y = inputs.shaft_width / 2
     n_u0 = d.shaft_notch_u0
     n_w = d.shaft_notch_width
     n_h = d.shaft_notch_height
     n_v0 = d.shaft_notch_v0
     dims = [
-        # M5 hole-pair position, measured from the shaft's front edge.
+        # Clamp + collar-lock hole positions, measured from the shaft's front edge.
         (
             (0, inputs.shaft_width + 14), (hole_x, inputs.shaft_width + 14),
             f"{_ceil_mm(hole_x)}mm",
             {"ext1": (0, inputs.shaft_width), "ext2": (hole_x, inputs.shaft_width), "rotate_label": True},
         ),
+        (
+            (0, inputs.shaft_width + 6), (lock_x, inputs.shaft_width + 6),
+            f"{_ceil_mm(lock_x)}mm",
+            {"ext1": (0, inputs.shaft_width), "ext2": (lock_x, inputs.shaft_width), "rotate_label": True},
+        ),
         # How far the rear half-lap notch reaches in from the back edge.
         (
             (n_u0, -6), (d.shaft_length, -6),
-            f"{_ceil_mm(n_w)}mm deep", {"ext1": (n_u0, 0), "ext2": (d.shaft_length, 0)},
+            _tx("{v}mm deep", v=_ceil_mm(n_w)), {"ext1": (n_u0, 0), "ext2": (d.shaft_length, 0)},
         ),
-        # The pair's positions across the shaft's width: the near hole from
-        # the bottom edge, then the pitch between the two holes.
+        # Both holes are centred across the shaft's width.
         (
-            (hole_x + 10, 0), (hole_x + 10, hole_y_lo),
-            f"{_ceil_mm(hole_y_lo)}mm",
-            {"ext1": (hole_x, 0), "ext2": (hole_x, hole_y_lo)},
-        ),
-        (
-            (hole_x + 10, hole_y_lo), (hole_x + 10, hole_y_hi),
-            f"{_ceil_mm(hole_y_hi - hole_y_lo)}mm",
-            {"ext1": (hole_x, hole_y_lo), "ext2": (hole_x, hole_y_hi)},
+            (hole_x + 10, 0), (hole_x + 10, hole_y),
+            f"{_ceil_mm(hole_y)}mm",
+            {"ext1": (hole_x, 0), "ext2": (hole_x, hole_y)},
         ),
     ]
-    # Hole size written BESIDE each hole (not on it), on the side facing the
-    # other hole of the pair -- the clear wood between them -- with the ⌀
-    # symbol (drawn in the symbol font; the body font has no ⌀ glyph).
-    side = inputs.shaft_hole_diameter / 2 + 5
+    # Hole size written BESIDE each hole (not on it), with the ⌀ symbol
+    # (drawn in the symbol font; the body font has no ⌀ glyph).
+    side = inputs.shaft_hole_diameter / 2 + 12
     hole_text = f"⌀{_ceil_mm(inputs.shaft_hole_diameter)}"
     labels = [
-        ((hole_x, hole_y_lo + side), hole_text),
-        ((hole_x, hole_y_hi - side), hole_text),
-        ((n_u0 + n_w / 2, n_v0 + n_h / 2), f"{_ceil_mm(n_h)}mm wide"),
+        ((hole_x, hole_y - side), _tx("clamp {d}", d=hole_text)),
+        ((lock_x, hole_y - side), _tx("lock {d}", d=hole_text)),
+        ((n_u0 + n_w / 2, n_v0 + n_h / 2), _tx("{v}mm wide", v=_ceil_mm(n_h))),
     ]
     return dims, labels
 
 
-def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
+def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
     upper, lower, solar = _fin_notches(inputs, d)
     dims = []
     labels = []
@@ -606,10 +609,10 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     for nx, ny, nw, nh in (upper, lower):
         dims.append((
             (nx, ny - 6), (nx + nw, ny - 6),
-            f"{_ceil_mm(nw)}mm deep", {"ext1": (nx, ny), "ext2": (nx + nw, ny)},
+            _tx("{v}mm deep", v=_ceil_mm(nw)), {"ext1": (nx, ny), "ext2": (nx + nw, ny)},
         ))
         # The slot's opening (the "slot space") written on the slot itself.
-        labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
+        labels.append(((nx + nw / 2, ny + nh / 2), _tx("{v}mm wide", v=_ceil_mm(nh))))
 
     # --- Bottom corner diagonal cut ---
     # Where the diagonal meets the bottom edge, measured on to the fin's
@@ -654,14 +657,14 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     # into solid material, to keep clear of the crowded rear corner.
     dims.append((
         (solar_dim_x, ny), (solar_dim_x, ny + nh),
-        f"{_ceil_mm(nh)}mm deep",
+        _tx("{v}mm deep", v=_ceil_mm(nh)),
         {"ext1": (nx, ny), "ext2": (nx, ny + nh), "rotate_label": True},
     ))
     # Where it sits along the top edge: distance in from the fin's rear
     # (right) edge.
     dims.append((
         (nx, ny - 10), (d.fin_width, ny - 10),
-        f"{_ceil_mm(d.fin_width - nx)}mm from rear",
+        _tx("{v}mm from rear", v=_ceil_mm(d.fin_width - nx)),
         {"ext1": (nx, ny), "ext2": (d.fin_width, ny)},
     ))
     # The slot's own width, on the slot itself.
@@ -670,7 +673,7 @@ def _fin_annotations(inputs: BackFinInputs, d: BackFinDerived):
     return dims, labels
 
 
-def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
+def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
     nx = (d.solar_holder_length - d.solar_slot_width) / 2
     nw = d.solar_slot_width
     nh = d.solar_slot_depth + inputs.solar_slot_clearance / 2
@@ -678,7 +681,7 @@ def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
         # How deep the panel slot is cut up from the bottom edge.
         (
             (nx + nw + 4, 0), (nx + nw + 4, nh),
-            f"{_ceil_mm(nh)}mm deep",
+            _tx("{v}mm deep", v=_ceil_mm(nh)),
             {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh), "rotate_label": True},
         ),
         # Where the (centred) slot starts, measured in from the holder's end.
@@ -701,7 +704,7 @@ def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived):
     ]
     labels = [
         # The slot's width (the "slot space"), written on the slot itself.
-        ((nx + nw / 2, min(nh, 14) / 2), f"{_ceil_mm(nw)}mm wide"),
+        ((nx + nw / 2, min(nh, 14) / 2), _tx("{v}mm wide", v=_ceil_mm(nw))),
     ]
     return dims, labels
 
@@ -713,26 +716,28 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     they're rotated 90 degrees for this reference drawing (their SVG/DXF
     exports are unrotated) to make use of the page's full vertical space.
     All three parts share one scale so they stay size-comparable to each
-    other. English-only for this first pass - the 6FC PDF's full
-    per-language T() table is out of scope to replicate here yet.
+    other. Text is localised through generator/pdf_i18n.py (en/id/tr).
     """
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
     title_font, body_font, symbol_font = _register_fonts(font_dir)
+    lang = pdf_lang(inputs)
+    _tx = translator(inputs)
+    title_font = title_font_for(lang, title_font, body_font)
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle(f"Flatpack Back Fin v{DESIGN_VERSION}")
+    c.setTitle(_tx("Flatpack Back Fin v{version}", version=DESIGN_VERSION))
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Back Fin v{DESIGN_VERSION}")
+    c.drawString(margin, title_y, _tx("Flatpack Back Fin v{version}", version=DESIGN_VERSION))
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
+    c.drawString(margin, title_y - 16, _tx("Reference sheet only - the SVG/DXF exports are the 1:1 cut files."))
 
     # Drawing area: 3 columns sharing the page's full width, each part
     # scaled identically (see the shared `scale` computed below) so the
@@ -742,7 +747,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     # the bottom of its own column for the input/derived-dimension boxes.
     c.setFont(body_font, 7)
     c.drawString(margin, title_y - 29,
-                 "Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts.")
+                 _tx("Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts."))
 
     draw_left = margin
     draw_right = page_w - margin
@@ -759,13 +764,13 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     col_right_pad = 34  # room for fin dimensions outside the ruler column
     col_gap = 16
 
-    shaft_dims, shaft_labels = _shaft_annotations(inputs, d)
-    fin_dims, fin_labels = _fin_annotations(inputs, d)
-    solar_dims, solar_labels = _solar_annotations(inputs, d)
+    shaft_dims, shaft_labels = _shaft_annotations(inputs, d, _tx)
+    fin_dims, fin_labels = _fin_annotations(inputs, d, _tx)
+    solar_dims, solar_labels = _solar_annotations(inputs, d, _tx)
 
     parts_raw = [
         {
-            "name": "Bottle Holder Shaft (x2)",
+            "name": _tx("Bottle Holder Shaft (x2)"),
             "w_mm": d.shaft_length,
             "h_mm": inputs.shaft_width,
             "rotate": True,
@@ -776,12 +781,12 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "notches": [
                 _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
             ],
-            "circles": [(d.shaft_hole_from_front, hy, inputs.shaft_hole_diameter) for hy in _shaft_hole_ys(inputs, d)],
+            "circles": [(hu, hv, inputs.shaft_hole_diameter) for hu, hv in _shaft_holes(inputs, d)],
             "dims": shaft_dims,
             "labels": shaft_labels,
         },
         {
-            "name": "Rear Fin",
+            "name": _tx("Rear Fin"),
             "w_mm": d.fin_width,
             "h_mm": d.fin_height,
             "rotate": False,
@@ -795,7 +800,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "labels": fin_labels,
         },
         {
-            "name": "Solar Panel Holder",
+            "name": _tx("Solar Panel Holder"),
             "w_mm": d.solar_holder_length,
             "h_mm": d.solar_holder_height,
             "rotate": True,
@@ -869,7 +874,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
 
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
 
-        if part["name"] == "Rear Fin":
+        if part["name"] == _tx("Rear Fin"):
             fin_rulers.draw_pdf(c, "rear", inputs, d, ox, oy, scale)
         for wall in part["notches"]:
             _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
@@ -910,7 +915,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             c.setFillColor(colors.HexColor("#333333"))
             c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
 
-        if part["name"] == "Solar Panel Holder":
+        if part["name"] == _tx("Solar Panel Holder"):
             solar_col_w = col_w
 
         cursor += col_w + col_gap
@@ -920,21 +925,22 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     # derived-dimension boxes live, stacked instead of side-by-side, anchored
     # to the page's bottom-right corner rather than trailing the diagram.
     input_lines = [
-        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
-        f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Bottle height: {_ceil_mm(inputs.bottle_height)}mm",
-        f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
-        f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
-        f"Board width: {_ceil_mm(inputs.fin_board_width)}mm",
-        f"Fit connection: {_fit_connection_label('en', inputs.port_fit_mm)}",
+        _tx("Wood thickness: {v}mm", v=_ceil_mm(inputs.wood_thickness)),
+        _tx("Bottle diameter: {v}mm", v=_ceil_mm(inputs.bottle_diameter)),
+        _tx("Bottle height: {v}mm", v=_ceil_mm(inputs.bottle_height)),
+        _tx("Cap diameter: {v}mm", v=_ceil_mm(inputs.cap_diameter)),
+        _tx("Cap height: {v}mm", v=_ceil_mm(inputs.cap_height)),
+        _tx("Board width: {v}mm", v=_ceil_mm(inputs.fin_board_width)),
+        _tx("Fit connection: {v}", v=_fit_connection_label(lang, inputs.port_fit_mm)),
     ]
     derived_lines = [
-        f"Fin: {_ceil_mm(d.fin_width)} x {_ceil_mm(d.fin_height)}mm",
-        f"Shaft length: {_ceil_mm(d.shaft_length)}mm",
-        f"Joint slot opening: {_ceil_mm(d.joint_slot_opening)}mm",
-        f"Solar slot width: {_ceil_mm(d.solar_slot_width)}mm",
+        _tx("Fin: {w} x {h}mm", w=_ceil_mm(d.fin_width), h=_ceil_mm(d.fin_height)),
+        _tx("Shaft length: {v}mm", v=_ceil_mm(d.shaft_length)),
+        _tx("Joint slot opening: {v}mm", v=_ceil_mm(d.joint_slot_opening)),
+        _tx("Solar slot width: {v}mm", v=_ceil_mm(d.solar_slot_width)),
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
-        f"M5 holes from front: {_ceil_mm(d.shaft_hole_from_front)}mm",
+        _tx("Clamp hole from front: {v}mm", v=_ceil_mm(d.shaft_hole_from_front)),
+        _tx("Collar lock from front: {v}mm", v=_ceil_mm(d.shaft_lock_hole_from_front)),
     ]
     box_gap = 10
     box_h = 92
@@ -942,12 +948,12 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     box_x = draw_right - box_w
     derived_box_y = draw_bottom
     input_box_y = derived_box_y + box_h + box_gap
-    _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, "Input variables", input_lines, title_font, body_font)
-    _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
+    _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, _tx("Input variables"), input_lines, title_font, body_font)
+    _rounded_rect_text(c, box_x, derived_box_y, box_w, box_h, _tx("Derived dimensions"), derived_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, 16, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
+    c.drawString(margin, 16, _tx("CERN-OHL-S-2.0. Design version {version}. https://hopeturtles.org/turtles/generate", version=DESIGN_VERSION))
 
     c.showPage()
     c.save()

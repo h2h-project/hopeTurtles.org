@@ -1299,30 +1299,6 @@
     }
   };
 
-  // Step 2's own "Save bottle profile" button — only useful while the user
-  // is building a brand-new profile (an existing loaded one is already
-  // saved), so it stays hidden whenever the Step 1 picker has a selection.
-  const saveProfileFooter = document.querySelector(
-    "[data-eco-save-profile-footer]",
-  );
-  const saveProfileBtn = el("eco-save-profile-btn");
-  const saveProfileFeedback = document.querySelector(
-    "[data-eco-save-profile-feedback]",
-  );
-
-  const updateSaveProfileVisibility = () => {
-    if (!saveProfileFooter) return;
-    const hasSelectedProfile = Boolean(profilePicker && profilePicker.value);
-    saveProfileFooter.hidden = hasSelectedProfile;
-  };
-
-  const setSaveProfileFeedback = (message, isError) => {
-    if (!saveProfileFeedback) return;
-    saveProfileFeedback.textContent = message || "";
-    saveProfileFeedback.classList.toggle("eco-feedback--error", Boolean(isError));
-    saveProfileFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
-  };
-
   // A second Step 2 footer: only relevant once a saved profile is loaded and
   // its bottle specs have since been edited, offering to update that same
   // profile rather than saving a new one.
@@ -1352,71 +1328,10 @@
   };
 
   loadProfiles();
-  updateSaveProfileVisibility();
 
   form.addEventListener("input", (event) => {
     if (SPEC_FIELD_IDS.includes(event.target.id)) updateSaveChangesVisibility();
   });
-
-  if (saveProfileBtn) {
-    saveProfileBtn.addEventListener("click", async () => {
-      setSaveProfileFeedback("");
-      const values = collect();
-      if (missingProfileFields(values).length) {
-        setSaveProfileFeedback(s("gen_save_profile_missing_fields"), true);
-        return;
-      }
-
-      const trimmedLabel = values.volume
-        ? `${values.brand} ${values.volume}ml`
-        : values.brand;
-
-      saveProfileBtn.disabled = true;
-      const originalLabel = saveProfileBtn.innerHTML;
-      saveProfileBtn.textContent = s("gen_save_profile_saving");
-
-      try {
-        // An explicit click always asks, even about a name declined before.
-        const result = await createBottleProfile(values, trimmedLabel);
-        if (result.cancelled) return;
-        if (!result.ok) {
-          setSaveProfileFeedback(
-            result.message || s("gen_save_profile_error"),
-            true,
-          );
-          return;
-        }
-        const savedId = result.profile && result.profile.profile_id;
-        setSaveProfileFeedback(s("gen_save_profile_success"), false);
-        await loadProfiles();
-        if (profilePicker && savedId) {
-          profilePicker.value = String(savedId);
-        }
-        loadedProfileSpecs = currentSpecValues();
-        updateSaveProfileVisibility();
-        updateSaveChangesVisibility();
-
-        // Saving the bottle profile also saves a draft ecojoiner design
-        // behind it, so the working design isn't lost before it's named
-        // and officially saved via the Save dialog.
-        if (savedId) {
-          try {
-            await syncDraftDesign(String(savedId), result.label);
-          } catch (designError) {
-            console.error("Failed to save draft ecojoiner design", designError);
-          }
-        }
-      } catch (error) {
-        setSaveProfileFeedback(
-          error.message || s("gen_save_profile_error"),
-          true,
-        );
-      } finally {
-        saveProfileBtn.disabled = false;
-        saveProfileBtn.innerHTML = originalLabel;
-      }
-    });
-  }
 
   if (saveProfileChangesBtn) {
     saveProfileChangesBtn.addEventListener("click", async () => {
@@ -1489,36 +1404,54 @@
     return snapshot.label || snapshot.brand || "Untitled design";
   };
 
-  // Only the user's own designs are listed here — showing everyone's public
-  // designs alongside them was confusing users about what "start a new
-  // design" meant. Someone else's public design can still be opened via a
-  // shared link (?design=123), which bypasses this picker entirely.
+  // Lists the user's own designs, then every other user's public designs
+  // (/api/ecojoiner/designs/public), in two labelled groups so it stays
+  // clear which ones re-saving will overwrite. Opening someone else's design
+  // loads it with is_owner: false, so saving it creates a new design of the
+  // user's own rather than touching the original. Private designs of other
+  // users are never listed (the API doesn't return them).
+  const fetchDesigns = async (url) => {
+    try {
+      const response = await fetch(url);
+      const body = await response.json().catch(() => ({}));
+      return response.ok && body.success ? body.data || [] : [];
+    } catch {
+      return [];
+    }
+  };
+
   const loadDesignsList = async () => {
     if (!designPicker) return;
-    try {
-      const response = await fetch("/api/ecojoiner/designs");
-      const body = await response.json().catch(() => ({}));
-      const own = response.ok && body.success ? body.data || [] : [];
+    // A list failing to load isn't fatal - the form still works for a
+    // fresh, unsaved design.
+    const [own, community] = await Promise.all([
+      fetchDesigns("/api/ecojoiner/designs"),
+      fetchDesigns("/api/ecojoiner/designs/public"),
+    ]);
 
-      designsById = {};
-      const selected = designPicker.value;
-      designPicker
-        .querySelectorAll('option[value]:not([value=""])')
-        .forEach((opt) => opt.remove());
+    designsById = {};
+    const selected = designPicker.value;
+    designPicker
+      .querySelectorAll('optgroup, option[value]:not([value=""])')
+      .forEach((node) => node.remove());
 
-      own.forEach((design) => {
-        designsById[design.design_id] = { ...design, is_owner: true };
+    const addGroup = (label, designs, isOwner) => {
+      if (!designs.length) return;
+      const group = document.createElement("optgroup");
+      group.label = label;
+      designs.forEach((design) => {
+        designsById[design.design_id] = { ...design, is_owner: isOwner };
         const option = document.createElement("option");
         option.value = String(design.design_id);
         option.textContent = designOptionLabel(design);
-        designPicker.appendChild(option);
+        group.appendChild(option);
       });
+      designPicker.appendChild(group);
+    };
+    addGroup("Your designs", own, true);
+    addGroup("Community designs", community, false);
 
-      if (selected && designsById[selected]) designPicker.value = selected;
-    } catch {
-      // A saved-design list failing to load isn't fatal — the form still
-      // works for a fresh, unsaved design.
-    }
+    if (selected && designsById[selected]) designPicker.value = selected;
   };
 
   const applyDesignToForm = (design) => {
@@ -1561,7 +1494,6 @@
         profilePicker.value = "";
         loadedProfileSpecs = null;
       }
-      updateSaveProfileVisibility();
       updateSaveChangesVisibility();
     }
 
@@ -1744,7 +1676,6 @@
       }
       await loadProfiles();
       loadedProfileSpecs = currentSpecValues();
-      updateSaveProfileVisibility();
       updateSaveChangesVisibility();
       await syncDraftDesign(profileId, label || proposedLabel, jobInfo);
       return { ok: true, missing: [], message: null };

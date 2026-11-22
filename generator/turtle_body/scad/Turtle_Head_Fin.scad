@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Head_Fin.scad
-//  Turtle Body version 6.6.9
+//  Turtle Body version 7.0.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -9,7 +9,7 @@
  EXPERIMENTAL -- not built, fitted or tested.
  Three wooden pieces: one blue raked fin and two purple bottle-holder
  slats (above and below the front bottle). The slats bolt to the front-port
- Little John M5 pairs like the rear-fin shafts; the fin half-laps into their
+ Little John M5 clamp + collar-lock holes like the rear-fin shafts; the fin half-laps into their
  outer ends and abuts the bottle base. Slot openings 12.2 mm (0.2 mm TOTAL,
  centred). Bottle is F5 reference only, excluded from F6/STL.
 
@@ -157,35 +157,65 @@ function p_m6_bolt_head_t()  = 4;
 // here, and likely to vary with species, moisture and drill quality.
 function p_m5_hole_d()           = 5.2;
 function p_m5_bolt_d()           = 5;     // visual shank (plain cylinder)
-function p_m5_bolt_len()         = 30;    // shank length under the head
+function p_m5_bolt_len()         = 25;    // clamp screw shank under the head (v7.0.0: was 30 -- one
+                                          // centred screw reaches 12 mm, not the pair's 16.05)
 function p_m5_head_d()           = 8.5;   // ISO 4762 socket head
 function p_m5_head_h()           = 5;
 function p_m5_acorn_af()         = 8;
 function p_m5_acorn_h()          = 10;    // overall, hex base to dome tip
 function p_m5_acorn_thread_depth() = 7;   // usable thread before the bolt bottoms
-// Pair layout, shared by the John holes and every board bolted through them
-// (rear-fin shafts, ballast core slats): each bolt sits this far in from a
-// John long edge, i.e. +-p_eco_screw_pair_offset() from the John centreline.
+// v7.0.0: ONE clamp screw per John port end, centred across the John height
+// (was a pair at +-18 mm). The collar lock below now stops pull-out, so the
+// clamp only has to snug the bottle. Every board bolted through a John
+// (rear-fin shafts, ballast core slats, head-fin slats) follows: one centred
+// clamp hole + one centred lock hole.
+//
+// LEGACY pair layout -- used ONLY by the experimental lib/pressor.scad until
+// the pressor is moved to the single centred screw (deferred, user decision
+// 2026-11-22). Nothing else may use it.
 function p_eco_screw_edge_inset()  = 12;   // was 10 until v5.2.0
 function p_eco_screw_pair_offset() =
     (p_port_height() - 2 * p_wood_t()) / 2 - p_eco_screw_edge_inset();   // 18
 
+// ---- Ecojoiner collar lock (v7.0.0) ----------------------------------------
+//  A second M5, centred across each Little/Master John, bites through the
+//  John at the bottle's NECK (between the top dome and the Ø34 support ring).
+//  Its bare shank stands in front of the ring on both sides of the bottle, so
+//  the ring cannot pass back out: a positive stop, not friction. No acorn --
+//  an 8 mm acorn cannot enter the 5 mm neck gap, and the bare shank is the pin.
+//  Datum: the support ring rests on the outer face of the CROSSING Little John
+//  (the next rectangle's board whose Ø34 hole the neck enters). That face is
+//  exactly p_port_length() in from this John's outer end (L/2 - rect_y/2 - t/2
+//  = PL; asserted in lib/ecojoiner.scad), so the ring's underside is
+//  p_port_length() - p_bottle_collar_h() in and the lock axis is centred on
+//  the neck below it. NOTE src/Full_Turtle.scad still seats its bottle mock-ups
+//  one p_port_height() deep -- equal to p_port_length() only at an 82 mm
+//  bottle (2 mm deeper at the 84 default). NOMINAL: p_bottle_neck_h() (5) equals
+//  the M5 diameter, so there is no axial margin -- measure a real bottle's gap
+//  between ring underside and where the shoulder exceeds the ring diameter.
+function p_eco_lock_x() = p_port_length() - p_bottle_collar_h()
+                        - p_bottle_neck_h() / 2;                          // 78.5 from the John's outer end
+function p_eco_lock_from_clamp() = p_eco_lock_x() - p_screw_side_offset(); // 61.5 inboard of the clamp screw
+function p_eco_lock_bolt_len()   = 55;   // M5 x 55: John 12 + reach to the neck, head ~4.5 mm off the face
+function p_eco_lock_tip_gap()    = 0.5;  // tip stops this short of the neck -- a pin, not a clamp on the PET
+
 // ---- pressor (EXPERIMENTAL, v6.6.1; lib/pressor.scad, CLAUDE.md s13a) ----
-//  A 12 mm board block in the port gap between a Little John and the bottle,
-//  concave-cut to the bottle radius. It rides on the John's M5 pair (both
-//  ends bite) and is pushed onto the bottle as the screws are turned in --
-//  replaces the acorn nut. Two per port, one each side of the bottle.
+//  A board block in the port gap between a Little John and the bottle,
+//  concave-cut to the bottle radius. The John's M5 pair passes into two
+//  plain clearance holes in its back edge and pushes it onto the bottle as
+//  the screws are turned in -- replaces the acorn nut. Two per port, one
+//  each side of the bottle.
+function p_pressor_t()          = 15;    // v6.7.4: pressor board thickness (along the bottle axis);
+                                          // its own stock, the Johns stay on p_wood_t() 12
 function p_pressor_wrap()       = p_bottle_d() / 4;  // 21: inner edge reaches this far past the
                                                       // bottle's tangent line, toward its axis
 function p_pressor_travel()     = 1;     // screw-in travel: gap left at the John face when pressed
-function p_pressor_hole_d()     = 5.3;   // M5 hole in the pressor's back edge (v6.6.2; the Johns keep p_m5_hole_d() 5.2)
-function p_pressor_hole_depth() = 8;     // M5 slot depth into the pressor's back edge (v6.6.4: was 10;
-                                          // the slot's inner end sits where the bottle curve is closest)
+function p_pressor_hole_d()     = 6;     // v6.7.4: plain Ø6 clearance hole for the John's M5 screw
+                                          // (was a 5.3 x 25.3 pill slot; the Johns keep p_m5_hole_d() 5.2)
+function p_pressor_hole_depth() = 8;     // hole depth into the pressor's back edge (v6.6.4: was 10)
 function p_pressor_min_wall()   = 3;     // least wood around / beyond a screw hole (asserted)
 function p_pressor_end_trim()   = 1.5;   // v6.6.4: taken off EACH end (top/bottom edge) -- the printed
                                           // prototype was 3 mm too long to enter the port
-function p_pressor_slot_ext()   = 10;    // v6.6.4: each M5 hole stretched this far EACH way along the
-                                          // edge into a pill slot, so the John's screws find it easily
 
 // ---- control cap (large stationary disk; see CLAUDE.md s7) ----------
 //  TB-03 resolution: repository 5 mm roof / 2 mm boss is authoritative;
@@ -644,9 +674,9 @@ module hf_assert_valid(half_lap, hole_from_front, hole_d) {
     assert(hf_upper_slat_z0() + t + half_lap / 2 < hf_fin_height() / 2,
            "head_fin: upper slat slot breaks out of the fin's top edge.");
     assert(hf_slat_width() > t + half_lap);
-    assert(hole_d > 0 && 2 * p_eco_screw_pair_offset() + hole_d < hf_slat_width(),
-           "head_fin: M5 hole pair runs off the slat edges.");
-    assert(hole_from_front > hole_d / 2
+    assert(hole_d > 0 && hole_d < hf_slat_width(),
+           "head_fin: M5 hole wider than the slat.");
+    assert(hole_from_front - p_eco_lock_from_clamp() > hole_d / 2
            && hf_slat_front_x() + hole_from_front + hole_d / 2 < 0,
            "head_fin: slat hole must stay in the unjointed portion, behind the bottle base.");
 }
@@ -683,9 +713,10 @@ module head_slat(z0 = 0, half_lap = p_fit_clearance(),
     wood_color([0.55, 0.2, 0.7], colored, p_wood_shade_rear_fin()) difference() {
         translate([hf_slat_front_x(), -hf_slat_width() / 2, z0])
             cube([hf_slat_length(), hf_slat_width(), t]);
-        // M5 pair across the slat width, matching the John clamp pair
-        for (dy = [-p_eco_screw_pair_offset(), p_eco_screw_pair_offset()])
-            translate([hf_slat_front_x() + hff, dy, z0 - eps])
+        // v7.0.0: centred M5 clamp hole + centred collar-lock hole, matching
+        // the Little John (the lock sits p_eco_lock_from_clamp() nearer the core)
+        for (x = [hff, hff - p_eco_lock_from_clamp()])
+            translate([hf_slat_front_x() + x, 0, z0 - eps])
                 cylinder(d = hd, h = t + 2 * eps, $fn = 16);
         translate([hf_joint_meet_x() - half_lap / 2, -(t + half_lap) / 2, z0 - eps])
             cube([hf_slat_rear_x() - hf_joint_meet_x() + half_lap / 2 + eps,

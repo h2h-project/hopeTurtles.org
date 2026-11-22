@@ -63,15 +63,6 @@
                 <option value="" disabled>More to come!</option>
               </select>
             </label>
-            <label class="eco-field eco-field--lang">
-              <span class="eco-field__label">Export language</span>
-              <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
-              <select id="eco-pdf-lang" name="pdfLang">
-                <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>
-                <option value="tr" <%= pdfLangDefault === 'tr' ? 'selected' : '' %>>Türkçe</option>
-                <option value="id" <%= pdfLangDefault === 'id' ? 'selected' : '' %>>Bahasa Indonesia</option>
-              </select>
-            </label>
           </div>
         </div>
 
@@ -185,12 +176,6 @@
               <img src="/images/ecojoiners/bottle_keys.webp" alt="<%= t.gen_p2_alt %>" loading="lazy" />
             </figure>
           </div>
-          <div class="eco-panel__footer eco-panel__footer--end" data-eco-save-profile-footer hidden>
-            <span class="eco-feedback" data-eco-save-profile-feedback></span>
-            <button type="button" class="button ghost" id="eco-save-profile-btn">
-              <i class="fa-regular fa-floppy-disk" aria-hidden="true"></i> <%= t.gen_save_profile_btn %>
-            </button>
-          </div>
           <div class="eco-panel__footer eco-panel__footer--end" data-eco-save-profile-changes-footer hidden>
             <span class="eco-feedback" data-eco-save-profile-changes-feedback></span>
             <button type="button" class="button ghost" id="eco-save-profile-changes-btn">
@@ -286,17 +271,17 @@
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_sails %></span>
                 </button>
-                <button type="button" class="eco-type-card" data-type="sail_cutout" data-available="true" role="radio" aria-checked="false">
-                  <span class="eco-type-card__thumb">
-                    <img src="/images/sails-export-preview.webp" alt="<%= t.gen_type_sail_cutout %>" loading="lazy" />
-                  </span>
-                  <span class="eco-type-card__title"><%= t.gen_type_sail_cutout %></span>
-                </button>
                 <button type="button" class="eco-type-card" data-type="head_fin" data-available="true" role="radio" aria-checked="false">
                   <span class="eco-type-card__thumb">
                     <img src="/images/ecojoiners/head-fin.webp" alt="<%= t.gen_type_head_fin %>" loading="lazy" />
                   </span>
                   <span class="eco-type-card__title"><%= t.gen_type_head_fin %></span>
+                </button>
+                <button type="button" class="eco-type-card" data-type="sail_cutout" data-available="true" role="radio" aria-checked="false">
+                  <span class="eco-type-card__thumb">
+                    <img src="/images/ecojoiners/sail-cutout.webp" alt="<%= t.gen_type_sail_cutout %>" loading="lazy" />
+                  </span>
+                  <span class="eco-type-card__title"><%= t.gen_type_sail_cutout %></span>
                 </button>
               </div>
               <input type="hidden" id="eco-type" name="ecojoinerType" value="" />
@@ -449,7 +434,16 @@
     </div>
 
     <div class="eco-actions">
-      <button type="submit" class="button" id="eco-generate-btn">
+      <label class="eco-field eco-actions__lang">
+        <span class="eco-field__label">Export language</span>
+        <% const pdfLangDefault = ['tr', 'id'].includes(lang) ? lang : 'en'; %>
+        <select id="eco-pdf-lang" name="pdfLang">
+          <option value="en" <%= pdfLangDefault === 'en' ? 'selected' : '' %>>English</option>
+          <option value="tr" <%= pdfLangDefault === 'tr' ? 'selected' : '' %>>Türkçe</option>
+          <option value="id" <%= pdfLangDefault === 'id' ? 'selected' : '' %>>Bahasa Indonesia</option>
+        </select>
+      </label>
+      <button type="submit" class="button eco-actions__generate" id="eco-generate-btn">
         <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> <%= t.gen_submit %>
       </button>
     </div>

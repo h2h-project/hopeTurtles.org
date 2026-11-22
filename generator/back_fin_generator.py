@@ -10,11 +10,13 @@ Individual --solar-panel-width/height/thickness options override those defaults.
 Without --defaults, omitted foundation dimensions are requested interactively.
 The blue panel and bottle are F5-only reference objects, excluded from exports.
 
-shaft_hole_diameter and shaft_hole_from_front are the M5 bolt PAIR that ties
+shaft_hole_diameter and shaft_hole_from_front are the M5 bolt holes that tie
 each green bottle-holder shaft to its Ecojoiner Little John (see turtle_body
-CLAUDE.md TB-07; the pair replaced a single M6 + Presser in turtle_body
-v5.0.0). The two holes sit +-shaft_hole_pair_offset across the shaft width
-(p_eco_screw_pair_offset(), 18mm at defaults). shaft_hole_diameter must equal
+CLAUDE.md TB-07). turtle_body v7.0.0: two CENTRED holes on the shaft
+centreline -- the clamp hole at shaft_hole_from_front, and the collar-lock
+hole common.collar_lock_from_clamp() (61.5mm at defaults) nearer the shaft
+front (the core), which follows the port length = taper_height + 20.
+They replaced the v5.0.0-v6.x pair at +-18mm. shaft_hole_diameter must equal
 the Ecojoiner's own M5 bite hole (p_m5_hole_d(), 5.2mm -- the cap screw
 threads into the wood, no nut, since v5.1.0) and
 shaft_hole_from_front is not a free tuning knob -- it is DERIVED from the
@@ -30,7 +32,8 @@ import math
 from pathlib import Path
 from typing import Optional
 
-from common import DESIGN_VERSION
+from common import (DESIGN_VERSION, DEFAULT_PORT_ALLOWANCE_MM, DEFAULT_TAPER_HEIGHT_MM,
+                    SCREW_SIDE_OFFSET_MM, collar_lock_from_clamp, port_length_mm)
 from fin_rulers import scad_definitions
 
 DEFAULTS = {
@@ -58,20 +61,20 @@ TUNING = {
     # diameter to give the Ecojoiner PORT height (negative = tighter). The
     # 6FC cuts its Johns to that port height, so the green shafts -- which
     # sit flush against those Little Johns and clamp the same bottle -- must
-    # use it too: their gap, their M5 pair spacing and their hole position.
+    # use it too: their gap, width and hole position.
     # The fin's own size stays tied to the measured bottle_diameter.
     "port_fit_mm": 0.0,
+    # Bottle top-dome height (the form's "top tapper", turtle_body
+    # p_top_dome_h()). Sets the Ecojoiner port length (+ 20 allowance) and so
+    # where the collar-lock hole sits relative to the clamp hole (v7.0.0).
+    "taper_height": DEFAULT_TAPER_HEIGHT_MM,
 }
 
 # Mirrors turtle_body lib/params.scad p_screw_side_offset() -- the mounting-
 # hole inset from a John's outer end, shared by the Ecojoiner, ballast and
 # rear-fin interfaces. Not a TUNING/CLI knob: it is the fixed geometry of the
 # Ecojoiner frame this fin bolts to, not a rear-fin-specific choice.
-SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
-
-# Mirrors turtle_body p_eco_screw_edge_inset(): each bolt of the John's M5
-# pair sits this far in from a John long edge (turtle_body v5.0.0).
-SCREW_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
+SCREW_SIDE_OFFSET = SCREW_SIDE_OFFSET_MM  # 17; was 25 until turtle_body v4.2.0
 
 
 def port_height(p: dict[str, float]) -> float:
@@ -84,11 +87,11 @@ def default_shaft_width(p: dict[str, float]) -> float:
     return port_height(p) - 2 * p["wood_thickness"]
 
 
-def shaft_hole_pair_offset(p: dict[str, float]) -> float:
-    """turtle_body p_eco_screw_pair_offset(): +-offset of each M5 hole from
-    the shaft centreline = John height / 2 - edge inset (18 at defaults).
-    John height follows the PORT height (fit offset included)."""
-    return (port_height(p) - 2 * p["wood_thickness"]) / 2 - SCREW_EDGE_INSET
+def lock_from_clamp(p: dict[str, float]) -> float:
+    """turtle_body p_eco_lock_from_clamp(): the collar-lock hole sits this far
+    nearer the shaft front than the clamp hole (61.5 at defaults). Follows
+    the port LENGTH (taper height + allowance), not the port height."""
+    return collar_lock_from_clamp(port_length_mm(p.get("taper_height"), DEFAULT_PORT_ALLOWANCE_MM))
 
 
 def default_shaft_hole_from_front(p: dict[str, float]) -> float:
@@ -150,10 +153,12 @@ solar_meet_z = solar_holder_z0+solar_slot_depth;
 // Width -> Y, height/length -> X, panel thickness -> Z.
 solar_panel_x0 = fin_solar_notch_x0+t-solar_panel_height;
 
-// M5 bolt pair across the shaft width, matching the Ecojoiner John's pair
-// (turtle_body p_eco_screw_edge_inset() / p_eco_screw_pair_offset()).
-screw_edge_inset = 12;
-shaft_hole_pair_offset = (port_height-2*t)/2-screw_edge_inset;
+// turtle_body v7.0.0: two CENTRED M5 holes, matching the Ecojoiner Little
+// John -- the clamp hole at shaft_hole_from_front and the collar-lock hole
+// p_eco_lock_from_clamp() nearer the front = port length (taper + 20)
+// - support ring 1 - half the 5 mm neck gap - the 17 mm clamp inset.
+shaft_lock_from_clamp = (taper_height+20) - 1 - 5/2 - 17;
+shaft_lock_hole_from_front = shaft_hole_from_front - shaft_lock_from_clamp;
 solar_panel_z0 = fin_height;
 
 assert(t>0 && bottle_height>cap_height && cap_diameter>0);
@@ -170,9 +175,10 @@ assert(solar_slot_clearance<t && fin_solar_notch_x0>solar_slot_clearance/2);
 assert(fin_width-(fin_solar_notch_x0+t+solar_slot_clearance/2)>0);
 assert(2*solar_chamfer+t+solar_slot_clearance<solar_holder_length,
        "Panel width leaves too little red-board material beside the slot.");
-assert(shaft_hole_diameter>0 && 2*shaft_hole_pair_offset+shaft_hole_diameter<shaft_width,
-       "M5 hole pair runs off the shaft edges.");
-assert(shaft_hole_from_front>shaft_hole_diameter/2
+assert(shaft_hole_diameter>0 && shaft_hole_diameter<shaft_width,
+       "M5 hole wider than the shaft.");
+assert(shaft_lock_hole_from_front>shaft_hole_diameter/2
+       && shaft_hole_from_front>shaft_hole_diameter/2
        && shaft_front_x+shaft_hole_from_front+shaft_hole_diameter/2<0,
        "Shaft hole must remain in the forward, unjointed portion.");
 assert(exploded>=0);
@@ -206,8 +212,8 @@ module bottle_holder_shaft(z0=0) {
     color([0.2,0.38,0.05]) difference() {
         translate([shaft_front_x,-shaft_width/2,z0])
             cube([shaft_length,shaft_width,t]);
-        for (dy=[-shaft_hole_pair_offset,shaft_hole_pair_offset])
-            translate([shaft_front_x+shaft_hole_from_front,dy,z0-eps])
+        for (hx=[shaft_hole_from_front,shaft_lock_hole_from_front])
+            translate([shaft_front_x+hx,0,z0-eps])
                 cylinder(d=shaft_hole_diameter,h=t+2*eps,$fn=16);
         // Open REAR slot, complementary to yellow's open FRONT slot.
         translate([joint_meet_x-half_lap_clearance/2,
@@ -322,7 +328,7 @@ def dimensions(p: dict[str, float]) -> dict[str, float]:
                 upper_shaft_z0=upper, lower_shaft_z0=upper-port_height(p)-t,
                 fin_height=3*p["bottle_diameter"],
                 shaft_hole_from_front=hole_from_front,
-                shaft_hole_pair_offset=shaft_hole_pair_offset(p))
+                shaft_lock_hole_from_front=hole_from_front - lock_from_clamp(p))
 
 
 def validate(p: dict[str, float]) -> None:
@@ -350,9 +356,8 @@ def validate(p: dict[str, float]) -> None:
         (d["fin_width"]>2*p["bottle_diameter"]/3, "Fin diagonal consumes bottom edge"),
         (s<t and d["shaft_rear_x"]>s/2, "Solar clearance consumes fin material"),
         (p["solar_panel_width"]>4*t+s, "Solar holder too narrow for slot and chamfers"),
-        (2*d["shaft_hole_pair_offset"]+p["shaft_hole_diameter"]<p["shaft_width"],
-         "M5 hole pair runs off the shaft edges"),
-        (p["shaft_hole_from_front"]>p["shaft_hole_diameter"]/2 and
+        (p["shaft_hole_diameter"]<p["shaft_width"], "M5 hole wider than the shaft"),
+        (d["shaft_lock_hole_from_front"]>p["shaft_hole_diameter"]/2 and
          d["shaft_front_x"]+p["shaft_hole_from_front"]+p["shaft_hole_diameter"]/2<0,
          "Shaft hole must lie inside the forward, unjointed shaft"),
     ]
@@ -437,8 +442,8 @@ def main() -> None:
     print(f"Wrote: {output.resolve()}")
     print(f"Shaft length: {d['shaft_length']:g} mm")
     print(f"Complementary joint slot depth: {d['joint_slot_depth']:g} mm")
-    print(f"Shaft M5 hole pair from front (TB-07): {d['shaft_hole_from_front']:g} mm, "
-          f"+-{d['shaft_hole_pair_offset']:g} mm across the width")
+    print(f"Shaft M5 holes from front (centred): clamp {d['shaft_hole_from_front']:g} mm (TB-07), "
+          f"collar lock {d['shaft_lock_hole_from_front']:g} mm")
     print(f"Solar slot width: {p['wood_thickness']+p['solar_slot_clearance']:g} mm")
     print(f"Panel W x H x T: {p['solar_panel_width']:g} x {p['solar_panel_height']:g} x {p['solar_panel_thickness']:g} mm")
 

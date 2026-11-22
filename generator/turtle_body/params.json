@@ -35,7 +35,7 @@
   "p_m6_bolt_head_t": 4,
   "p_m5_hole_d": 5.2,
   "p_m5_bolt_d": 5,
-  "p_m5_bolt_len": 30,
+  "p_m5_bolt_len": 25,
   "p_m5_head_d": 8.5,
   "p_m5_head_h": 5,
   "p_m5_acorn_af": 8,
@@ -43,13 +43,17 @@
   "p_m5_acorn_thread_depth": 7,
   "p_eco_screw_edge_inset": 12,
   "p_eco_screw_pair_offset": 18,
+  "p_eco_lock_x": 78.5,
+  "p_eco_lock_from_clamp": 61.5,
+  "p_eco_lock_bolt_len": 55,
+  "p_eco_lock_tip_gap": 0.5,
+  "p_pressor_t": 15,
   "p_pressor_wrap": 21,
   "p_pressor_travel": 1,
-  "p_pressor_hole_d": 5.3,
+  "p_pressor_hole_d": 6,
   "p_pressor_hole_depth": 8,
   "p_pressor_min_wall": 3,
   "p_pressor_end_trim": 1.5,
-  "p_pressor_slot_ext": 10,
   "p_cap_disk_d": 102,
   "p_cap_roof_t": 5,
   "p_cap_boss_depth": 0,
@@ -194,5 +198,5 @@
     0.26,
     0.17
   ],
-  "version": "6.6.9"
+  "version": "7.0.0"
 }

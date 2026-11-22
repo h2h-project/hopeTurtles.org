@@ -3,8 +3,8 @@
 
 Upstream: ../turtle_body/lib/head_fin.scad + lib/params.scad (turtle_body
 v5.8.0+, EXPERIMENTAL). Two flat slats sit above and below the front bottle,
-bolt to the front port's Little John M5 pairs exactly like the rear fin's
-green shafts, and half-lap into a raked vertical fin whose rear edge abuts the
+bolt to the front port's Little John M5 holes (centred clamp + collar lock,
+turtle_body v7.0.0) exactly like the rear fin's green shafts, and half-lap into a raked vertical fin whose rear edge abuts the
 bottle base.
 
 The SCAD is turtle_body's own Turtle_Head_Fin.scad bundle (vendored by
@@ -23,9 +23,10 @@ from pathlib import Path
 import turtle_body_bundle as tbb
 from back_fin_generator import (
     default_shaft_hole_from_front,
+    lock_from_clamp,
     port_height,
-    shaft_hole_pair_offset,
 )
+from common import DEFAULT_TAPER_HEIGHT_MM
 
 BUNDLE = "Turtle_Head_Fin.scad"
 PARTS = ("assembly", "fin", "slat")
@@ -45,6 +46,9 @@ TUNING = {
     # Johns cut to bottle diameter + this offset, so their gap, width and M5
     # pair follow the PORT height -- same rule as back_fin_generator.
     "port_fit_mm": 0.0,
+    # Bottle top-dome height (p_top_dome_h()): the port length, and so the
+    # collar-lock hole position, follows it -- same rule as back_fin_generator.
+    "taper_height": DEFAULT_TAPER_HEIGHT_MM,
 }
 
 # Profile multiples of wood thickness, all from lib/params.scad:
@@ -83,7 +87,8 @@ def dimensions(p: dict) -> dict:
         upper_slat_z0=ph / 2,
         lower_slat_z0=-ph / 2 - t,
         slat_hole_from_front=default_shaft_hole_from_front(p),
-        slat_hole_pair_offset=shaft_hole_pair_offset(p),
+        # turtle_body v7.0.0: centred collar-lock hole, nearer the slat front.
+        slat_lock_hole_from_front=default_shaft_hole_from_front(p) - lock_from_clamp(p),
         port_height=ph,
     )
 
@@ -96,7 +101,7 @@ def leading_x(dim: dict, z: float) -> float:
 
 def validate(p: dict) -> None:
     """Raise ValueError on the first failure -- mirrors hf_assert_valid()."""
-    for key in (*DEFAULTS, "slat_hole_diameter"):
+    for key in (*DEFAULTS, "slat_hole_diameter", "taper_height"):
         v = p[key]
         if not math.isfinite(v) or v <= 0:
             raise ValueError(f"{key} must be finite and positive")
@@ -121,10 +126,10 @@ def validate(p: dict) -> None:
     if d["slat_width"] <= t + c:
         raise ValueError("Slat width must be greater than the wood thickness plus clearance")
     hd = p["slat_hole_diameter"]
-    if 2 * d["slat_hole_pair_offset"] + hd >= d["slat_width"]:
-        raise ValueError("The slat's two M5 holes would run off its edges")
+    if hd >= d["slat_width"]:
+        raise ValueError("The slat's M5 holes are wider than the slat")
     front_x = d["overlap"] - d["slat_length"]
-    if not (d["slat_hole_from_front"] > hd / 2 and front_x + d["slat_hole_from_front"] + hd / 2 < 0):
+    if not (d["slat_lock_hole_from_front"] > hd / 2 and front_x + d["slat_hole_from_front"] + hd / 2 < 0):
         raise ValueError("The slat holes must sit in the unjointed part of the slat")
 
 
@@ -148,6 +153,7 @@ def build_scad(overrides: dict | None = None, part: str = "assembly") -> str:
         "p_port_height": port_height(p),
         "p_m5_hole_d": p["slat_hole_diameter"],
         "p_fit_clearance": p["half_lap_clearance"],
+        "p_top_dome_h": p["taper_height"],
     })
     text = tbb.override_customizer(text, {
         "half_lap_clearance": p["half_lap_clearance"],
@@ -170,6 +176,7 @@ def main() -> None:
     parser.add_argument("--half-lap-clearance", type=float, default=TUNING["half_lap_clearance"])
     parser.add_argument("--slat-hole-diameter", type=_positive, default=TUNING["slat_hole_diameter"])
     parser.add_argument("--port-fit-mm", type=float, default=TUNING["port_fit_mm"])
+    parser.add_argument("--taper-height", type=_positive, default=TUNING["taper_height"])
     parser.add_argument("--part", choices=PARTS, default="assembly")
     parser.add_argument("--defaults", action="store_true", help="accepted for parity with back_fin_generator.py")
     parser.add_argument("--output", type=Path, default=Path("turtle_head_fin.scad"))

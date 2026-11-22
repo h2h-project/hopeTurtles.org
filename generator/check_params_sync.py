@@ -116,19 +116,31 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         # M5 clamp hardware drawn on the 6FC PDF  -- p_m5_*()
         ("p_m5_bolt_d", "6fc HW_BOLT_D", eco.HW_BOLT_D),
         ("p_m5_bolt_len", "6fc HW_BOLT_LEN", eco.HW_BOLT_LEN),
+        ("p_m5_bolt_len", "6fc derive_dimensions().clamp_bolt_len", eco_derived.clamp_bolt_len),
         ("p_m5_head_d", "6fc HW_HEAD_D", eco.HW_HEAD_D),
         ("p_m5_head_h", "6fc HW_HEAD_H", eco.HW_HEAD_H),
         ("p_m5_acorn_af", "6fc HW_ACORN_AF", eco.HW_ACORN_AF),
         ("p_m5_acorn_h", "6fc HW_ACORN_H", eco.HW_ACORN_H),
-        # M5 pair edge inset  -- p_eco_screw_edge_inset() / p_eco_screw_pair_offset()
-        ("p_eco_screw_edge_inset", "6fc SCREW_EDGE_INSET", eco.SCREW_EDGE_INSET),
-        ("p_eco_screw_edge_inset", "fin SCREW_EDGE_INSET", bf_ref.SCREW_EDGE_INSET),
-        ("p_eco_screw_edge_inset", "ballast MOUNT_HOLE_EDGE_INSET", bal_ref.MOUNT_HOLE_EDGE_INSET),
-        ("p_eco_screw_pair_offset", "6fc derive_dimensions().screw_pair_offset", eco_derived.screw_pair_offset),
-        ("p_eco_screw_pair_offset", "fin shaft_hole_pair_offset(DEFAULTS)", bf_ref.shaft_hole_pair_offset(bf)),
+        ("p_m5_acorn_h", "common.M5_ACORN_H_MM", common.M5_ACORN_H_MM),
+        ("p_m5_acorn_thread_depth", "common.M5_ACORN_THREAD_MM", common.M5_ACORN_THREAD_MM),
+        # Collar lock (turtle_body v7.0.0)  -- p_eco_lock_*(); replaces the
+        # p_eco_screw_pair_offset() rows (that value now feeds only the pressor).
+        ("p_eco_lock_bolt_len", "6fc HW_LOCK_BOLT_LEN", eco.HW_LOCK_BOLT_LEN),
+        ("p_eco_lock_bolt_len", "6fc derive_dimensions().lock_bolt_len", eco_derived.lock_bolt_len),
+        ("p_eco_lock_tip_gap", "common.LOCK_TIP_GAP_MM", common.LOCK_TIP_GAP_MM),
+        ("p_bottle_collar_h", "common.BOTTLE_COLLAR_H_MM", common.BOTTLE_COLLAR_H_MM),
+        ("p_bottle_neck_h", "common.BOTTLE_NECK_H_MM", common.BOTTLE_NECK_H_MM),
+        ("p_eco_lock_x", "6fc derive_dimensions().lock_x", eco_derived.lock_x),
+        ("p_eco_lock_from_clamp", "fin clamp - lock hole from front",
+         (lambda dd: dd["shaft_hole_from_front"] - dd["shaft_lock_hole_from_front"])(bf_ref.dimensions({**bf, **bft}))),
+        ("p_eco_lock_from_clamp", "head_fin clamp - lock hole from front",
+         hf_d["slat_hole_from_front"] - hf_d["slat_lock_hole_from_front"]),
+        ("p_eco_lock_from_clamp", "ballast clamp - lock hole from top",
+         (lambda dd: dd.mount_hole_from_top - dd.lock_hole_from_top)(bal_obj.derive_dimensions(bal_obj.BallastInputs()))),
         # John mounting-hole inset  -- p_screw_side_offset()
         ("p_screw_side_offset", "6fc derive_dimensions().screw_side_offset", eco_derived.screw_side_offset),
         ("p_screw_side_offset", "fin SCREW_SIDE_OFFSET", bf_ref.SCREW_SIDE_OFFSET),
+        ("p_screw_side_offset", "common.SCREW_SIDE_OFFSET_MM", common.SCREW_SIDE_OFFSET_MM),
         ("p_screw_side_offset", "ballast MOUNT_HOLE_SCREW_SIDE_OFFSET", bal_ref.MOUNT_HOLE_SCREW_SIDE_OFFSET),
         # port seating allowance  -- p_port_allowance()
         ("p_port_allowance", "6fc common.DEFAULT_PORT_ALLOWANCE_MM", common.DEFAULT_PORT_ALLOWANCE_MM),
@@ -137,6 +149,7 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
         ("p_fit_clearance", "6fc EcojoinerInputs.fit_clearance", eco_in.fit_clearance),
         # bottle top / bottom dome heights  -- p_top_dome_h() / p_bottom_dome_h()
         ("p_top_dome_h", "6fc EcojoinerInputs.taper_height", eco_in.taper_height),
+        ("p_top_dome_h", "common.DEFAULT_TAPER_HEIGHT_MM", common.DEFAULT_TAPER_HEIGHT_MM),
         ("p_top_dome_h", "sails SailsInputs.top_dome_height", sail_in.top_dome_height),
         ("p_bottom_dome_h", "sails SailsInputs.bottom_dome_height", sail_in.bottom_dome_height),
         # sail side batten height / cage mount hole  -- p_side_batten_h() / p_cage_mount_hole_d()

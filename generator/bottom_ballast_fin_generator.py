@@ -25,8 +25,8 @@ Example:
 kind of derived value as the 6FC ecojoiner's port_length (taper_height +
 port_allowance, or a direct override), not a raw board/bottle measurement,
 so build_scad() takes it as its own argument rather than through `overrides`.
-It governs the M5 mounting-hole pair position (how far the slat is bolted to
-the Ecojoiner Little John's own hole pair) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET
+It governs the centred M5 clamp + collar-lock hole positions (where the slat
+is bolted to the Ecojoiner Little John's own holes, turtle_body v7.0.0) -- see MOUNT_HOLE_SCREW_SIDE_OFFSET
 below.
 It is NOT the same thing as bottle_diameter/port_height; the slat's shoulder
 cut begins at max(port_height, port_length) + wood_thickness below the slat
@@ -38,7 +38,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from common import DESIGN_VERSION
+from common import (DESIGN_VERSION, SCREW_SIDE_OFFSET_MM, BOTTLE_COLLAR_H_MM,
+                    BOTTLE_NECK_H_MM)
 
 DEFAULTS = {
     "wood_thickness": 12,
@@ -49,15 +50,14 @@ DEFAULTS = {
     "fin_board_width": 93,
 }
 
-# Mirrors turtle_body lib/params.scad p_screw_side_offset(),
-# p_m5_hole_d() and p_eco_screw_edge_inset() -- the Ecojoiner-frame
-# mounting-hole geometry the core slat's M5 hole PAIR must align with, not
-# board/bottle-specific tuning. Since turtle_body v5.0.0 the John carries two
-# M5 bolts per port end (was one M6 + Presser): on the slat they sit
-# MOUNT_HOLE_EDGE_INSET in from each long edge (slat width == John height).
-MOUNT_HOLE_SCREW_SIDE_OFFSET = 17.0  # was 25 until turtle_body v4.2.0
+# Mirrors turtle_body lib/params.scad p_screw_side_offset() and p_m5_hole_d()
+# -- the Ecojoiner-frame mounting-hole geometry the core slat must align with,
+# not board/bottle-specific tuning. turtle_body v7.0.0: the John carries two
+# CENTRED M5 holes per port end -- a clamp hole and a collar-lock hole -- so the
+# slat gets both on its centreline (the v5.0.0-v6.x pair at +-18 is gone). The
+# lock hole sits p_eco_lock_from_clamp() nearer the slat top (= the core).
+MOUNT_HOLE_SCREW_SIDE_OFFSET = SCREW_SIDE_OFFSET_MM  # 17; was 25 until turtle_body v4.2.0
 MOUNT_HOLE_DIAMETER = 5.2            # M5 bite hole (v5.1.0); 5.5 in v5.0.0, 6.4 (M6) before
-MOUNT_HOLE_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 # Legs of the 45-degree chamfers on both corners of the orange board's foot-slot
 # (front) edge -- turtle_body lib/ballast_fin.scad bl_board_front_chamfer(), v5.5.0.
 BOARD_FRONT_CHAMFER = 20.0
@@ -130,11 +130,16 @@ lower_full_width_return_z =
 lower_neck_start_z =
     lower_full_width_return_z + shoulder_step;
 
-// M5 hole pair bolting this slat to the Ecojoiner Little John's clamp pair
-// (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*() +
-// p_eco_screw_pair_offset()). mount_hole_x is the pair's centre.
+// Centred M5 holes bolting this slat to the Ecojoiner Little John (mirrors
+// turtle_body lib/ballast_fin.scad bl_mount_hole_*() / bl_lock_hole_*(),
+// v7.0.0): the clamp hole, and the collar-lock hole p_eco_lock_from_clamp()
+// = (port_length - ring - neck/2) - screw_side_offset nearer the top.
 mount_hole_from_top =
     port_length + wood_thickness - screw_side_offset;
+
+lock_hole_from_top =
+    mount_hole_from_top
+    - ((port_length - collar_height - neck_height / 2) - screw_side_offset);
 
 mount_hole_x =
     slat_width / 2;
@@ -142,8 +147,8 @@ mount_hole_x =
 mount_hole_y =
     slat_height - mount_hole_from_top;
 
-mount_hole_pair_offset =
-    slat_width / 2 - mount_hole_edge_inset;
+lock_hole_y =
+    slat_height - lock_hole_from_top;
 
 
 // ============================================================================
@@ -334,9 +339,10 @@ assert(ballast_fin_front_chamfer < ballast_fin_height,
 
 assert(slat_height - port_height - wood_thickness > 6 * wood_thickness,
        "Ballast: slat shoulders overlap.");
-assert(mount_hole_diameter > 0
-       && mount_hole_pair_offset + mount_hole_diameter / 2 < slat_width / 2,
-       "M5 mount-hole pair must fit within the slat width.");
+assert(mount_hole_diameter > 0 && mount_hole_diameter < slat_width,
+       "M5 mount holes must fit within the slat width.");
+assert(lock_hole_from_top > mount_hole_diameter / 2,
+       "Collar-lock hole breaks out of the slat top.");
 assert(mount_hole_from_top > mount_hole_diameter / 2
        && mount_hole_from_top < slat_height - mount_hole_diameter / 2,
        "Mount hole must fall within the slat's own height.");
@@ -369,8 +375,8 @@ module ballast_core_slat() {
         linear_extrude(height = wood_thickness)
             difference() {
                 ballast_core_profile_2d();
-                for (dx = [-mount_hole_pair_offset, mount_hole_pair_offset])
-                    translate([mount_hole_x + dx, mount_hole_y])
+                for (hy = [mount_hole_y, lock_hole_y])
+                    translate([mount_hole_x, hy])
                         circle(d = mount_hole_diameter, $fn = 16);
             }
 }
@@ -763,7 +769,8 @@ def build_scad(overrides: dict[str, float], port_length: float, port_fit_mm: flo
     lines.append(f"port_fit_mm = {port_fit_mm:.12g};  // Adjust connection offset (negative = tighter)")
     lines.append(f"screw_side_offset = {MOUNT_HOLE_SCREW_SIDE_OFFSET:.12g};")
     lines.append(f"mount_hole_diameter = {MOUNT_HOLE_DIAMETER:.12g};")
-    lines.append(f"mount_hole_edge_inset = {MOUNT_HOLE_EDGE_INSET:.12g};")
+    lines.append(f"collar_height = {BOTTLE_COLLAR_H_MM:.12g};  // bottle support ring (p_bottle_collar_h())")
+    lines.append(f"neck_height = {BOTTLE_NECK_H_MM:.12g};  // dome -> ring gap (p_bottle_neck_h())")
     lines.append(f"board_front_chamfer = {BOARD_FRONT_CHAMFER:.12g};")
     return "\n".join(lines) + "\n" + SCAD_BODY
 
@@ -892,8 +899,10 @@ def main() -> None:
     print(f"  Green slat width: {green_width:g} mm")
     print(f"  Green slat height: {green_height:g} mm")
     print(f"  Green lower slot depth: {green_slot_depth:g} mm")
-    print(f"  Green M5 mount-hole pair from top: {mount_hole_from_top:g} mm, "
-          f"{MOUNT_HOLE_EDGE_INSET:g} mm in from each long edge (Ø{MOUNT_HOLE_DIAMETER:g}mm)")
+    lock_from_top = mount_hole_from_top - ((port_length - BOTTLE_COLLAR_H_MM - BOTTLE_NECK_H_MM / 2)
+                                           - MOUNT_HOLE_SCREW_SIDE_OFFSET)
+    print(f"  Green M5 holes (centred, Ø{MOUNT_HOLE_DIAMETER:g}mm) from top: clamp {mount_hole_from_top:g} mm, "
+          f"collar lock {lock_from_top:g} mm")
     print(f"  Orange board length: {orange_length:g} mm")
     print(f"  Orange center slot depth: {orange_center_slot_depth:g} mm")
     print(f"  Red foot size: {red_piece_size:g} × {red_piece_size:g} mm")

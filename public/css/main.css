@@ -6967,8 +6967,45 @@ body.ocean-bg {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: flex-end;
   gap: 0.75rem;
   padding-top: 0.5rem;
+}
+
+/* Export language, sitting beside the generate button (it used to live in
+   the hero banner). Same compact label as the banner fields. */
+.eco-actions__lang {
+  flex: 0 1 200px;
+  gap: 0.3rem;
+}
+
+.eco-actions__lang .eco-field__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.eco-actions__lang select {
+  padding: 0.55rem 0.7rem;
+}
+
+/* "Save and Generate": solid fuchsia, the same colour as the download
+   buttons it produces. */
+.button.eco-actions__generate {
+  border-color: #ff00ff;
+  background: #ff00ff;
+  color: #fff;
+}
+
+.button.eco-actions__generate:hover,
+.button.eco-actions__generate:focus-visible {
+  border-color: #c026d3;
+  background: #c026d3;
+  color: #fff;
+}
+
+.button.eco-actions__generate:disabled {
+  opacity: 0.6;
 }
 
 @media (max-width: 720px) {
@@ -6989,6 +7026,10 @@ body.ocean-bg {
 
   .eco-actions {
     justify-content: stretch;
+  }
+
+  .eco-actions__lang {
+    flex: 1 1 100%;
   }
 
   .eco-actions .button {

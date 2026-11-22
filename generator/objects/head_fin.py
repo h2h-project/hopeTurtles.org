@@ -2,7 +2,7 @@
 
 Upstream: ../turtle_body/lib/head_fin.scad (turtle_body v5.8.0+, raked
 profile since v6.3.4). The rear fin's counterpart on the front port: two flat
-slats above and below the front bottle bolt to the Little John M5 pairs and
+slats above and below the front bottle bolt to the Little John M5 holes and
 half-lap into a raked vertical fin whose rear edge abuts the bottle base.
 
 Dimension rules live in generator/head_fin_generator.py (dimensions(),
@@ -53,6 +53,8 @@ from common import (
     canvas,
     ezdxf,
 )
+from pdf_i18n import pdf_lang, title_font_for, translator
+_EN = lambda s, **k: s.format(**k) if k else s  # English, for non-PDF callers
 from objects.ecojoiner_6fc import _fit_connection_label
 import head_fin_generator as _hf
 
@@ -75,6 +77,7 @@ class HeadFinInputs:
     half_lap_clearance: float = _hf.TUNING["half_lap_clearance"]
     slat_hole_diameter: float = _hf.TUNING["slat_hole_diameter"]
     port_fit_mm: float = _hf.TUNING["port_fit_mm"]
+    taper_height: float = _hf.TUNING["taper_height"]
 
     bottle_brand: str = "generic"
     formats: Tuple[str, ...] = ("pdf", "scad", "svg")
@@ -100,7 +103,7 @@ class HeadFinDerived:
     slat_length: float
     slat_width: float
     slat_hole_from_front: float
-    slat_hole_pair_offset: float
+    slat_lock_hole_from_front: float   # turtle_body v7.0.0 collar lock, centred
     upper_slot_y: float      # fin-local y of each slot's lower edge (y = 0 at the fin bottom)
     lower_slot_y: float
     slat_notch_u0: float     # slat-local: u = 0 at the front (Ecojoiner) end
@@ -159,7 +162,7 @@ def derive_dimensions(inputs: HeadFinInputs) -> HeadFinDerived:
         slat_length=dim["slat_length"],
         slat_width=dim["slat_width"],
         slat_hole_from_front=dim["slat_hole_from_front"],
-        slat_hole_pair_offset=dim["slat_hole_pair_offset"],
+        slat_lock_hole_from_front=dim["slat_lock_hole_from_front"],
         upper_slot_y=to_y(dim["upper_slat_z0"]) - c / 2,
         lower_slot_y=to_y(dim["lower_slat_z0"]) - c / 2,
         slat_notch_u0=dim["slat_length"] - notch_w,
@@ -237,9 +240,10 @@ def _slat_notch(d: HeadFinDerived):
     return (d.slat_notch_u0, d.slat_notch_v0, d.slat_notch_width, d.joint_slot_opening)
 
 
-def _slat_hole_ys(d: HeadFinDerived) -> Tuple[float, float]:
+def _slat_holes(d: HeadFinDerived) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """Centred clamp + collar-lock hole centres (slat-local u from the front, v)."""
     c = d.slat_width / 2
-    return (c - d.slat_hole_pair_offset, c + d.slat_hole_pair_offset)
+    return ((d.slat_hole_from_front, c), (d.slat_lock_hole_from_front, c))
 
 
 
@@ -283,8 +287,8 @@ def write_svg(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, full_set:
             out += fin_rulers.svg_paths("head", inputs, d) + '</g>\n'
         else:
             out += _rect(0, 0, d.slat_length, d.slat_width)
-            for hy in _slat_hole_ys(d):
-                out += _circle(d.slat_hole_from_front, hy, inputs.slat_hole_diameter)
+            for hu, hv in _slat_holes(d):
+                out += _circle(hu, hv, inputs.slat_hole_diameter)
             out += _rect(*_slat_notch(d))
         out += _label(0, -3, name)
         out += "  </g>\n"
@@ -310,8 +314,8 @@ def write_dxf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, full_set:
             fin_rulers.draw_dxf(msp, "head", inputs, d, offset_y=y)
         else:
             _dxf_rect(msp, 0, y, d.slat_length, d.slat_width, DXF_CUT_LAYER)
-            for hy in _slat_hole_ys(d):
-                _dxf_circle(msp, d.slat_hole_from_front, y + hy, inputs.slat_hole_diameter, DXF_CUT_LAYER)
+            for hu, hv in _slat_holes(d):
+                _dxf_circle(msp, hu, y + hv, inputs.slat_hole_diameter, DXF_CUT_LAYER)
             nx, ny, nw, nh = _slat_notch(d)
             _dxf_rect(msp, nx, y + ny, nw, nh, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
@@ -333,40 +337,41 @@ def _fin_edges_with_gaps(inputs: HeadFinInputs, d: HeadFinDerived):
     return edges
 
 
-def _slat_annotations(inputs: HeadFinInputs, d: HeadFinDerived):
+def _slat_annotations(inputs: HeadFinInputs, d: HeadFinDerived, _tx=_EN):
     hole_x = d.slat_hole_from_front
-    lo, hi = _slat_hole_ys(d)
+    lock_x = d.slat_lock_hole_from_front
+    hy = d.slat_width / 2
     n_u0, n_v0, n_w, n_h = _slat_notch(d)
     dims = [
         ((0, d.slat_width + 14), (hole_x, d.slat_width + 14), f"{_ceil_mm(hole_x)}mm",
          {"ext1": (0, d.slat_width), "ext2": (hole_x, d.slat_width), "rotate_label": True}),
-        ((n_u0, -6), (d.slat_length, -6), f"{_ceil_mm(n_w)}mm deep",
+        ((0, d.slat_width + 6), (lock_x, d.slat_width + 6), f"{_ceil_mm(lock_x)}mm",
+         {"ext1": (0, d.slat_width), "ext2": (lock_x, d.slat_width), "rotate_label": True}),
+        ((n_u0, -6), (d.slat_length, -6), _tx("{v}mm deep", v=_ceil_mm(n_w)),
          {"ext1": (n_u0, 0), "ext2": (d.slat_length, 0)}),
-        ((hole_x + 10, 0), (hole_x + 10, lo), f"{_ceil_mm(lo)}mm",
-         {"ext1": (hole_x, 0), "ext2": (hole_x, lo)}),
-        ((hole_x + 10, lo), (hole_x + 10, hi), f"{_ceil_mm(hi - lo)}mm",
-         {"ext1": (hole_x, lo), "ext2": (hole_x, hi)}),
+        ((hole_x + 10, 0), (hole_x + 10, hy), f"{_ceil_mm(hy)}mm",
+         {"ext1": (hole_x, 0), "ext2": (hole_x, hy)}),
     ]
-    side = inputs.slat_hole_diameter / 2 + 5
+    side = inputs.slat_hole_diameter / 2 + 12
     hole_text = f"⌀{_ceil_mm(inputs.slat_hole_diameter)}"
     labels = [
-        ((hole_x, lo + side), hole_text),
-        ((hole_x, hi - side), hole_text),
-        ((n_u0 + n_w / 2, n_v0 + n_h / 2), f"{_ceil_mm(n_h)}mm wide"),
+        ((hole_x, hy - side), _tx("clamp {d}", d=hole_text)),
+        ((lock_x, hy - side), _tx("lock {d}", d=hole_text)),
+        ((n_u0 + n_w / 2, n_v0 + n_h / 2), _tx("{v}mm wide", v=_ceil_mm(n_h))),
     ]
     return dims, labels
 
 
-def _fin_annotations(inputs: HeadFinInputs, d: HeadFinDerived):
+def _fin_annotations(inputs: HeadFinInputs, d: HeadFinDerived, _tx=_EN):
     upper, lower = _fin_notches(inputs, d)
     W, H = d.fin_width, d.fin_total_height
     dims, labels = [], []
     for nx, ny, nw, nh in (upper, lower):
         # Depth below the slot, width written beside its closed end -- the
         # slot is too short at sheet scale to hold both labels.
-        dims.append(((nx, ny - 9), (nx + nw, ny - 9), f"{_ceil_mm(nw)}mm deep",
+        dims.append(((nx, ny - 9), (nx + nw, ny - 9), _tx("{v}mm deep", v=_ceil_mm(nw)),
                      {"ext1": (nx, ny), "ext2": (nx + nw, ny)}))
-        labels.append(((nx + nw / 2, ny + nh / 2), f"{_ceil_mm(nh)}mm wide"))
+        labels.append(((nx + nw / 2, ny + nh / 2), _tx("{v}mm wide", v=_ceil_mm(nh))))
     # Slot positions, both measured down from the fin's top edge to the top
     # of each slot (two parallel dimensions off one datum, as the rear fin).
     slot_end = upper[0] + upper[2] + 18      # clear of the "wide" labels
@@ -380,7 +385,7 @@ def _fin_annotations(inputs: HeadFinInputs, d: HeadFinDerived):
     # Front edge: 45-degree cut height, then the flat nose above it.
     dims.append(((W + 8, 0), (W + 8, d.drop), f"{_ceil_mm(d.drop)}mm",
                  {"ext1": (W - d.setback, 0), "ext2": (W, d.drop), "rotate_label": True}))
-    dims.append(((W + 8, d.drop), (W + 8, d.drop + d.toe_h), f"{_ceil_mm(d.toe_h)}mm flat",
+    dims.append(((W + 8, d.drop), (W + 8, d.drop + d.toe_h), _tx("{v}mm flat", v=_ceil_mm(d.toe_h)),
                  {"ext1": (W, d.drop), "ext2": (W, d.drop + d.toe_h), "rotate_label": True}))
     # Bottom edge: where the 45-degree cut starts, from the front corner.
     dims.append(((W - d.setback, -8), (W, -8), f"{_ceil_mm(d.setback)}mm",
@@ -395,23 +400,26 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
     title_font, body_font, symbol_font = _register_fonts(font_dir)
+    lang = pdf_lang(inputs)
+    _tx = translator(inputs)
+    title_font = title_font_for(lang, title_font, body_font)
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle(f"Flatpack Head Fin v{DESIGN_VERSION}")
+    c.setTitle(_tx("Flatpack Head Fin v{version}", version=DESIGN_VERSION))
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Head Fin v{DESIGN_VERSION}")
+    c.drawString(margin, title_y, _tx("Flatpack Head Fin v{version}", version=DESIGN_VERSION))
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16,
-                 "Reference sheet only - the SVG/DXF exports are the 1:1 cut files. Experimental: not yet sea-tested.")
+                 _tx("Reference sheet only - the SVG/DXF exports are the 1:1 cut files. Experimental: not yet sea-tested."))
 
     c.setFont(body_font, 7)
     c.drawString(margin, title_y - 29,
-                 "Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts.")
+                 _tx("Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts."))
 
     draw_left, draw_right = margin, page_w - margin
     draw_top = title_y - 44
@@ -420,20 +428,20 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
     avail_h = diagram_top - draw_bottom - 26
     col_left_pad, col_right_pad, col_gap = 40, 34, 16
 
-    slat_dims, slat_labels = _slat_annotations(inputs, d)
-    fin_dims, fin_labels = _fin_annotations(inputs, d)
+    slat_dims, slat_labels = _slat_annotations(inputs, d, _tx)
+    fin_dims, fin_labels = _fin_annotations(inputs, d, _tx)
     notch = _slat_notch(d)
     parts_raw = [
         {
-            "name": "Head Fin Slat (x2)",
+            "name": _tx("Head Fin Slat (x2)"),
             "w_mm": d.slat_length, "h_mm": d.slat_width, "rotate": True,
             "edges": _rect_edges_with_gaps(0, 0, d.slat_length, d.slat_width, {"right": [notch]}),
             "notches": [_rect_open(*notch, "right")[0]],
-            "circles": [(d.slat_hole_from_front, hy, inputs.slat_hole_diameter) for hy in _slat_hole_ys(d)],
+            "circles": [(hu, hv, inputs.slat_hole_diameter) for hu, hv in _slat_holes(d)],
             "dims": slat_dims, "labels": slat_labels,
         },
         {
-            "name": "Head Fin",
+            "name": _tx("Head Fin"),
             "w_mm": d.fin_width, "h_mm": d.fin_total_height, "rotate": False,
             "edges": _fin_edges_with_gaps(inputs, d),
             "notches": [_rect_open(*n, "left")[0] for n in _fin_notches(inputs, d)],
@@ -481,7 +489,7 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
         c.setFillColor(colors.HexColor("#222222"))
         c.drawString(ox, draw_top - 10, part["name"])
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
-        if part["name"] == "Head Fin":
+        if part["name"] == _tx("Head Fin"):
             fin_rulers.draw_pdf(c, "head", inputs, d, ox, oy, scale)
         for wall in part["notches"]:
             _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
@@ -508,31 +516,31 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
         cursor += part["eff_w"] * scale + col_left_pad + col_right_pad + col_gap
 
     input_lines = [
-        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
-        f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Bottle height: {_ceil_mm(inputs.bottle_height)}mm",
-        f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
-        f"Board width: {_ceil_mm(inputs.fin_board_width)}mm",
-        f"Fit connection: {_fit_connection_label('en', inputs.port_fit_mm)}",
+        _tx("Wood thickness: {v}mm", v=_ceil_mm(inputs.wood_thickness)),
+        _tx("Bottle diameter: {v}mm", v=_ceil_mm(inputs.bottle_diameter)),
+        _tx("Bottle height: {v}mm", v=_ceil_mm(inputs.bottle_height)),
+        _tx("Cap height: {v}mm", v=_ceil_mm(inputs.cap_height)),
+        _tx("Board width: {v}mm", v=_ceil_mm(inputs.fin_board_width)),
+        _tx("Fit connection: {v}", v=_fit_connection_label(lang, inputs.port_fit_mm)),
     ]
     derived_lines = [
-        f"Fin: {_ceil_mm(d.fin_width)} x {_ceil_mm(d.fin_total_height)}mm",
-        f"Slat: {_ceil_mm(d.slat_length)} x {_ceil_mm(d.slat_width)}mm",
-        f"Joint slot opening: {_ceil_mm(d.joint_slot_opening)}mm",
-        f"Half-lap engagement: {_ceil_mm(d.joint_meet_x)}mm",
-        f"M5 holes from slat front: {_ceil_mm(d.slat_hole_from_front)}mm",
-        f"M5 pair spacing: {_ceil_mm(2 * d.slat_hole_pair_offset)}mm",
+        _tx("Fin: {w} x {h}mm", w=_ceil_mm(d.fin_width), h=_ceil_mm(d.fin_total_height)),
+        _tx("Slat: {w} x {h}mm", w=_ceil_mm(d.slat_length), h=_ceil_mm(d.slat_width)),
+        _tx("Joint slot opening: {v}mm", v=_ceil_mm(d.joint_slot_opening)),
+        _tx("Half-lap engagement: {v}mm", v=_ceil_mm(d.joint_meet_x)),
+        _tx("Clamp hole from slat front: {v}mm", v=_ceil_mm(d.slat_hole_from_front)),
+        _tx("Collar lock from slat front: {v}mm", v=_ceil_mm(d.slat_lock_hole_from_front)),
     ]
     box_h, box_gap = 92, 10
     box_x = draw_right - box_w
-    _rounded_rect_text(c, box_x, draw_bottom + box_h + box_gap, box_w, box_h, "Input variables",
+    _rounded_rect_text(c, box_x, draw_bottom + box_h + box_gap, box_w, box_h, _tx("Input variables"),
                        input_lines, title_font, body_font)
-    _rounded_rect_text(c, box_x, draw_bottom, box_w, box_h, "Derived dimensions",
+    _rounded_rect_text(c, box_x, draw_bottom, box_w, box_h, _tx("Derived dimensions"),
                        derived_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, 16, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
+    c.drawString(margin, 16, _tx("CERN-OHL-S-2.0. Design version {version}. https://hopeturtles.org/turtles/generate", version=DESIGN_VERSION))
     c.showPage()
     c.save()
 

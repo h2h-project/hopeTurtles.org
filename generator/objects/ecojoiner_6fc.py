@@ -2,9 +2,11 @@
 
 Params rebased 2026-09-08 on ../turtle_body/lib/ecojoiner.scad (cap 31 / collar 34 /
 port 82). turtle_body v5.0.0 replaced the 12 Pressers + single M6 bolt per John end with
-TWO M5 holes per Little/Master John end; since v5.1.0 they are Ø5.2 bite holes that a
-black M5x30 socket-head cap screw threads into (no nut), with a black acorn nut on the tip
-bearing on the bottle -- hardware, not cut parts. The **Master John** (one of the six cross-slats,
+M5 bite holes (Ø5.2, the cap screw threads into the wood, no nut). turtle_body v7.0.0:
+each Little/Master John end has TWO CENTRED holes -- a clamp screw (M5x25 at defaults)
+with a black acorn nut bearing on the bottle, and a bare collar-lock screw (M5x55) on the
+bottle's neck whose shank stops the support ring, so the bottle cannot be pulled out.
+Hardware, not cut parts. The **Master John** (one of the six cross-slats,
 cut with deeper top slots so it can be fitted last into the almost-closed frame) is a
 real assembly feature this generator has always carried; the v1.7.1 sync briefly
 flattened it away, and turtle_body v1.8.1 lifted the rule upstream
@@ -23,6 +25,8 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from common import (
     DESIGN_VERSION, LICENSE_ID, DEFAULT_PORT_ALLOWANCE_MM, GeneratedFile,
+    SCREW_SIDE_OFFSET_MM, BOTTLE_NECK_H_MM, NECK_UNDER_CAP_MM, LOCK_TIP_GAP_MM,
+    collar_lock_x, clamp_bolt_length, collar_lock_bolt_length,
     _to_float, _slugify, _ceil_mm, board_width_errors,
     _svg_header, _rect, _circle, _label,
     DXF_CUT_LAYER, _dxf_setup, _dxf_rect, _dxf_circle, _dxf_label,
@@ -53,26 +57,26 @@ PART_QUANTITIES = {
     "Final Key": 4,
 }
 
-# Bottle-clamp hardware (bought, not cut). turtle_body v5.0.0/v5.1.0: two
-# black M5x30 socket-head cap screws per Little/Master John port end, each
-# biting into its 5.2 mm hole (no nut) -> 6 Johns x 2 ends x 2 = 24 sets.
-CLAMP_HARDWARE_SETS = 24
-CLAMP_BOLT_LABEL = "Black M5x30 socket cap screw + black acorn nut"
+# Bottle hardware (bought, not cut). turtle_body v7.0.0: per Little/Master
+# John port end, ONE centred clamp screw + acorn nut and ONE centred bare
+# collar-lock screw, each biting into its 5.2 mm hole (no nut)
+# -> 6 Johns x 2 ends = 12 of each. Lengths are derived per build
+# (common.clamp_bolt_length / collar_lock_bolt_length).
+CLAMP_HARDWARE_SETS = 12
+LOCK_HARDWARE_SETS = 12
 
 # Hardware dimensions drawn on the PDF's clamp-hardware panel. Mirror
 # turtle_body lib/params.scad p_m5_*() (ISO 4762 socket cap screw / DIN 1587
 # acorn nut nominals); check_params_sync.py asserts them. HW_SOCKET_AF is
 # drawing-only (turtle_body models the head as a plain cylinder).
 HW_BOLT_D = 5.0        # p_m5_bolt_d()
-HW_BOLT_LEN = 30.0     # p_m5_bolt_len()
+HW_BOLT_LEN = 25.0     # p_m5_bolt_len() -- clamp screw at the defaults; the sheet uses derived.clamp_bolt_len
+HW_LOCK_BOLT_LEN = 55.0  # p_eco_lock_bolt_len() -- collar lock at the defaults; the sheet uses derived.lock_bolt_len
 HW_HEAD_D = 8.5        # p_m5_head_d()
 HW_HEAD_H = 5.0        # p_m5_head_h()
 HW_SOCKET_AF = 4.0     # hex key size, drawing only
 HW_ACORN_AF = 8.0      # p_m5_acorn_af()
 HW_ACORN_H = 10.0      # p_m5_acorn_h()
-# turtle_body p_eco_screw_edge_inset(): each bolt of a pair sits this far in
-# from a John long edge (holes at john_height/2 +- (john_height/2 - inset)).
-SCREW_EDGE_INSET = 12.0  # was 10 until turtle_body v5.2.0
 
 # ---------------------------------------------------------------------------
 # The generated PDF is the only export with prose/labels baked into it (SVG
@@ -208,14 +212,26 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
     "fit_very_tight": {"en": "Very Tight", "id": "Sangat ketat", "tr": "Çok dar"},
     "fit_super_tight": {"en": "Super Tight", "id": "Super ketat", "tr": "Süper dar"},
     "hardware_title": {
-        "en": "Bottle Clamp Bolts x {count}",
-        "id": "Baut Penjepit Botol x {count}",
-        "tr": "Şişe Kelepçe Cıvataları x {count}",
+        "en": "Bottle Clamp + Lock Bolts x {count}",
+        "id": "Baut Penjepit + Pengunci Botol x {count}",
+        "tr": "Şişe Kelepçe + Kilit Cıvataları x {count}",
     },
     "hardware_screw": {
-        "en": "{count} x black M5 socket cap screw, {length}mm",
-        "id": "{count} x sekrup kepala soket M5 hitam, {length}mm",
-        "tr": "{count} x siyah M5 alyan başlı vida, {length}mm",
+        "en": "{count} x black M5 socket cap screw, {length}mm (clamp)",
+        "id": "{count} x sekrup kepala soket M5 hitam, {length}mm (penjepit)",
+        "tr": "{count} x siyah M5 alyan başlı vida, {length}mm (kelepçe)",
+    },
+    "hardware_lock_screw": {
+        "en": "{count} x black M5 socket cap screw, {length}mm (collar lock)",
+        "id": "{count} x sekrup kepala soket M5 hitam, {length}mm (pengunci leher)",
+        "tr": "{count} x siyah M5 alyan başlı vida, {length}mm (boyun kilidi)",
+    },
+    "hardware_clamp_short": {"en": "clamp", "id": "penjepit", "tr": "kelepçe"},
+    "hardware_lock_short": {"en": "lock", "id": "pengunci", "tr": "kilit"},
+    "lock_from_side_label": {
+        "en": "lock {value}mm from side",
+        "id": "pengunci {value}mm dari sisi",
+        "tr": "kilit kenardan {value}mm",
     },
     "hardware_acorn": {
         "en": "{count} x black M5 acorn nut",
@@ -238,9 +254,9 @@ PDF_STRINGS: Dict[str, Dict[str, str]] = {
         "tr": "alyan anahtarı {value}mm",
     },
     "hardware_note": {
-        "en": "Two per John end. Drive each screw from outside with a hex key; it bites into the wood and holds itself. Screw the acorn nut fully onto the tip, then turn the screw in until each acorn nut presses on the bottle.",
-        "id": "Dua per ujung John. Putar setiap sekrup dari luar dengan kunci L; sekrup menggigit kayu dan menahan dirinya sendiri. Pasang mur tutup penuh di ujungnya, lalu putar sekrup masuk sampai setiap mur tutup menekan botol.",
-        "tr": "Her John ucuna iki adet. Her vidayı dışarıdan alyan anahtarıyla sıkın; ahşaba tutunur ve kendini sabitler. Kör somunu uca tam oturtun, ardından her kör somun şişeye bastırana kadar vidayı içeri çevirin.",
+        "en": "Per John end, both centred: a clamp screw at the end and a collar-lock screw further in; each bites into the wood. Clamp: acorn fully on, turn in until it presses the bottle (no acorn through a fin or ballast slat). Lock: push the bottle fully in, turn in until the tip touches the neck above the ring under the cap, then back off half a turn.",
+        "id": "Per ujung John, keduanya di tengah: sekrup penjepit di ujung dan sekrup pengunci leher lebih ke dalam; masing-masing menggigit kayu. Penjepit: mur tutup penuh, putar sampai menekan botol (tanpa mur tutup melalui bilah sirip atau pemberat). Pengunci: dorong botol masuk penuh, putar sampai ujungnya menyentuh leher di atas cincin di bawah tutup, lalu mundurkan setengah putaran.",
+        "tr": "Her John ucunda, ikisi de ortalı: uçta bir kelepçe vidası, daha içeride bir boyun kilidi vidası; her biri ahşaba tutunur. Kelepçe: kör somun tam takılı, şişeye bastırana kadar çevirin (yüzgeç veya safra çıtasından geçerken kör somun yok). Kilit: şişeyi tamamen itin, ucu kapağın altındaki halkanın üstünde boyna değene kadar çevirin, sonra yarım tur geri alın.",
     },
     "final_key_note": {
         "en": "Use board thickness {thickness}mm, but allow for sanding down for final fit.",
@@ -386,8 +402,12 @@ class EcojoinerDerived:
     little_center_span: float
     screw_side_offset: float
     screw_y_center: float
-    # turtle_body v5.0.0: two holes per John end, at screw_y_center +- this.
-    screw_pair_offset: float
+    # turtle_body v7.0.0: centred collar-lock hole, this far from each John end
+    # (p_eco_lock_x()); the clamp hole stays at screw_side_offset.
+    lock_x: float
+    # Derived screw lengths (shank under the head) for this build.
+    clamp_bolt_len: float
+    lock_bolt_len: float
     final_key_length: float
     final_key_width: float
     # M5 bite-hole diameter (== inputs.screw_diameter), carried here so
@@ -395,16 +415,12 @@ class EcojoinerDerived:
     screw_hole_diameter: float
 
     @property
-    def screw_ys(self) -> Tuple[float, float]:
-        return (self.screw_y_center - self.screw_pair_offset,
-                self.screw_y_center + self.screw_pair_offset)
-
-    @property
     def screw_holes(self) -> Tuple[Tuple[float, float], ...]:
-        """All four M5 hole centres on a Little/Master John (John-local)."""
-        return tuple((hx, hy)
-                     for hx in (self.screw_side_offset, self.john_length - self.screw_side_offset)
-                     for hy in self.screw_ys)
+        """All four M5 hole centres on a Little/Master John (John-local):
+        a centred clamp hole and a centred collar-lock hole at each end."""
+        xs = (self.screw_side_offset, self.lock_x,
+              self.john_length - self.lock_x, self.john_length - self.screw_side_offset)
+        return tuple((hx, self.screw_y_center) for hx in xs)
 
 
 
@@ -495,12 +511,13 @@ def validate_inputs(inputs: EcojoinerInputs) -> List[str]:
             errors.append("Collar hole is too large for the calculated John slat height.")
         if inputs.screw_diameter >= john_height:
             errors.append("M5 hole is too large for the calculated John slat height.")
-        # Two M5 holes per John end, SCREW_EDGE_INSET in from each long edge:
-        # they must not merge, and must not break out of the edge.
-        if john_height - 2 * SCREW_EDGE_INSET <= inputs.screw_diameter + 4:
-            errors.append("The bottle diameter leaves no room for two M5 holes at each John end.")
-        if SCREW_EDGE_INSET <= inputs.screw_diameter / 2 + 2:
-            errors.append(f"M5 hole is too large for its {SCREW_EDGE_INSET:g}mm edge inset.")
+        # turtle_body v7.0.0 collar lock: the lock screw (M5, 5mm) must fit the
+        # neck gap between the top dome and the support ring, and the ring must
+        # be wider than the neck or there is nothing for the lock to catch.
+        if inputs.collar_diameter - (inputs.cap_diameter - NECK_UNDER_CAP_MM) <= 2 * LOCK_TIP_GAP_MM:
+            errors.append("Collar diameter must be larger than the neck (cap diameter - 3mm) for the collar lock to catch it.")
+        if collar_lock_x(port_length) + 4.25 >= port_length + inputs.slat_thickness:
+            errors.append("The collar-lock screw would run into the Little John's slot.")
         if (john_height - inputs.cap_diameter) / 2 < min_material_mm:
             errors.append("Cap hole leaves less than 4mm of material above/below the hole.")
         if (john_height - inputs.collar_diameter) / 2 < min_material_mm:
@@ -557,12 +574,19 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
     little_end_span = port_length + slat
     little_center_span = port_height
 
-    # M5 bite-hole PAIRS (turtle_body v5.0.0/v5.1.0; was one centred M6 hole):
-    # fixed 17mm from each John end (p_screw_side_offset(); was 25 until
-    # v4.2.0), SCREW_EDGE_INSET from each long edge (p_eco_screw_pair_offset()).
-    screw_side_offset = 17.0
+    # turtle_body v7.0.0: two CENTRED M5 bite holes per John end (was a pair
+    # at +-p_eco_screw_pair_offset()). Clamp at p_screw_side_offset() (17);
+    # collar lock at p_eco_lock_x() = port length - ring - half the neck gap,
+    # where the support ring rests on the crossing Little John (one port
+    # length in) -- independent of port height / fit offset.
+    screw_side_offset = SCREW_SIDE_OFFSET_MM
     screw_y_center = john_height / 2
-    screw_pair_offset = john_height / 2 - SCREW_EDGE_INSET
+    lock_x = collar_lock_x(port_length)
+    # Port gap on the centreline = (port height + 2t - measured bottle d) / 2.
+    bottle_d = port_height - inputs.port_fit_mm
+    port_gap = (port_height + 2 * slat - bottle_d) / 2
+    clamp_bolt_len = clamp_bolt_length(slat, port_gap)
+    lock_bolt_len = collar_lock_bolt_length(slat, port_gap, bottle_d, inputs.cap_diameter)
 
     # Final Keys replace Saddlers in v3.2.
     final_key_length = port_height + 4 * slat
@@ -587,7 +611,9 @@ def derive_dimensions(inputs: EcojoinerInputs) -> EcojoinerDerived:
         little_center_span=little_center_span,
         screw_side_offset=screw_side_offset,
         screw_y_center=screw_y_center,
-        screw_pair_offset=screw_pair_offset,
+        lock_x=lock_x,
+        clamp_bolt_len=clamp_bolt_len,
+        lock_bolt_len=lock_bolt_len,
         final_key_length=final_key_length,
         final_key_width=final_key_width,
         screw_hole_diameter=inputs.screw_diameter,
@@ -862,9 +888,12 @@ def write_scad(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived) -> None
     Master John x 1
     Final Key x 4
 
-  Hardware (not cut): {CLAMP_HARDWARE_SETS} x {CLAMP_BOLT_LABEL}
-    -- two per Little/Master John end; each screw bites into its hole (no
-    nut), acorn nut on the tip bearing on the bottle.
+  Hardware (not cut), per Little/Master John end, both centred:
+    {CLAMP_HARDWARE_SETS} x black M5x{_ceil_mm(d.clamp_bolt_len)} clamp screw + black acorn nut
+      (acorn bears on the bottle; none where a fin/ballast slat fills the port)
+    {LOCK_HARDWARE_SETS} x black M5x{_ceil_mm(d.lock_bolt_len)} collar-lock screw, bare
+      (shank stops the bottle's support ring -- the bottle cannot pull out)
+    Every screw bites into its hole; no nuts.
 
   Generated from bottle/wood form inputs.
 */
@@ -878,7 +907,7 @@ port_height = {inputs.port_height:.3f};  // bottle diameter
 cap_diameter = {inputs.cap_diameter:.3f};
 collar_diameter = {inputs.collar_diameter:.3f};
 screw_diameter = {inputs.screw_diameter:.3f};  // M5 bite hole: the screw threads into the wood
-screw_edge_inset = {SCREW_EDGE_INSET:.3f};  // each M5 hole from a John long edge
+neck_height = {BOTTLE_NECK_H_MM:.3f};  // dome -> support-ring gap the collar-lock shank sits in
 fit_clearance = {inputs.fit_clearance:.3f};
 
 // ---------- Display/export controls ----------
@@ -903,7 +932,9 @@ little_end_span = port_length + slat_thickness;
 little_center_span = port_height;
 screw_side_offset = 17;
 screw_y_center = john_height / 2;
-screw_pair_offset = john_height / 2 - screw_edge_inset;
+// turtle_body v7.0.0 collar lock (p_eco_lock_x()): the support ring rests on
+// the crossing Little John, one port length in; lock centred on the neck.
+lock_x = port_length - 1 - neck_height / 2;
 final_key_length = port_height + 4 * slat_thickness;
 final_key_width = 2 * slat_thickness;
 
@@ -918,8 +949,9 @@ assert(fit_clearance >= 0 && fit_clearance <= 2, "fit_clearance out of range");
 assert(john_height > 0, "Bottle diameter must be greater than twice the wood thickness");
 assert(cap_diameter < john_height, "Cap hole too large for John height");
 assert(collar_diameter < john_height, "Collar hole too large for John height");
-assert(2 * screw_pair_offset > screw_diameter + 4, "No room for two M5 holes per John end");
-assert(screw_edge_inset > screw_diameter / 2 + 2, "M5 hole breaks out of the John edge");
+assert(screw_diameter + 4 < john_height, "No room for the centred M5 holes");
+assert(lock_x - screw_side_offset > screw_diameter + 4, "Collar-lock and clamp holes too close");
+assert(lock_x + screw_diameter / 2 < little_end_span, "Collar-lock hole runs into the Little John slot");
 
 // ---------- Helper modules ----------
 module maybe_extrude() {{
@@ -936,11 +968,10 @@ module center_hole(diameter) {{
   translate([john_length / 2, john_height / 2]) circle(d=diameter);
 }}
 
-// Two M5 holes at each end (turtle_body v5.0.0; replaced one M6 + Presser).
+// turtle_body v7.0.0: at each end a centred clamp hole + a centred collar-lock hole.
 module screw_holes_2d() {{
-  for (x = [screw_side_offset, john_length - screw_side_offset])
-    for (y = [screw_y_center - screw_pair_offset, screw_y_center + screw_pair_offset])
-      translate([x, y]) circle(d=screw_diameter, $fn=16);
+  for (x = [screw_side_offset, lock_x, john_length - lock_x, john_length - screw_side_offset])
+    translate([x, screw_y_center]) circle(d=screw_diameter, $fn=16);
 }}
 
 module part_label(txt, w, h) {{
@@ -1192,19 +1223,18 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
         c.setFont(symbol_font, 9)
         c.drawCentredString(x + sx(d.john_length / 2), y + sx(d.john_height / 2) - 3, f"⌀{_ceil_mm(hole_diam)}")
 
-        # M5 bite-hole pairs (two per end). Each end's label sits
-        # between its two holes; the left label grows rightward and the
-        # right label grows leftward, back toward the holes, so neither one
-        # runs past the slat's outer edge.
+        # turtle_body v7.0.0: two centred M5 bite holes per end -- clamp at
+        # the end, collar lock further in. Labels sit just above each hole.
         if include_screw_holes:
-            screw_label = f"2x M5 (⌀{_ceil_mm(inputs.screw_diameter)}mm)"
             for hx, hy in d.screw_holes:
                 c.circle(x + sx(hx), y + sx(hy), sx(inputs.screw_diameter / 2), stroke=1, fill=0)
             c.setFillColor(colors.HexColor("#111111"))
-            c.setFont(symbol_font, 6.5)
-            mid_y = y + sx(d.screw_y_center) - 2
-            c.drawString(x + sx(d.screw_side_offset) - 4, mid_y, screw_label)
-            c.drawRightString(x + sx(d.john_length - d.screw_side_offset) + 4, mid_y, screw_label)
+            c.setFont(symbol_font, 6)
+            lab_y = y + sx(d.screw_y_center) + sx(inputs.screw_diameter / 2) + 2
+            dia = f" ⌀{_ceil_mm(inputs.screw_diameter)}"
+            for hx, key in ((d.screw_side_offset, "hardware_clamp_short"), (d.lock_x, "hardware_lock_short")):
+                c.drawCentredString(x + sx(hx), lab_y, T(lang, key) + dia)
+                c.drawCentredString(x + sx(d.john_length - hx), lab_y, T(lang, key) + dia)
 
         # Part title, rotated 90 degrees and set to the left of the slat
         # rather than above it, so the vertical space above each row is free
@@ -1262,12 +1292,17 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
                 c, x, y - 11, x + sx(d.screw_side_offset), y - 11, T(lang, "from_side_label", value=_ceil_mm(d.screw_side_offset)), body_font, 6.5,
                 ext1=(x, y), ext2=(x + sx(d.screw_side_offset), y),
             )
-            # Each hole of the pair: its inset from the nearer long edge
-            # (bottom edge -> lower hole, drawn just outside the right end).
+            # Collar-lock hole, dimensioned from the RIGHT end on the same
+            # row (the holes are symmetric), so the two labels never overlap.
             x_end = x + sx(d.john_length)
             _draw_dimension_line(
-                c, x_end + 10, y, x_end + 10, y + sx(d.screw_ys[0]), f"{_ceil_mm(d.screw_ys[0])}mm", body_font, 6.5,
-                ext1=(x_end - sx(d.screw_side_offset), y), ext2=(x_end - sx(d.screw_side_offset), y + sx(d.screw_ys[0])),
+                c, x_end - sx(d.lock_x), y - 11, x_end, y - 11, T(lang, "lock_from_side_label", value=_ceil_mm(d.lock_x)), body_font, 6.5,
+                ext1=(x_end - sx(d.lock_x), y), ext2=(x_end, y),
+            )
+            # Both holes are centred across the John height.
+            _draw_dimension_line(
+                c, x_end + 10, y, x_end + 10, y + sx(d.screw_y_center), f"{_ceil_mm(d.screw_y_center)}mm", body_font, 6.5,
+                ext1=(x_end - sx(d.screw_side_offset), y), ext2=(x_end - sx(d.screw_side_offset), y + sx(d.screw_y_center)),
             )
         _draw_dimension_line(
             c, x, y - 27, x + sx(d.john_length), y - 27, f"{_ceil_mm(d.john_length)}mm", body_font, 6.5,
@@ -1399,61 +1434,74 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     # )
 
     # ------------------------------------------------------------------
-    # BOTTLE CLAMP BOLTS (turtle_body v5.0.0/v5.1.x) -- in the space the
-    # Presser section used. Bought, not cut: x24 black M5 socket cap screws
-    # and x24 black M5 acorn nuts, two of each per Little/Master John end.
-    # Drawn to one shared scale (hw_s points per mm): the screw side view
-    # (white) and the acorn nut side + end views (black), dimensioned, with the bite-hole size and a fitting
+    # BOTTLE CLAMP + COLLAR-LOCK BOLTS (turtle_body v7.0.0) -- in the space
+    # the Presser section used. Bought, not cut: per Little/Master John end
+    # one clamp screw + acorn nut and one bare collar-lock screw (12 + 12 +
+    # 12 acorns). Drawn to one shared scale (hw_s points per mm, shrunk so
+    # the long lock screw fits): both screw side views (white) and the acorn
+    # nut side + end views (black), with the bite-hole size and a fitting
     # note below. Right-aligned to the page margin like the Final Key.
     # ------------------------------------------------------------------
     hw_w = fk_w
     hw_x = page_w - margin - hw_w
-    hw_s = 2.1                      # points per mm for the hardware drawings
+    hw_s = min(2.1, 90.0 / (d.lock_bolt_len + HW_HEAD_H))   # points per mm
     hw_fill = colors.HexColor("#1c1c1e")
     hw_hi = colors.HexColor("#5a5a5e")   # highlight lines on the black parts
-    hw_title_y = right_y + 52
+    hw_title_y = right_y + 60
 
     c.setFillColor(colors.HexColor("#111111"))
     c.setFont(safe_title_font, 9)   # safe_title_font: the title face lacks e.g. Turkish Ş
-    c.drawString(hw_x, hw_title_y, T(lang, "hardware_title", count=CLAMP_HARDWARE_SETS))
+    c.drawString(hw_x, hw_title_y, T(lang, "hardware_title", count=CLAMP_HARDWARE_SETS + LOCK_HARDWARE_SETS))
     c.setFont(body_font, 6)
     c.drawString(hw_x, hw_title_y - 10,
-                 T(lang, "hardware_screw", count=CLAMP_HARDWARE_SETS, length=_ceil_mm(HW_BOLT_LEN)))
-    c.drawString(hw_x, hw_title_y - 18, T(lang, "hardware_acorn", count=CLAMP_HARDWARE_SETS))
+                 T(lang, "hardware_screw", count=CLAMP_HARDWARE_SETS, length=_ceil_mm(d.clamp_bolt_len)))
+    c.drawString(hw_x, hw_title_y - 18,
+                 T(lang, "hardware_lock_screw", count=LOCK_HARDWARE_SETS, length=_ceil_mm(d.lock_bolt_len)))
+    c.drawString(hw_x, hw_title_y - 26, T(lang, "hardware_acorn", count=CLAMP_HARDWARE_SETS))
 
-    # --- socket cap screw, side view: head on top, shank hanging down ----
+    scr_top = hw_title_y - 38
     head_w, head_h = HW_HEAD_D * hw_s, HW_HEAD_H * hw_s
-    shank_w, shank_h = HW_BOLT_D * hw_s, HW_BOLT_LEN * hw_s
+    shank_w = HW_BOLT_D * hw_s
+    scr_head_y = scr_top - head_h                 # bottom of the heads
+
+    def draw_screw(cx, length_mm, caption):
+        """Socket cap screw, side view: head on top, shank hanging down.
+        Returns the tip's y."""
+        shank_h = length_mm * hw_s
+        tip_y = scr_head_y - shank_h
+        # Drawn white (outline only) so it reads clearly on the printed sheet.
+        c.setStrokeColor(colors.black)
+        c.setLineWidth(0.6)
+        c.setFillColor(colors.white)
+        c.roundRect(cx - head_w / 2, scr_head_y, head_w, head_h, 1.2, fill=1, stroke=1)
+        c.rect(cx - shank_w / 2, tip_y, shank_w, shank_h, fill=1, stroke=1)
+        # thread suggestion: light slanted lines across the shank (drawing only)
+        c.setStrokeColor(colors.HexColor("#999999"))
+        c.setLineWidth(0.35)
+        ty = tip_y + 1.5
+        while ty < scr_head_y - 1.5:
+            c.line(cx - shank_w / 2 + 0.4, ty, cx + shank_w / 2 - 0.4, ty + 1.0)
+            ty += 0.8 * hw_s * 1.5
+        # knurl suggestion on the head
+        for k in range(1, 6):
+            kx = cx - head_w / 2 + k * head_w / 6
+            c.line(kx, scr_head_y + 1, kx, scr_head_y + head_h - 1)
+        c.setFillColor(colors.HexColor("#333333"))
+        c.setFont(body_font, 5)
+        c.drawCentredString(cx, tip_y - 8, caption)
+        # shank length (under the head), dimensioned on the right
+        _draw_dimension_line(
+            c, cx + head_w / 2 + 5, tip_y, cx + head_w / 2 + 5, scr_head_y,
+            f"{_ceil_mm(length_mm)}mm", body_font, 5,
+            ext1=(cx + shank_w / 2, tip_y), ext2=(cx + head_w / 2, scr_head_y),
+        )
+        return tip_y
+
     scr_cx = hw_x + 22
-    scr_top = hw_title_y - 30
-    scr_head_y = scr_top - head_h                 # bottom of the head
-    scr_tip_y = scr_head_y - shank_h
-    # Drawn white (outline only) so it reads clearly on the printed sheet.
-    c.setStrokeColor(colors.black)
-    c.setLineWidth(0.6)
-    c.setFillColor(colors.white)
-    c.roundRect(scr_cx - head_w / 2, scr_head_y, head_w, head_h, 1.2, fill=1, stroke=1)
-    c.rect(scr_cx - shank_w / 2, scr_tip_y, shank_w, shank_h, fill=1, stroke=1)
-    # thread suggestion: light slanted lines across the shank (drawing only)
-    c.setStrokeColor(colors.HexColor("#999999"))
-    c.setLineWidth(0.35)
-    ty = scr_tip_y + 1.5
-    while ty < scr_head_y - 1.5:
-        c.line(scr_cx - shank_w / 2 + 0.4, ty, scr_cx + shank_w / 2 - 0.4, ty + 1.0)
-        ty += 0.8 * hw_s * 1.5
-    # knurl suggestion on the head
-    for k in range(1, 6):
-        kx = scr_cx - head_w / 2 + k * head_w / 6
-        c.line(kx, scr_head_y + 1, kx, scr_head_y + head_h - 1)
-    c.setFillColor(colors.HexColor("#333333"))
-    c.setFont(body_font, 5)
-    c.drawCentredString(scr_cx, scr_tip_y - 8, T(lang, "hardware_side_view"))
-    # dimensions: shank length (under the head), head diameter, shank diameter
-    _draw_dimension_line(
-        c, scr_cx + head_w / 2 + 6, scr_tip_y, scr_cx + head_w / 2 + 6, scr_head_y,
-        f"{_ceil_mm(HW_BOLT_LEN)}mm", body_font, 5,
-        ext1=(scr_cx + shank_w / 2, scr_tip_y), ext2=(scr_cx + head_w / 2, scr_head_y),
-    )
+    lock_cx = scr_cx + 40
+    draw_screw(scr_cx, d.clamp_bolt_len, T(lang, "hardware_clamp_short"))
+    scr_tip_y = draw_screw(lock_cx, d.lock_bolt_len, T(lang, "hardware_lock_short"))
+    # head height + diameters, once, on the clamp screw
     _draw_dimension_line(
         c, scr_cx - head_w / 2 - 6, scr_head_y, scr_cx - head_w / 2 - 6, scr_top,
         f"{_ceil_mm(HW_HEAD_H)}mm", body_font, 5, label_side="left",
@@ -1461,15 +1509,15 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     )
     c.setFillColor(colors.HexColor("#333333"))
     c.setFont(symbol_font, 5)
-    c.drawString(scr_cx + head_w / 2 + 3, scr_top + 2, f"⌀{_ceil_mm(HW_HEAD_D)}")
-    c.drawRightString(scr_cx - shank_w / 2 - 3, (scr_tip_y + scr_head_y) / 2, f"M5 ⌀{_ceil_mm(HW_BOLT_D)}")
+    c.drawCentredString(scr_cx, scr_top + 3, f"⌀{_ceil_mm(HW_HEAD_D)}")
+    c.drawRightString(scr_cx - shank_w / 2 - 3, scr_head_y - 14, f"M5 ⌀{_ceil_mm(HW_BOLT_D)}")
 
     # --- acorn nut, side view: hex body + domed cap (dome up) ------------
     ac_w = HW_ACORN_AF * hw_s                     # across flats, seen side-on
     ac_r = ac_w / 2
     ac_body_h = (HW_ACORN_H - HW_ACORN_AF / 2) * hw_s
-    ac_cx = scr_cx + 100
-    ac_base_y = scr_tip_y + 20
+    ac_cx = scr_cx + 108
+    ac_base_y = scr_head_y - (d.clamp_bolt_len + 8) * hw_s
     c.setStrokeColor(colors.black)
     c.setLineWidth(0.6)
     c.setFillColor(hw_fill)
@@ -1525,12 +1573,17 @@ def write_pdf(path: Path, inputs: EcojoinerInputs, d: EcojoinerDerived, *, font_
     c.setFillColor(colors.HexColor("#111111"))
     c.setFont(body_font, 6)
     c.drawString(hw_x, hw_note_top, T(lang, "through_hole_label", value=_ceil_mm(inputs.screw_diameter)))
-    hw_note_style = ParagraphStyle(
-        name="hw_note", fontName=body_font, fontSize=5.5, leading=6.6,
-        textColor=colors.HexColor("#333333"),
-    )
-    hw_note_p = Paragraph(html.escape(T(lang, "hardware_note")), hw_note_style)
-    hw_note_p.wrapOn(c, hw_w, 60)
+    # Shrink the note's type until it clears the credit box (top at y = 30):
+    # the Indonesian and Turkish wording runs longer than the English.
+    for hw_note_size in (5.5, 5.2, 4.9, 4.6, 4.3):
+        hw_note_style = ParagraphStyle(
+            name="hw_note", fontName=body_font, fontSize=hw_note_size,
+            leading=hw_note_size * 1.2, textColor=colors.HexColor("#333333"),
+        )
+        hw_note_p = Paragraph(html.escape(T(lang, "hardware_note")), hw_note_style)
+        hw_note_p.wrapOn(c, hw_w, 200)
+        if hw_note_top - 5 - hw_note_p.height >= 33:
+            break
     hw_note_p.drawOn(c, hw_x, hw_note_top - 5 - hw_note_p.height)
 
     # Credit box, sized to hug its two lines of text: the licence, then the

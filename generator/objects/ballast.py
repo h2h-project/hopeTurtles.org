@@ -56,13 +56,15 @@ from common import (
     canvas,
     ezdxf,
 )
+from pdf_i18n import pdf_lang, title_font_for, translator
+_EN = lambda s, **k: s.format(**k) if k else s  # English, for non-PDF callers
+from common import collar_lock_from_clamp
 from objects.ecojoiner_6fc import _fit_connection_label  # same Panel 5 step names as the 6FC sheet
 from bottom_ballast_fin_generator import (
     DEFAULTS as _BALLAST_DEFAULTS,
     build_scad as _ballast_build_scad,
     MOUNT_HOLE_SCREW_SIDE_OFFSET as _BALLAST_SCREW_SIDE_OFFSET,
     MOUNT_HOLE_DIAMETER as _BALLAST_MOUNT_HOLE_DIAMETER,
-    MOUNT_HOLE_EDGE_INSET as _BALLAST_MOUNT_HOLE_EDGE_INSET,
     BOARD_FRONT_CHAMFER as _BALLAST_BOARD_FRONT_CHAMFER,
 )
 
@@ -130,13 +132,15 @@ class BallastDerived:
     mount_hole_x: float
     mount_hole_y: float
     mount_hole_from_top: float
-    # turtle_body v5.0.0: M5 hole PAIR at mount_hole_x +- this offset.
-    mount_hole_pair_offset: float
+    # turtle_body v7.0.0: centred collar-lock hole, nearer the slat top.
+    lock_hole_from_top: float
+    lock_hole_y: float
 
     @property
-    def mount_hole_xs(self) -> Tuple[float, float]:
-        return (self.mount_hole_x - self.mount_hole_pair_offset,
-                self.mount_hole_x + self.mount_hole_pair_offset)
+    def mount_holes(self) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+        """Centred clamp + collar-lock hole centres on the core slat."""
+        return ((self.mount_hole_x, self.mount_hole_y),
+                (self.mount_hole_x, self.lock_hole_y))
 
     # Orange ballast-bottom board
     ballast_bottom_length: float
@@ -240,14 +244,15 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
     lower_full_width_return_z = slot_z1 + upper_lobe_height
     lower_neck_start_z = lower_full_width_return_z + shoulder_step
 
-    # M5 hole pair bolting this slat to the Ecojoiner Little John's clamp
-    # pair (mirrors turtle_body lib/ballast_fin.scad bl_mount_hole_*() +
-    # p_eco_screw_pair_offset()); mount_hole_x is the pair's centre.
+    # Centred M5 clamp + collar-lock holes bolting this slat to the
+    # Ecojoiner Little John (turtle_body lib/ballast_fin.scad
+    # bl_mount_hole_*() / bl_lock_hole_*(), v7.0.0).
     mount_hole_diameter = _BALLAST_MOUNT_HOLE_DIAMETER
     mount_hole_from_top = port_length + t - _BALLAST_SCREW_SIDE_OFFSET
     mount_hole_x = slat_width / 2
     mount_hole_y = slat_height - mount_hole_from_top
-    mount_hole_pair_offset = slat_width / 2 - _BALLAST_MOUNT_HOLE_EDGE_INSET
+    lock_hole_from_top = mount_hole_from_top - collar_lock_from_clamp(port_length)
+    lock_hole_y = slat_height - lock_hole_from_top
 
     # +2t (turtle_body v5.5.0, p_ballast_board_len()): keeps every slot where
     # it was relative to centre while the ends past the foot slots grow 2t -> 3t.
@@ -311,7 +316,8 @@ def derive_dimensions(inputs: BallastInputs) -> BallastDerived:
         mount_hole_x=mount_hole_x,
         mount_hole_y=mount_hole_y,
         mount_hole_from_top=mount_hole_from_top,
-        mount_hole_pair_offset=mount_hole_pair_offset,
+        lock_hole_from_top=lock_hole_from_top,
+        lock_hole_y=lock_hole_y,
         ballast_bottom_length=ballast_bottom_length,
         ballast_bottom_width=ballast_bottom_width,
         ballast_slot_width=ballast_slot_width,
@@ -404,8 +410,8 @@ def validate_inputs(inputs: BallastInputs) -> List[str]:
             "The port length leaves the M5 mount holes outside the core slat - try a different top tapper height or port length.",
         ),
         (
-            d.mount_hole_pair_offset + d.mount_hole_diameter / 2 < d.slat_width / 2
-            and d.mount_hole_pair_offset > d.mount_hole_diameter,
+            d.mount_hole_diameter < d.slat_width
+            and d.lock_hole_from_top > d.mount_hole_diameter / 2,
             "The bottle diameter leaves no room for the core slat's two M5 mount holes.",
         ),
     ]
@@ -549,8 +555,8 @@ def write_svg(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
     def slat_group(y, name):
         body = _polygon(_slat_outline(d))
-        for hx in d.mount_hole_xs:
-            body += _circle(hx, d.mount_hole_y, d.mount_hole_diameter)
+        for hx, hy in d.mount_holes:
+            body += _circle(hx, hy, d.mount_hole_diameter)
         return group(y, name, body)
 
     def board_group(y, name):
@@ -615,8 +621,8 @@ def write_dxf(path: Path, inputs: BallastInputs, d: BallastDerived, *, full_set:
 
     def slat_group(y, name):
         _dxf_polygon(msp, [(x, y0 + y) for x, y0 in _slat_outline(d)], DXF_CUT_LAYER)
-        for hx in d.mount_hole_xs:
-            _dxf_circle(msp, hx, y + d.mount_hole_y, d.mount_hole_diameter, DXF_CUT_LAYER)
+        for hx, hy in d.mount_holes:
+            _dxf_circle(msp, hx, y + hy, d.mount_hole_diameter, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
     def board_group(y, name):
@@ -711,7 +717,7 @@ def _yellow_fin_edges_and_notches(d: BallastDerived):
 # for the same pattern.
 # ---------------------------------------------------------------------------
 
-def _slat_annotations(d: BallastDerived):
+def _slat_annotations(d: BallastDerived, _tx=_EN):
     dims = [
         (
             (0, d.slot_z0 - 10), (d.slot_depth, d.slot_z0 - 10),
@@ -774,24 +780,27 @@ def _slat_annotations(d: BallastDerived):
             f"{_ceil_mm(d.mount_hole_from_top)}mm",
             {"ext1": (d.slat_width, d.mount_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
         ),
-        # The pair's inset from the slat's long edge (both holes mirror it).
-        # Drawn ABOVE the holes: the top 45-degree shoulder cut starts only a
-        # few mm below them, so a line below would run into it.
+        # Top-to-collar-lock-hole distance, beside the clamp one.
         (
-            (0, d.mount_hole_y + 8), (d.mount_hole_xs[0], d.mount_hole_y + 8),
-            f"{_ceil_mm(d.mount_hole_xs[0])}mm",
-            {"ext1": (0, d.mount_hole_y), "ext2": (d.mount_hole_xs[0], d.mount_hole_y)},
+            (d.slat_width - 14, d.lock_hole_y), (d.slat_width - 14, d.slat_height),
+            f"{_ceil_mm(d.lock_hole_from_top)}mm",
+            {"ext1": (d.mount_hole_x, d.lock_hole_y), "ext2": (d.slat_width, d.slat_height), "rotate_label": True},
+        ),
+        # Both holes are centred across the slat width. Drawn ABOVE the clamp
+        # hole: the top 45-degree shoulder cut starts only a few mm below it.
+        (
+            (0, d.mount_hole_y + 8), (d.mount_hole_x, d.mount_hole_y + 8),
+            f"{_ceil_mm(d.mount_hole_x)}mm",
+            {"ext1": (0, d.mount_hole_y), "ext2": (d.mount_hole_x, d.mount_hole_y)},
         ),
     ]
-    # Hole size written BESIDE each hole (not on it), on the side facing the
-    # other hole of the pair -- the clear wood between them -- with the ⌀
-    # symbol (drawn in the symbol font; the body font has no ⌀ glyph).
-    # Matches the Back Fin sheet.
-    side = d.mount_hole_diameter / 2 + 6
+    # Hole size written BESIDE each hole (not on it), with the ⌀ symbol
+    # (drawn in the symbol font; the body font has no ⌀ glyph).
+    side = d.mount_hole_diameter / 2 + 12
     hole_text = f"⌀{_ceil_mm(d.mount_hole_diameter)}"
     labels = [
-        ((d.mount_hole_xs[0] + side, d.mount_hole_y), hole_text),
-        ((d.mount_hole_xs[1] - side, d.mount_hole_y), hole_text),
+        ((d.mount_hole_x - side, d.mount_hole_y), _tx("clamp {d}", d=hole_text)),
+        ((d.mount_hole_x - side, d.lock_hole_y), _tx("lock {d}", d=hole_text)),
         (
             (d.shoulder_step + 8, (d.upper_diagonal_start_z + d.upper_neck_start_z) / 2),
             "45°",
@@ -804,7 +813,7 @@ def _slat_annotations(d: BallastDerived):
     return dims, labels
 
 
-def _board_annotations(d: BallastDerived):
+def _board_annotations(d: BallastDerived, _tx=_EN):
     # Each notch's depth dimension runs down the middle of the notch's own
     # open band (rather than beside it), so the arrow and its label sit
     # inside the slot like every other inside-the-shape callout on this
@@ -835,7 +844,7 @@ def _board_annotations(d: BallastDerived):
         # sharing it, so the two labels don't collide.
         (
             (d.center_slot_center - d.ballast_slot_width / 2 + 2, center_ny + center_nh / 2),
-            f"{_ceil_mm(d.ballast_slot_width)}mm wide",
+            _tx("{v}mm wide", v=_ceil_mm(d.ballast_slot_width)),
         ),
     ]
 
@@ -872,7 +881,7 @@ def _board_annotations(d: BallastDerived):
     return dims, labels
 
 
-def _yellow_fin_annotations(d: BallastDerived):
+def _yellow_fin_annotations(d: BallastDerived, _tx=_EN):
     lower_slot, upper_relief = _yellow_fin_notches(d)
     lx, ly, lw, lh = lower_slot
     ux, uy, uw, uh = upper_relief
@@ -900,7 +909,7 @@ def _yellow_fin_annotations(d: BallastDerived):
     return dims, labels
 
 
-def _lock_annotations(d: BallastDerived):
+def _lock_annotations(d: BallastDerived, _tx=_EN):
     slot_y0 = (d.red_piece_height - d.red_slot_height) / 2
     # The pointed end's flat vertical edge (between the two 45-degree
     # chamfers) is always 2x the board thickness by construction
@@ -935,26 +944,28 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     they're rotated 90 degrees for this reference drawing (their SVG/DXF
     exports are unrotated) to make use of the page's full vertical space.
     All four parts share one scale so they stay size-comparable to each
-    other. English-only for this first pass - the 6FC PDF's full
-    per-language T() table is out of scope to replicate here yet.
+    other. Text is localised through generator/pdf_i18n.py (en/id/tr).
     """
     if canvas is None:
         raise RuntimeError("ReportLab is not installed. Install with: pip install reportlab")
 
     title_font, body_font, symbol_font = _register_fonts(font_dir)
+    lang = pdf_lang(inputs)
+    _tx = translator(inputs)
+    title_font = title_font_for(lang, title_font, body_font)
 
     page_w, page_h = letter
     c = canvas.Canvas(str(path), pagesize=letter)
-    c.setTitle(f"Flatpack Bottom Ballast Fin v{DESIGN_VERSION}")
+    c.setTitle(_tx("Flatpack Bottom Ballast Fin v{version}", version=DESIGN_VERSION))
 
     margin = 28
     title_y = page_h - 34
     c.setFont(title_font, 20)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(margin, title_y, f"Flatpack Bottom Ballast Fin v{DESIGN_VERSION}")
+    c.drawString(margin, title_y, _tx("Flatpack Bottom Ballast Fin v{version}", version=DESIGN_VERSION))
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, title_y - 16, "Reference sheet only - the SVG/DXF exports are the 1:1 cut files.")
+    c.drawString(margin, title_y - 16, _tx("Reference sheet only - the SVG/DXF exports are the 1:1 cut files."))
 
     # Drawing area: 3 columns sharing the page's full width - core slat,
     # then the ballast-bottom board stacked over the bottom ballast fin,
@@ -988,25 +999,25 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     box_h = 92
 
     yellow_edges, yellow_notches = _yellow_fin_edges_and_notches(d)
-    slat_dims, slat_labels = _slat_annotations(d)
-    board_dims, board_labels = _board_annotations(d)
-    fin_dims, fin_labels = _yellow_fin_annotations(d)
-    lock_dims, lock_labels = _lock_annotations(d)
+    slat_dims, slat_labels = _slat_annotations(d, _tx)
+    board_dims, board_labels = _board_annotations(d, _tx)
+    fin_dims, fin_labels = _yellow_fin_annotations(d, _tx)
+    lock_dims, lock_labels = _lock_annotations(d, _tx)
 
     parts_raw = [
         {
-            "name": "Core Slat (x2)",
+            "name": _tx("Core Slat (x2)"),
             "w_mm": d.slat_width,
             "h_mm": d.slat_height,
             "rotate": False,
             "edges": _closed_edges(_slat_outline(d)),
             "notches": [],
-            "circles": [(hx, d.mount_hole_y, d.mount_hole_diameter) for hx in d.mount_hole_xs],
+            "circles": [(hx, hy, d.mount_hole_diameter) for hx, hy in d.mount_holes],
             "dims": slat_dims,
             "labels": slat_labels,
         },
         {
-            "name": "Ballast Bottom Board",
+            "name": _tx("Ballast Bottom Board"),
             "w_mm": d.ballast_bottom_length,
             "h_mm": d.ballast_bottom_width,
             "rotate": True,
@@ -1020,7 +1031,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "labels": board_labels,
         },
         {
-            "name": "Bottom Ballast Fin",
+            "name": _tx("Bottom Ballast Fin"),
             "w_mm": d.ballast_fin_length,
             "h_mm": d.ballast_fin_height,
             "rotate": True,
@@ -1031,7 +1042,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
             "labels": fin_labels,
         },
         {
-            "name": "Ballast Lock Foot (x2)",
+            "name": _tx("Ballast Lock Foot (x2)"),
             "w_mm": d.red_piece_width,
             "h_mm": d.red_piece_height,
             "rotate": False,
@@ -1177,21 +1188,22 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     draw_part(fin, ox3, oy_fin)
 
     input_lines = [
-        f"Wood thickness: {_ceil_mm(inputs.wood_thickness)}mm",
-        f"Bottle diameter: {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Bottle height: {_ceil_mm(inputs.bottle_height)}mm",
-        f"Cap diameter: {_ceil_mm(inputs.cap_diameter)}mm",
-        f"Cap height: {_ceil_mm(inputs.cap_height)}mm",
-        f"Board width: {_ceil_mm(inputs.fin_board_width)}mm",
-        f"Fit connection: {_fit_connection_label('en', inputs.port_fit_mm)}",
+        _tx("Wood thickness: {v}mm", v=_ceil_mm(inputs.wood_thickness)),
+        _tx("Bottle diameter: {v}mm", v=_ceil_mm(inputs.bottle_diameter)),
+        _tx("Bottle height: {v}mm", v=_ceil_mm(inputs.bottle_height)),
+        _tx("Cap diameter: {v}mm", v=_ceil_mm(inputs.cap_diameter)),
+        _tx("Cap height: {v}mm", v=_ceil_mm(inputs.cap_height)),
+        _tx("Board width: {v}mm", v=_ceil_mm(inputs.fin_board_width)),
+        _tx("Fit connection: {v}", v=_fit_connection_label(lang, inputs.port_fit_mm)),
     ]
     derived_lines = [
-        f"Port length: {_ceil_mm(d.port_length)}mm",
-        f"Core slat: {_ceil_mm(d.slat_width)} x {_ceil_mm(d.slat_height)}mm",
-        f"Board: {_ceil_mm(d.ballast_bottom_length)} x {_ceil_mm(d.ballast_bottom_width)}mm",
-        f"Lock foot: {_ceil_mm(d.red_piece_width)} x {_ceil_mm(d.red_piece_height)}mm",
-        f"Fin: {_ceil_mm(d.ballast_fin_length)} x {_ceil_mm(d.ballast_fin_height)}mm",
-        f"Slat M5 hole pair from top: {_ceil_mm(d.mount_hole_from_top)}mm",
+        _tx("Port length: {v}mm", v=_ceil_mm(d.port_length)),
+        _tx("Core slat: {w} x {h}mm", w=_ceil_mm(d.slat_width), h=_ceil_mm(d.slat_height)),
+        _tx("Board: {w} x {h}mm", w=_ceil_mm(d.ballast_bottom_length), h=_ceil_mm(d.ballast_bottom_width)),
+        _tx("Lock foot: {w} x {h}mm", w=_ceil_mm(d.red_piece_width), h=_ceil_mm(d.red_piece_height)),
+        _tx("Fin: {w} x {h}mm", w=_ceil_mm(d.ballast_fin_length), h=_ceil_mm(d.ballast_fin_height)),
+        _tx("Slat clamp hole from top: {v}mm", v=_ceil_mm(d.mount_hole_from_top)),
+        _tx("Slat collar lock from top: {v}mm", v=_ceil_mm(d.lock_hole_from_top)),
     ]
     # Spans column 2's full width, flush with the board diagram's own left
     # edge (ox2) and right edge (col_right_pad in from col2's right side) --
@@ -1200,7 +1212,7 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     input_box_w = col2_w - col_left_pad - col_right_pad
     input_box_x = col2_x + col_left_pad
     input_box_y = draw_bottom
-    _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, "Input variables", input_lines, title_font, body_font)
+    _rounded_rect_text(c, input_box_x, input_box_y, input_box_w, box_h, _tx("Input variables"), input_lines, title_font, body_font)
 
     # The derived-dimensions box, unlike the input box, spans column 3's
     # full width - that column has nothing to its left for a wide box to run
@@ -1208,11 +1220,11 @@ def write_pdf(path: Path, inputs: BallastInputs, d: BallastDerived, *, font_dir:
     derived_box_w = col3_w - col_right_pad
     derived_box_x = draw_right - derived_box_w
     derived_box_y = draw_bottom
-    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, box_h, "Derived dimensions", derived_lines, title_font, body_font)
+    _rounded_rect_text(c, derived_box_x, derived_box_y, derived_box_w, box_h, _tx("Derived dimensions"), derived_lines, title_font, body_font)
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(margin, 16, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
+    c.drawString(margin, 16, _tx("CERN-OHL-S-2.0. Design version {version}. https://hopeturtles.org/turtles/generate", version=DESIGN_VERSION))
 
     c.showPage()
     c.save()

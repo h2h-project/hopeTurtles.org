@@ -24,7 +24,7 @@
   // Extras for some sub-steps. Label positions are % of the square drawing
   // they sit on — move them if that drawing is re-rendered with a new layout.
   Object.assign(assemblySteps[0], {
-    parts: ['long', 'little', 'master', 'keys', 'bolts', 'acorns'].map((k) => t[`build_s3_step1_${k}`]),
+    parts: ['long', 'little', 'master', 'keys', 'bolts', 'acorns', 'lockbolts'].map((k) => t[`build_s3_step1_${k}`]),
     outro: t.build_s3_step1_outro,
     labels: [
       { text: t.build_s3_step1_label_long, x: 40, y: 17 },
@@ -38,8 +38,9 @@
     labels: [
       { text: t.build_s3_step2_label_little, x: 30, y: 15 },
       { text: t.build_s3_step2_label_master, x: 22, y: 61 },
-      { text: t.build_s3_step2_label_acorn, x: 88, y: 55 },
-      { text: t.build_s3_step2_label_bolt, x: 40, y: 87 },
+      { text: t.build_s3_step2_label_acorn, x: 88, y: 64 },
+      { text: t.build_s3_step2_label_bolt, x: 48, y: 69 },
+      { text: t.build_s3_step2_label_lockbolt, x: 58, y: 93 },
     ],
   });
   Object.assign(assemblySteps[2], {

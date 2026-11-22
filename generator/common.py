@@ -63,6 +63,74 @@ def _turtle_body_version() -> str:
 DESIGN_VERSION = _turtle_body_version()
 LICENSE_ID = "CERN-OHL-S-2.0"
 DEFAULT_PORT_ALLOWANCE_MM = 20.0
+DEFAULT_TAPER_HEIGHT_MM = 62.0     # turtle_body p_top_dome_h()
+
+# ---------------------------------------------------------------------------
+# Ecojoiner bottle clamp + collar lock (turtle_body v7.0.0, lib/params.scad).
+# Every Little/Master John port end -- and every board bolted through it (rear
+# shafts, ballast core slats, head slats) -- carries two CENTRED M5 bite holes:
+#   clamp: SCREW_SIDE_OFFSET from the John's outer end; M5 cap screw + acorn
+#          nut bearing on the bottle (flush, no acorn, through a fin/ballast slat);
+#   lock:  on the bottle's NECK, between the top dome and the support ring.
+#          Its bare shank stands in front of the ring, so the bottle cannot be
+#          pulled back out.
+# The ring rests on the crossing Little John's outer face, exactly one port
+# length in from the John end, so the lock position follows the PORT LENGTH
+# (taper height + allowance) -- not the port height or the fit offset.
+# ---------------------------------------------------------------------------
+SCREW_SIDE_OFFSET_MM = 17.0     # p_screw_side_offset()
+BOTTLE_COLLAR_H_MM = 1.0        # p_bottle_collar_h()  (support-ring thickness)
+BOTTLE_NECK_H_MM = 5.0          # p_bottle_neck_h()    (dome -> ring gap)
+NECK_UNDER_CAP_MM = 3.0         # p_bottle_neck_d() = cap diameter - 3
+LOCK_TIP_GAP_MM = 0.5           # p_eco_lock_tip_gap(): lock tip stops short of the neck
+M5_ACORN_H_MM = 10.0            # p_m5_acorn_h()
+M5_ACORN_THREAD_MM = 7.0        # p_m5_acorn_thread_depth()
+# Stock ISO 4762 M5 lengths used to round a required shank length up.
+M5_STOCK_LENGTHS_MM = (16, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 90, 100)
+
+
+def port_length_mm(taper_height: Optional[float] = None,
+                   port_allowance: float = DEFAULT_PORT_ALLOWANCE_MM) -> float:
+    """turtle_body p_port_length() = p_top_dome_h() + p_port_allowance() (82)."""
+    th = DEFAULT_TAPER_HEIGHT_MM if taper_height is None else taper_height
+    return th + port_allowance
+
+
+def collar_lock_x(port_length: float) -> float:
+    """p_eco_lock_x(): lock axis from a John's outer end (78.5 at defaults)."""
+    return port_length - BOTTLE_COLLAR_H_MM - BOTTLE_NECK_H_MM / 2
+
+
+def collar_lock_from_clamp(port_length: float) -> float:
+    """p_eco_lock_from_clamp(): lock hole this far nearer the core than the
+    clamp hole, on every board bolted through a John (61.5 at defaults)."""
+    return collar_lock_x(port_length) - SCREW_SIDE_OFFSET_MM
+
+
+def m5_stock_length(min_len: float) -> float:
+    """Shortest stock M5 length >= min_len (min_len itself if past the table)."""
+    for length in M5_STOCK_LENGTHS_MM:
+        if length >= min_len - 1e-9:
+            return float(length)
+    return float(math.ceil(min_len))
+
+
+def clamp_bolt_length(wood_t: float, port_gap: float) -> float:
+    """Clamp screw: the acorn (run fully on) touches the bottle across the
+    port gap, and through a fin/ballast slat the bare tip must reach the slat
+    face (2t). turtle_body p_m5_bolt_len() = 25 at the defaults."""
+    acorn_tip = port_gap - M5_ACORN_H_MM + M5_ACORN_THREAD_MM
+    return m5_stock_length(max(wood_t + acorn_tip, 2 * wood_t))
+
+
+def collar_lock_bolt_length(wood_t: float, port_gap: float,
+                            bottle_d: float, cap_d: float) -> float:
+    """Collar lock: through the John and across the gap to the neck, tip
+    stopped LOCK_TIP_GAP_MM short. turtle_body p_eco_lock_bolt_len() = 55
+    at the defaults (lib keeps that as a constant + assert; this is the rule)."""
+    neck_d = cap_d - NECK_UNDER_CAP_MM
+    reach = port_gap + (bottle_d - neck_d) / 2
+    return m5_stock_length(wood_t + reach - LOCK_TIP_GAP_MM)
 
 
 @dataclass(frozen=True)

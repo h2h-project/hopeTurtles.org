@@ -66,6 +66,8 @@ from common import (
     canvas,
     ezdxf,
 )
+from pdf_i18n import pdf_lang, title_font_for, translator
+_EN = lambda s, **k: s.format(**k) if k else s  # English, for non-PDF callers
 import generate_sails as _sails
 
 OBJECT_TYPE = "sails"
@@ -834,10 +836,13 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     from reportlab.lib.utils import simpleSplit
 
     title_font, body_font, _mono_font = _register_fonts(font_dir)
+    lang = pdf_lang(inputs)
+    _tx = translator(inputs)
+    title_font = title_font_for(lang, title_font, body_font)
 
     page_w, page_h = landscape(letter)
     c = canvas.Canvas(str(path), pagesize=landscape(letter))
-    c.setTitle(f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
+    c.setTitle(_tx("Flatpack Sail Apparatus v{version}", version=DESIGN_VERSION))
 
     margin = 24
     draw_left = margin
@@ -852,32 +857,32 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     left_pad = 34      # parts' left edge sits this far in (room for their height dims)
     box_title_size = 8 * 1.2
     derived_lines = [
-        f"Wood thickness {_ceil_mm(inputs.wood_thickness)}mm   Bottle Ø {_ceil_mm(inputs.bottle_diameter)}mm",
-        f"Battens {_ceil_mm(d.batten_height)} (sail) / {_ceil_mm(d.non_sail_batten_height)} (non-sail) x {_ceil_mm(d.batten_width)} x {_ceil_mm(d.batten_thickness)}mm",
-        f"Rail slots {_ceil_mm(d.top_bar_slot_width)}mm wide (fit the batten)",
-        f"Batten notches {_ceil_mm(d.batten_notch_height)}mm (rails), {_ceil_mm(d.batten_upper_notch_height)}mm (crossbar: 2 layers)",
-        f"Top bar halves {_ceil_mm(d.half_length)} x {_ceil_mm(d.top_bar_width)}mm, {_ceil_mm(d.top_bar_length)}mm tip to tip",
-        f"Connector {_ceil_mm(d.connector_length)}mm: shaft hole Ø{_ceil_mm(d.connector_axle_hole_d)}, M3 side pilot Ø{_ceil_mm(d.m3_pilot_d)} to it",
-        f"Bottom sail bar {_ceil_mm(d.bottom_bar_length)} x {_ceil_mm(d.bottom_bar_width)}mm",
-        f"Joint strengthener {_ceil_mm(d.strengthener_width)} x {_ceil_mm(d.strengthener_height)}mm",
-        f"C end piece {_ceil_mm(d.c_piece_length)} x {_ceil_mm(d.c_piece_width)}mm",
-        f"Cage holes M3 Ø{_ceil_mm(d.cage_mount_hole_diameter)} @ {_ceil_mm(d.cage_mount_lower_from_bottom)}/{_ceil_mm(d.cage_mount_upper_from_bottom)}mm from foot",
-        f"Strengthener/batten M6 Ø{_ceil_mm(BATTEN_CAGE_M6_HOLE_D)}mm",
+        _tx("Wood thickness {t}mm   Bottle Ø {d}mm", t=_ceil_mm(inputs.wood_thickness), d=_ceil_mm(inputs.bottle_diameter)),
+        _tx("Battens {s} (sail) / {n} (non-sail) x {w} x {t}mm", s=_ceil_mm(d.batten_height), n=_ceil_mm(d.non_sail_batten_height), w=_ceil_mm(d.batten_width), t=_ceil_mm(d.batten_thickness)),
+        _tx("Rail slots {v}mm wide (fit the batten)", v=_ceil_mm(d.top_bar_slot_width)),
+        _tx("Batten notches {r}mm (rails), {c}mm (crossbar: 2 layers)", r=_ceil_mm(d.batten_notch_height), c=_ceil_mm(d.batten_upper_notch_height)),
+        _tx("Top bar halves {l} x {w}mm, {tt}mm tip to tip", l=_ceil_mm(d.half_length), w=_ceil_mm(d.top_bar_width), tt=_ceil_mm(d.top_bar_length)),
+        _tx("Connector {l}mm: shaft hole Ø{a}, M3 side pilot Ø{p} to it", l=_ceil_mm(d.connector_length), a=_ceil_mm(d.connector_axle_hole_d), p=_ceil_mm(d.m3_pilot_d)),
+        _tx("Bottom sail bar {l} x {w}mm", l=_ceil_mm(d.bottom_bar_length), w=_ceil_mm(d.bottom_bar_width)),
+        _tx("Joint strengthener {w} x {h}mm", w=_ceil_mm(d.strengthener_width), h=_ceil_mm(d.strengthener_height)),
+        _tx("C end piece {l} x {w}mm", l=_ceil_mm(d.c_piece_length), w=_ceil_mm(d.c_piece_width)),
+        _tx("Cage holes M3 Ø{d} @ {lo}/{up}mm from foot", d=_ceil_mm(d.cage_mount_hole_diameter), lo=_ceil_mm(d.cage_mount_lower_from_bottom), up=_ceil_mm(d.cage_mount_upper_from_bottom)),
+        _tx("Strengthener/batten M6 Ø{v}mm", v=_ceil_mm(BATTEN_CAGE_M6_HOLE_D)),
     ]
     box_w = 215.0
     box_h = 5 + box_title_size + 11 + 9 * (len(derived_lines) - 1) + 10
     box_bottom = band_top - box_h
-    _rounded_rect_text(c, draw_right - box_w, box_bottom, box_w, box_h, "Derived dimensions",
+    _rounded_rect_text(c, draw_right - box_w, box_bottom, box_w, box_h, _tx("Derived dimensions"),
                        derived_lines, title_font, body_font, title_size=box_title_size)
 
     # The intro is set at the largest size (up to 9.5pt) that wraps it into
     # at most four lines between the parts' left edge and the box.
-    intro = (
+    intro = _tx(
         "Reference only - the SVG/DXF exports are the 1:1 cut files. One shared scale; mirrored "
         "pairs are drawn once. Positions are in mm from the nearest end of the part, and M3/M6 "
         "name the bolt each hole takes. Every part, battens included, is cut from "
-        f"your {_ceil_mm(inputs.wood_thickness)}mm board. "
-        "The sail is soft goods and is not on this sheet."
+        "your {t}mm board. The sail is soft goods and is not on this sheet.",
+        t=_ceil_mm(inputs.wood_thickness),
     )
     title_size = 16
     text_x = draw_left + left_pad
@@ -893,7 +898,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     title_y = band_top - title_size + 3
     c.setFont(title_font, title_size)
     c.setFillColor(colors.HexColor("#111111"))
-    c.drawString(text_x, title_y, f"Flatpack Sail Apparatus v{DESIGN_VERSION}")
+    c.drawString(text_x, title_y, _tx("Flatpack Sail Apparatus v{version}", version=DESIGN_VERSION))
     c.setFont(body_font, size)
     c.setFillColor(colors.HexColor("#555555"))
     for n, text in enumerate(lines):
@@ -977,33 +982,33 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
     # page like the bars; w_mm/h_mm below are still the part-local axes and
     # prepare() applies the rotation.
     half = {
-        "name": "Top Sail Bar Half (x2)", "w_mm": d.half_length, "h_mm": d.top_bar_width, "rotate": False,
+        "name": _tx("Top Sail Bar Half (x2)"), "w_mm": d.half_length, "h_mm": d.top_bar_width, "rotate": False,
         "edges": half_edges, "notches": half_walls, "circles": list(_half_circles(d)),
     }
     connector = {
-        "name": "Sail Crossbar Connector (x1)", "w_mm": d.connector_length, "h_mm": d.top_bar_width, "rotate": False,
+        "name": _tx("Sail Crossbar Connector (x1)"), "w_mm": d.connector_length, "h_mm": d.top_bar_width, "rotate": False,
         "edges": connector_edges, "notches": connector_walls, "circles": list(_connector_circles(d)),
     }
     bottom_bar = {
-        "name": "Bottom Sail Bar (x2)", "w_mm": d.bottom_bar_length, "h_mm": d.bottom_bar_width, "rotate": False,
+        "name": _tx("Bottom Sail Bar (x2)"), "w_mm": d.bottom_bar_length, "h_mm": d.bottom_bar_width, "rotate": False,
         "edges": bottom_bar_edges, "notches": bottom_bar_walls, "circles": [],
     }
     sail_batten = {
-        "name": "Sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": True,
+        "name": _tx("Sail Batten (x2)"), "w_mm": d.batten_width, "h_mm": d.batten_height, "rotate": True,
         "edges": sail_batten_edges, "notches": sail_batten_walls,
         "circles": _batten_circles(d, sail_type=True),
     }
     non_sail_batten = {
-        "name": "Non-sail Batten (x2)", "w_mm": d.batten_width, "h_mm": d.non_sail_batten_height, "rotate": True,
+        "name": _tx("Non-sail Batten (x2)"), "w_mm": d.batten_width, "h_mm": d.non_sail_batten_height, "rotate": True,
         "edges": non_sail_batten_edges, "notches": non_sail_batten_walls,
         "circles": _batten_circles(d, sail_type=False),
     }
     strengthener = {
-        "name": "Joint Strengthener (x2)", "w_mm": d.strengthener_width, "h_mm": d.strengthener_height, "rotate": False,
+        "name": _tx("Joint Strengthener (x2)"), "w_mm": d.strengthener_width, "h_mm": d.strengthener_height, "rotate": False,
         "edges": strengthener_edges, "notches": strengthener_walls, "circles": list(_strengthener_circles(d)),
     }
     c_piece = {
-        "name": "C End Piece (x2)", "w_mm": d.c_piece_length, "h_mm": d.c_piece_width, "rotate": False,
+        "name": _tx("C End Piece (x2)"), "w_mm": d.c_piece_length, "h_mm": d.c_piece_width, "rotate": False,
         "edges": c_piece_edges, "notches": c_piece_walls, "circles": [],
     }
 
@@ -1135,7 +1140,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
         if abs(dia - d.m3_pilot_d) < 0.01:
             return f"Ø{_ceil_mm(dia)}"     # M3 pilot (named in the Derived box); short enough to clear the slots
         if abs(dia - d.connector_axle_hole_d) < 0.01:
-            return f"Ø{_ceil_mm(dia)} shaft"
+            return _tx("Ø{v} shaft", v=_ceil_mm(dia))
         return f"Ø{_ceil_mm(dia)}mm"
 
     def draw_part(part, ox, oy):
@@ -1218,7 +1223,7 @@ def write_pdf(path: Path, inputs: SailsInputs, d: SailsDerived, *, font_dir: Opt
 
     c.setFont(body_font, 6)
     c.setFillColor(colors.HexColor("#555555"))
-    c.drawString(draw_left, draw_bottom + 4, f"CERN-OHL-S-2.0. Design version {DESIGN_VERSION}. https://hopeturtles.org/turtles/generate")
+    c.drawString(draw_left, draw_bottom + 4, _tx("CERN-OHL-S-2.0. Design version {version}. https://hopeturtles.org/turtles/generate", version=DESIGN_VERSION))
 
     c.showPage()
     c.save()

@@ -32,8 +32,9 @@ export const PART_QUANTITIES_BY_TYPE = {
     { key: 'little_john', part: 'Little John', quantity: 5 },
     { key: 'master_john', part: 'Master John', quantity: 1 },
     { key: 'final_key', part: 'Final Key', quantity: 4 }
-    // turtle_body v5.0.0: the 12 Pressers are gone -- each Little/Master John
-    // end is clamped by two M5 wing bolts + acorn nuts (hardware, not cut).
+    // turtle_body v7.0.0: each Little/Master John end carries one centred M5
+    // clamp screw + acorn nut and one centred bare M5 collar-lock screw
+    // (hardware, not cut). The Pressers went in v5.0.0.
   ],
   fin: [
     { key: 'rear_fin', part: 'Rear Fin', quantity: 1 },
@@ -264,12 +265,19 @@ const mapBackFinFields = (body = {}) => {
 
   // "Adjust connection" (Panel 5): the fin's green shafts sit against the
   // Ecojoiner's Little Johns, which are cut to bottle diameter + this offset,
-  // so the shaft gap and hole pair must follow it too.
+  // so the shaft gap and hole positions must follow it too.
   const optional = {};
   const portFitMm = toNumber(body.portFitMm);
   if (portFitMm !== null) {
     if (Number.isNaN(portFitMm)) errors.push('portFitMm must be a number.');
     else optional.port_fit_mm = portFitMm;
+  }
+  // Top taper (turtle_body v7.0.0): sets the Ecojoiner port length, and so
+  // where the shaft's collar-lock hole sits. Optional; Python defaults to 62.
+  const finTaper = toNumber(body.topTapper);
+  if (finTaper !== null) {
+    if (Number.isNaN(finTaper)) errors.push('topTapper must be a number.');
+    else optional.taper_height = finTaper;
   }
 
   // Fabrication checkboxes → generator formats.
@@ -512,6 +520,12 @@ const mapHeadFinFields = (body = {}) => {
   if (portFitMm !== null) {
     if (Number.isNaN(portFitMm)) errors.push('portFitMm must be a number.');
     else optional.port_fit_mm = portFitMm;
+  }
+  // Top taper (turtle_body v7.0.0): sets where the slats' collar-lock hole sits.
+  const headTaper = toNumber(body.topTapper);
+  if (headTaper !== null) {
+    if (Number.isNaN(headTaper)) errors.push('topTapper must be a number.');
+    else optional.taper_height = headTaper;
   }
 
   // Fabrication checkboxes → generator formats.

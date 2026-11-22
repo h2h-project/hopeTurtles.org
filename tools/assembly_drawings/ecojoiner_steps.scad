@@ -36,14 +36,18 @@ module flipped_long(target_x, dz = 0)
                     [0, -1, 0, H], [0, 0, 0, 1]])
             long_john();
 
-// Clamp hardware on one standing Little/Master John — same placement as
-// eco_standing_little_john().
+// Bottle hardware on one standing Little/Master John — same placement as
+// eco_standing_little_john() (turtle_body v7.0.0): at each end a centred clamp
+// screw with its acorn, and a centred bare collar-lock screw further in.
 module john_clamps(target_y, inside_sign)
-    if (grp == "hw")
-        for (hole_x = [p_screw_side_offset(), L - p_screw_side_offset()])
-            for (hole_z = eco_screw_ys())
-                translate([hole_x, target_y + inside_sign * t / 2, hole_z])
-                    rotate([inside_sign > 0 ? -90 : 90, 0, 0]) eco_m5_clamp(false);
+    if (grp == "hw") {
+        for (hole_x = eco_clamp_xs())
+            translate([hole_x, target_y + inside_sign * t / 2, eco_screw_y_center()])
+                rotate([inside_sign > 0 ? -90 : 90, 0, 0]) eco_m5_clamp(false);
+        for (hole_x = eco_lock_xs())
+            translate([hole_x, target_y + inside_sign * t / 2, eco_screw_y_center()])
+                rotate([inside_sign > 0 ? -90 : 90, 0, 0]) eco_m5_collar_lock();
+    }
 
 // skip_long leaves out one Long John (1 or 2), so the square is drawn as the
 // U of two Little Johns on one Long John that step 4 slides in from above.
@@ -85,13 +89,16 @@ module layout() {
     // Final Keys ×4 — in front of the Long Johns
     kw = eco_final_key_width();
     for (i = [1 : 4]) translate([0, -i * (kw + gap) - 30, 0]) final_key();
-    // Hardware ×24 — cap screws and acorn nuts lying in two rows beside them
+    // Hardware beside them, three rows of 12: clamp screws, acorn nuts, and
+    // the longer collar-lock screws (turtle_body v7.0.0)
     if (grp == "hw")
-        for (i = [0 : 11]) for (j = [0 : 1])
-            translate([eco_final_key_length() + 70 + i * 22, -60 - j * 90, 4.5]) {
-                rotate([-90, 0, 0]) eco_m5_cap_screw(tip_z = 0);
-                translate([0, 22, 0]) rotate([-90, 0, 0]) eco_m5_acorn(tip_z = 8);
-            }
+        for (i = [0 : 11]) {
+            x = eco_final_key_length() + 70 + i * 22;
+            translate([x, -60, 4.5]) rotate([-90, 0, 0]) eco_m5_cap_screw(tip_z = 0);
+            translate([x, -38, 4.5]) rotate([-90, 0, 0]) eco_m5_acorn(tip_z = 8);
+            translate([x, -110, 4.5]) rotate([-90, 0, 0])
+                eco_m5_cap_screw(tip_z = 0, len = p_eco_lock_bolt_len());
+        }
 }
 
 // ---- the three squares, in the order the steps fit them -------------------
@@ -130,30 +137,28 @@ module master_vs_little() {
     master_john();
 }
 
-// ---- step 6 inset: one John end, its M5 pair close up --------------------
-// The John in its own frame (port-side face at Z = t). The upper screw is
-// shown fitted with its acorn; the lower one is pulled out of its hole and
-// its acorn lifted off the tip, so the stack reads in order.
+// ---- step 6 inset: one John end, its two M5 screws close up ---------------
+// The John in its own frame (port-side face at Z = t), cut just past the
+// collar-lock hole. The clamp screw at the end is shown fitted with its
+// acorn; the longer collar-lock screw further in is pulled back out of its
+// hole, so both read in order.
 if (step == 7) rotate([90, 0, 0]) {
-    ys = eco_screw_ys();
+    yc = eco_screw_y_center();
     intersection() {
         little_john();
-        translate([-1, -1, -1]) cube([80, H + 2, t + 2]);
+        translate([-1, -1, -1]) cube([p_eco_lock_x() + 16, H + 2, t + 2]);
     }
     if (grp == "hw") {
-        translate([p_screw_side_offset(), ys[1], t]) eco_m5_clamp(false);
-        translate([p_screw_side_offset(), ys[0], t]) {
-            translate([0, 0, -38]) eco_m5_cap_screw(tip_z = eco_clamp_tip());
-            translate([0, 0, 26]) eco_m5_acorn(tip_z = eco_clamp_reach());
-        }
+        translate([p_screw_side_offset(), yc, t]) eco_m5_clamp(false);
+        translate([p_eco_lock_x(), yc, t - 30])
+            eco_m5_cap_screw(tip_z = eco_lock_tip(), len = p_eco_lock_bolt_len());
     }
 }
 
-// ---- step 2 inset: what to buy — one M5 bolt and one acorn nut ------------
+// ---- step 2 inset: what to buy — the two M5 screws and an acorn nut -------
 // Drawn larger than life, with the hex socket and thread ridges the
 // assembly drawings leave out (pitch 0.8 mm, M5 coarse).
-module m5_bolt_detail() {
-    len = p_m5_bolt_len();
+module m5_bolt_detail(len = p_m5_bolt_len()) {
     difference() {
         translate([0, 0, -p_m5_head_h()]) cylinder(d = p_m5_head_d(), h = p_m5_head_h(), $fn = 48);
         translate([0, 0, -p_m5_head_h() - 1]) cylinder(d = 4 / cos(30), h = 3.5, $fn = 6);
@@ -164,6 +169,7 @@ module m5_bolt_detail() {
 }
 
 if (step == 8 && grp == "hw") {
-    rotate([0, 90, 0]) m5_bolt_detail();
-    translate([p_m5_bolt_len() / 2, 16, 0]) eco_m5_acorn(tip_z = p_m5_acorn_h());
+    rotate([0, 90, 0]) m5_bolt_detail();                                     // clamp screw
+    translate([p_m5_bolt_len() + 16, 0, 0]) eco_m5_acorn(tip_z = p_m5_acorn_h());
+    translate([0, -16, 0]) rotate([0, 90, 0]) m5_bolt_detail(p_eco_lock_bolt_len());  // collar lock
 }

@@ -10,12 +10,14 @@ axis -- denser on faces turned from the light, cross-hatched in shadow, close
 end-grain lines on cut ends. Reuses the z-buffer and outline code of
 tools/assembly_drawings/render.py.
 
-Writes public/images/ecojoiners/<name>.webp (500 x 500, the card size) for
-the components in CARDS, plus a 1000 px <name>-high.webp for those in HIGH
-(the /turtles/build sail-components panel; the sail frame's also goes on the
-sails carpenter PDF):
+Writes the 500 x 500 /turtles/generate Panel 4 cards (CARDS: name -> file
+in public/images/ecojoiners/) in the "fine" style -- thin outlines, short
+broken grain strokes, fine parallel hatching in shadow, matching the original
+hand-drawn fin-attachment card -- plus a 1000 px <name>-high.webp for those in
+HIGH, in the heavier "bold" style (the /turtles/build sail-components panel;
+the sail frame's also goes on the sails carpenter PDF):
 
-    python3 tools/component_previews/render.py [ballast_fin] [rear_fin] [head_fin] [sail_frame]
+    python3 tools/component_previews/render.py [ecojoiner] [rear_fin] [ballast_fin] [sail_frame] [sail_cutout] [head_fin]
 
 Needs openscad on PATH, numpy and Pillow.
 """
@@ -47,6 +49,11 @@ LIGHT /= np.linalg.norm(LIGHT)
 # group is split into boards and grain-hatched; an optional "fabric" group
 # (the sails) is drawn as a light woven mesh in the same coordinates.
 COMPONENTS = {
+    "ecojoiner": (
+        "Turtle_Core_Ecojoiner.scad",
+        {"wood": "eco_ecojoiner_only(colored = false);"},
+        (-35, 28),
+    ),
     "ballast_fin": (
         "Turtle_Bottom_Ballast_Fin.scad",
         {"wood": "local_ballast_assembly(colored = false);"},
@@ -70,6 +77,22 @@ COMPONENTS = {
         },
         (-38, 22),
     ),
+    # The cut sails alone, for the "Sail Cutout" card.
+    "sail_cutout": (
+        "Turtle_Sail_Apparatus.scad",
+        {"fabric": 'sail_frame(part = "sails");'},
+        (-30, 18),
+    ),
+}
+
+# Line weights per style, in output pixels (x SS while drawing; sil/crease
+# are dilation radii, so the drawn width is about twice the value). "bold" is
+# the original build-page look; "fine" matches the hand-drawn generator cards.
+STYLES = {
+    "bold": dict(sil=2.4, crease=1.1, line=1.05, lit=8, mid=4, dark=3.2, cross=6,
+                 end=3.6, blur=0.35, gap=-0.55, gap_len=29, cloth=7, cloth_w=0.5),
+    "fine": dict(sil=0.75, crease=0.3, line=0.5, lit=6, mid=3.2, dark=2.2, cross=0,
+                 end=2.2, blur=0.3, gap=-0.25, gap_len=17, cloth=6, cloth_w=0.3),
 }
 # Non-wood groups, drawn in one style each instead of grain-hatched boards.
 # tools/assembly_drawings/turtle_steps.py exports the full-turtle scenes in
@@ -113,24 +136,32 @@ def split_parts(tris: np.ndarray):
     return part
 
 
-def draw(name: str, meshes: dict, size: int = SIZE) -> Image.Image:
-    return draw_view(meshes, COMPONENTS[name][2], size)
+def draw(name: str, meshes: dict, size: int = SIZE, style: str = "bold") -> Image.Image:
+    return draw_view(meshes, COMPONENTS[name][2], size, style=style)
 
 
-def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN) -> Image.Image:
+def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN,
+              style: str = "bold") -> Image.Image:
     """Ink `meshes` ({group: triangles}) seen from `view` = (azimuth, elevation)."""
+    st = STYLES[style]
+    meshes = dict(meshes)
     tris = meshes.get("wood", np.empty((0, 3, 3)))
     part = split_parts(tris) if len(tris) else np.empty(0, dtype=int)
-    keep, grain = [], {}
+    keep, grain, hw = [], {}, []
     for pid in np.unique(part):
         pts = tris[part == pid].reshape(-1, 3)
         ext = pts.max(0) - pts.min(0)
         if ext.min() < 0.5:          # sail membranes and other films: not wood
             continue
+        if np.sort(ext)[1] < 15:     # bolts, nuts: thin in two directions
+            hw.append(tris[part == pid])
+            continue
         keep.append(pid)
         axis = np.zeros(3)
         axis[int(np.argmax(ext))] = 1.0
         grain[pid] = axis
+    if hw:
+        meshes["hw"] = np.concatenate(hw + ([meshes["hw"]] if "hw" in meshes else []))
     mask = np.isin(part, keep)
     tris, part = tris[mask], part[mask]
     for group, gid in EXTRA_IDS.items():
@@ -174,17 +205,18 @@ def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN) -> I
         pad = [(0, 1), (0, 0)] if ax == 0 else [(0, 0), (0, 1)]
         sil |= np.pad((dd > 6 * SS) | gd, pad)
         crease |= np.pad(nd < 0.92, pad)
-    ink |= dilate(sil, int(2.4 * SS))
-    ink |= dilate(crease & ~sil, int(1.1 * SS))
+    ink |= dilate(sil, max(1, int(st["sil"] * SS)))
+    ink |= dilate(crease & ~sil, max(1, int(st["crease"] * SS)))
 
     shade = np.clip(nbuf @ LIGHT, 0, 1)
     yy, xx = np.mgrid[0:px, 0:px].astype(float)
     rng = np.random.default_rng(11)
-    line_w = max(1, int(1.05 * SS))
+    line_w = max(1, int(st["line"] * SS))
 
     # Sail fabric: a fine, light woven mesh -- no grain, no tone hatching.
     cloth = gbuf == FABRIC_ID
-    ink |= cloth & ((np.mod(xx + yy, 7 * SS) < 0.5 * SS) | (np.mod(xx - yy, 7 * SS) < 0.5 * SS))
+    cw = st["cloth"] * SS
+    ink |= cloth & ((np.mod(xx + yy, cw) < st["cloth_w"] * SS) | (np.mod(xx - yy, cw) < st["cloth_w"] * SS))
 
     # Bottles: clear plastic, so only a light diagonal hatch on the shadow side.
     bottle = gbuf == EXTRA_IDS["bottle"]
@@ -212,22 +244,23 @@ def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN) -> I
         v = xx * gx + yy * gy             # along the grain
         ph1, ph2, ph3 = rng.uniform(0, 2 * np.pi, 3)
         wobble = 2.2 * SS * np.sin(v / (41 * SS) + ph1) + 0.9 * SS * np.sin(v / (13 * SS) + u / (90 * SS) + ph2)
-        broken = np.sin(v / (29 * SS) + u * 0.21 / SS + ph3) > -0.55   # hand-drawn gaps
+        broken = np.sin(v / (st["gap_len"] * SS) + u * 0.21 / SS + ph3) > st["gap"]   # hand-drawn gaps
 
         def grain_lines(spacing):
             return (np.mod(u + wobble, spacing * SS) < line_w) & broken
 
         end_grain = np.abs(nbuf @ (m @ grain[pid])) > 0.85
         face = here & ~end_grain
-        ink |= face & (shade >= 0.62) & grain_lines(8)
-        ink |= face & (shade < 0.62) & (shade >= 0.30) & grain_lines(4)
-        ink |= face & (shade < 0.30) & (np.mod(u, 3.2 * SS) < line_w)
-        ink |= face & (shade < 0.30) & (np.mod(xx - yy, 6 * SS) < line_w)
+        ink |= face & (shade >= 0.62) & grain_lines(st["lit"])
+        ink |= face & (shade < 0.62) & (shade >= 0.30) & grain_lines(st["mid"])
+        ink |= face & (shade < 0.30) & (np.mod(u, st["dark"] * SS) < line_w)
+        if st["cross"]:
+            ink |= face & (shade < 0.30) & (np.mod(xx - yy, st["cross"] * SS) < line_w)
         # Cut ends: tight, slightly curved lines across the end grain.
-        ink |= here & end_grain & (np.mod(xx + yy + 1.5 * SS * np.sin(xx / (17 * SS)), 3.6 * SS) < line_w)
+        ink |= here & end_grain & (np.mod(xx + yy + 1.5 * SS * np.sin(xx / (17 * SS)), st["end"] * SS) < line_w)
 
     img = Image.fromarray(np.where(ink, 0, 255).astype(np.uint8), "L")
-    img = img.filter(ImageFilter.GaussianBlur(0.35 * SS))
+    img = img.filter(ImageFilter.GaussianBlur(st["blur"] * SS))
     return img.resize((size, size), Image.LANCZOS).convert("RGB")
 
 
@@ -235,7 +268,15 @@ def draw_view(meshes: dict, view, size: int = SIZE, margin: float = MARGIN) -> I
 # Your Sail Components" panel shows all four, and the sails carpenter PDF
 # uses the sail frame's. Only CARDS also get the 500 px generator card.
 HIGH = {"ballast_fin": 1000, "rear_fin": 1000, "head_fin": 1000, "sail_frame": 1000}
-CARDS = {"head_fin", "sail_frame"}
+# The /turtles/generate Panel 4 cards, all in the "fine" style.
+CARDS = {
+    "ecojoiner": "ecojoiner-export.webp",
+    "rear_fin": "back-fin.webp",
+    "ballast_fin": "bottom_fin.webp",
+    "sail_frame": "sail-frame.webp",
+    "sail_cutout": "sail-cutout.webp",
+    "head_fin": "head-fin.webp",
+}
 
 
 def main() -> None:
@@ -245,7 +286,7 @@ def main() -> None:
         for name in names:
             mesh = export_mesh(name, Path(tmp))
             stem = name.replace("_", "-")
-            outs = [(OUT_DIR / f"{stem}.webp", draw(name, mesh))] if name in CARDS else []
+            outs = [(OUT_DIR / CARDS[name], draw(name, mesh, style="fine"))] if name in CARDS else []
             if name in HIGH:
                 outs.append((OUT_DIR / f"{stem}-high.webp", draw(name, mesh, size=HIGH[name])))
             for out, img in outs:
