@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Core_Ecojoiner.scad
-//  Turtle Body version 7.0.0
+//  Turtle Body version 7.2.1
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -100,10 +100,21 @@ function p_bottle_profile_steps() = 16;
 function p_bottle_cut_extra()  = 5;
 function p_bottle_cut_height() = p_bottom_dome_h() + p_bottle_cut_extra();   // 30
 
-// nominal bottle interior and the cap insert that enters it
-function p_bottle_socket_d() = p_bottle_d() - 2 * p_bottle_wall_t();          // 81
+// nominal bottle interior (still used by the cut-bottle mock-up)
+function p_bottle_socket_d() = p_bottle_d() - 2 * p_bottle_wall_t();          // 83 at Ø84
+
+// ---- control container (v7.1.0; CLAUDE.md s7b) ------------------------
+// The control unit is a length of transparent PVC pipe (bought-in, nominal,
+// not calipered), not a cut bottle. The control cap closes its top end, the
+// control plug its bottom end. Independent of the bottle size.
+function p_ctrl_pipe_od()  = 85;
+function p_ctrl_pipe_id()  = 81;
+function p_ctrl_pipe_len() = 254;   // 10 in cut length; the cap and plug disks add to it
+
+// the cap / plug insert that enters the pipe (was the cut bottle's socket
+// until v7.1.0 -- 81 at the Ø84 bottle, 79 at Ø82)
 function p_insert_shaft_radial_clearance() = 1;
-function p_insert_shaft_d()  = p_bottle_socket_d()
+function p_insert_shaft_d()  = p_ctrl_pipe_id()
                              - 2 * p_insert_shaft_radial_clearance();          // 79
 
 // ---- wooden stock -----------------------------------------------------
@@ -219,6 +230,28 @@ function p_cap_axle_bore_d() = 6;     // loose: 0.5 mm radial clearance to the �
 function p_cap_cage_radial_clearance() = 1;   // cap disk -> cage inner wall (radial)
 function p_cap_total_h()     = p_cap_roof_t() + p_cap_insert_len();           // 40
 function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 5 (was 6.5, 7)
+
+// master control cap -- the side tabs ("legs"), buttons, USB-C hole and
+// band groove of the production cap (src/components/Bottle_Control_Cap.scad),
+// lifted here in v7.1.0 so the cap, the control container's circuit boards
+// and the full turtle read one definition. See control_cap_master().
+function p_cap_tab_width()        = 22;   // tangential; the circuit boards sandwich it
+function p_cap_tab_wall_inset()   = 6;
+function p_cap_tab_overhang()     = 28;   // past the insert lip
+function p_cap_tab_fillet()       = 4;
+function p_cap_tab_taper_gain()   = 6;
+function p_cap_tab_taper_start()  = 10;
+function p_cap_tab_side_offset()  = 6;    // both legs slid sideways (boards need ~0 -- see s7b)
+function p_cap_tab_wire_hole_d()  = 5;
+function p_cap_tab_wire_exit()    = 15;
+function p_cap_button_d()         = 16.5;
+function p_cap_button_center_r()  = 23.2; // true cap centre -> button centre
+function p_cap_button_offset()    = 6;    // both buttons slid off the axis line
+function p_cap_usbc_d()           = 11;
+function p_cap_band_count()       = 1;
+function p_cap_band_z()           = 5;    // groove centre from the insert shoulder
+function p_cap_band_w()           = 10;
+function p_cap_band_depth()       = 2;
 
 // buttons (through both cap and cage)
 function p_button_upper_d()  = 17;    // clearance hole in the cap

@@ -19,9 +19,7 @@
       gen_fb_looks_wrong: "This doesn't look right.",
       gen_fb_looks_good: "Looks good.",
       gen_fb_tapper_long:
-        "That's a long top tapper — not an ideal bottle type. Aim for under 20%.",
-      gen_fb_tapper_tall:
-        "A touch tall — ideally the top tapper is under 20% of the height.",
+        "That's a long top tapper — not an ideal bottle type. Aim for 25% or less.",
       gen_fb_tapper_ok: "Nice short tapper.",
       gen_fb_bottom_deep:
         "That's a deep bottom tapper — not the ideal bottle type.",
@@ -198,21 +196,14 @@
       return true;
     },
 
-    // Top tapper: soft warnings only. Ideal < 20% of bottle height, flag > 25%.
+    // Top tapper: a soft warning only, when it is over 25% of bottle height.
     "eco-top-tapper": () => {
       const v = num("eco-top-tapper");
       const height = num("eco-height");
       if (v === null) return (setFeedback("eco-top-tapper", "", ""), false);
-      if (height && height > 0) {
-        const ratio = v / height;
-        if (ratio > 0.25) {
-          setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_long"));
-          return true;
-        }
-        if (ratio > 0.2) {
-          setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_tall"));
-          return true;
-        }
+      if (height && height > 0 && v / height > 0.25) {
+        setFeedback("eco-top-tapper", "warn", s("gen_fb_tapper_long"));
+        return true;
       }
       setFeedback("eco-top-tapper", "ok", s("gen_fb_tapper_ok"));
       return true;
@@ -1191,21 +1182,6 @@
   const profilePicker = document.querySelector("[data-eco-profile-picker]");
   let profilesById = {};
 
-  // Spec fields tracked to detect edits against an already-saved profile.
-  const SPEC_FIELD_IDS = [
-    "eco-diameter",
-    "eco-cap",
-    "eco-collar",
-    "eco-height",
-    "eco-top-tapper",
-    "eco-bottom-tapper",
-    "eco-cap-height",
-  ];
-  let loadedProfileSpecs = null;
-
-  const currentSpecValues = () =>
-    SPEC_FIELD_IDS.map((id) => el(id).value);
-
   // Bottle spec columns are DECIMAL(x,2) in the DB, so a loaded profile hands
   // back "1500.00" etc. — round to a whole number for volume (thickness
   // stays decimal-friendly since sheet material comes in fractional mm).
@@ -1277,8 +1253,6 @@
     ].forEach(check);
     hideResults();
     lastGenerated = null;
-    loadedProfileSpecs = currentSpecValues();
-    updateSaveChangesVisibility();
   };
 
   // The Step 1 profile picker was removed from the UI (redundant with the
@@ -1299,80 +1273,7 @@
     }
   };
 
-  // A second Step 2 footer: only relevant once a saved profile is loaded and
-  // its bottle specs have since been edited, offering to update that same
-  // profile rather than saving a new one.
-  const saveProfileChangesFooter = document.querySelector(
-    "[data-eco-save-profile-changes-footer]",
-  );
-  const saveProfileChangesBtn = el("eco-save-profile-changes-btn");
-  const saveProfileChangesFeedback = document.querySelector(
-    "[data-eco-save-profile-changes-feedback]",
-  );
-
-  const updateSaveChangesVisibility = () => {
-    if (!saveProfileChangesFooter) return;
-    const hasSelectedProfile = Boolean(profilePicker && profilePicker.value);
-    const isDirty =
-      hasSelectedProfile &&
-      loadedProfileSpecs !== null &&
-      JSON.stringify(currentSpecValues()) !== JSON.stringify(loadedProfileSpecs);
-    saveProfileChangesFooter.hidden = !isDirty;
-  };
-
-  const setSaveProfileChangesFeedback = (message, isError) => {
-    if (!saveProfileChangesFeedback) return;
-    saveProfileChangesFeedback.textContent = message || "";
-    saveProfileChangesFeedback.classList.toggle("eco-feedback--error", Boolean(isError));
-    saveProfileChangesFeedback.classList.toggle("eco-feedback--ok", Boolean(message) && !isError);
-  };
-
   loadProfiles();
-
-  form.addEventListener("input", (event) => {
-    if (SPEC_FIELD_IDS.includes(event.target.id)) updateSaveChangesVisibility();
-  });
-
-  if (saveProfileChangesBtn) {
-    saveProfileChangesBtn.addEventListener("click", async () => {
-      const profileId = profilePicker && profilePicker.value;
-      if (!profileId) return;
-      setSaveProfileChangesFeedback("");
-      const values = collect();
-
-      saveProfileChangesBtn.disabled = true;
-      const originalLabel = saveProfileChangesBtn.innerHTML;
-      saveProfileChangesBtn.textContent = s("gen_save_profile_saving");
-
-      try {
-        const formData = profileFormData(values);
-        const response = await fetch(`/api/ecojoiner/profiles/${profileId}`, {
-          method: "PUT",
-          body: formData,
-        });
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok || !body.success) {
-          setSaveProfileChangesFeedback(
-            body.message || s("gen_save_profile_error"),
-            true,
-          );
-          return;
-        }
-        setSaveProfileChangesFeedback(s("gen_save_profile_success"), false);
-        loadedProfileSpecs = currentSpecValues();
-        updateSaveChangesVisibility();
-        await loadProfiles();
-      } catch (error) {
-        setSaveProfileChangesFeedback(
-          error.message || s("gen_save_profile_error"),
-          true,
-        );
-      } finally {
-        saveProfileChangesBtn.disabled = false;
-        saveProfileChangesBtn.innerHTML = originalLabel;
-      }
-    });
-  }
 
   // --- Saved ecojoiner designs ----------------------------------------------
   // Loads a previously saved design (own or public) into the form: its bottle
@@ -1492,9 +1393,7 @@
         profilePicker.value = String(design.profile_id);
       } else {
         profilePicker.value = "";
-        loadedProfileSpecs = null;
       }
-      updateSaveChangesVisibility();
     }
 
     loadedDesign = {
@@ -1675,8 +1574,6 @@
         return { ok: false, missing: [], message: message || s("gen_save_profile_error") };
       }
       await loadProfiles();
-      loadedProfileSpecs = currentSpecValues();
-      updateSaveChangesVisibility();
       await syncDraftDesign(profileId, label || proposedLabel, jobInfo);
       return { ok: true, missing: [], message: null };
     } catch (error) {

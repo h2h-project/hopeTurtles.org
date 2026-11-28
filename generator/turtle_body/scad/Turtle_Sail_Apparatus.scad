@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Sail_Apparatus.scad
-//  Turtle Body version 7.0.0
+//  Turtle Body version 7.2.1
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -99,10 +99,21 @@ function p_bottle_profile_steps() = 16;
 function p_bottle_cut_extra()  = 5;
 function p_bottle_cut_height() = p_bottom_dome_h() + p_bottle_cut_extra();   // 30
 
-// nominal bottle interior and the cap insert that enters it
-function p_bottle_socket_d() = p_bottle_d() - 2 * p_bottle_wall_t();          // 81
+// nominal bottle interior (still used by the cut-bottle mock-up)
+function p_bottle_socket_d() = p_bottle_d() - 2 * p_bottle_wall_t();          // 83 at Ø84
+
+// ---- control container (v7.1.0; CLAUDE.md s7b) ------------------------
+// The control unit is a length of transparent PVC pipe (bought-in, nominal,
+// not calipered), not a cut bottle. The control cap closes its top end, the
+// control plug its bottom end. Independent of the bottle size.
+function p_ctrl_pipe_od()  = 85;
+function p_ctrl_pipe_id()  = 81;
+function p_ctrl_pipe_len() = 254;   // 10 in cut length; the cap and plug disks add to it
+
+// the cap / plug insert that enters the pipe (was the cut bottle's socket
+// until v7.1.0 -- 81 at the Ø84 bottle, 79 at Ø82)
 function p_insert_shaft_radial_clearance() = 1;
-function p_insert_shaft_d()  = p_bottle_socket_d()
+function p_insert_shaft_d()  = p_ctrl_pipe_id()
                              - 2 * p_insert_shaft_radial_clearance();          // 79
 
 // ---- wooden stock -----------------------------------------------------
@@ -218,6 +229,28 @@ function p_cap_axle_bore_d() = 6;     // loose: 0.5 mm radial clearance to the �
 function p_cap_cage_radial_clearance() = 1;   // cap disk -> cage inner wall (radial)
 function p_cap_total_h()     = p_cap_roof_t() + p_cap_insert_len();           // 40
 function p_cap_bearing_len() = p_cap_roof_t() + p_cap_boss_depth();           // 5 (was 6.5, 7)
+
+// master control cap -- the side tabs ("legs"), buttons, USB-C hole and
+// band groove of the production cap (src/components/Bottle_Control_Cap.scad),
+// lifted here in v7.1.0 so the cap, the control container's circuit boards
+// and the full turtle read one definition. See control_cap_master().
+function p_cap_tab_width()        = 22;   // tangential; the circuit boards sandwich it
+function p_cap_tab_wall_inset()   = 6;
+function p_cap_tab_overhang()     = 28;   // past the insert lip
+function p_cap_tab_fillet()       = 4;
+function p_cap_tab_taper_gain()   = 6;
+function p_cap_tab_taper_start()  = 10;
+function p_cap_tab_side_offset()  = 6;    // both legs slid sideways (boards need ~0 -- see s7b)
+function p_cap_tab_wire_hole_d()  = 5;
+function p_cap_tab_wire_exit()    = 15;
+function p_cap_button_d()         = 16.5;
+function p_cap_button_center_r()  = 23.2; // true cap centre -> button centre
+function p_cap_button_offset()    = 6;    // both buttons slid off the axis line
+function p_cap_usbc_d()           = 11;
+function p_cap_band_count()       = 1;
+function p_cap_band_z()           = 5;    // groove centre from the insert shoulder
+function p_cap_band_w()           = 10;
+function p_cap_band_depth()       = 2;
 
 // buttons (through both cap and cage)
 function p_button_upper_d()  = 17;    // clearance hole in the cap
@@ -686,6 +719,13 @@ module cut_bottle(bottle_d   = p_bottle_d(),
 //  the short arc between them (off button_axis entirely). See
 //  cap_usbc_hole_cut() below.
 //
+//  Three opt-out flags (all default to the production cap) let the same
+//  module make the experimental CONTROL PLUG for the PVC-pipe control
+//  container (lib/control_container.scad): `button_holes = false` drops the
+//  two button holes, `axle_bore = false` drops the shaft bore (and with it
+//  the O-ring gland), and `usbc_center = true` moves the USB-C hole onto the
+//  cap axis, where the shaft bore was.
+//
 //  Definitions only. Geometry is emitted by control_cap().
 // ==========================================================================
 
@@ -969,8 +1009,10 @@ module cap_side_tabs(wall_d, outer_wall_d, roof_t, lip_h, tab_width, tab_wall_in
 // (offset == 0 defaults to the positive side, where both arcs are equal).
 // This keeps it off the button_axis entirely, clear of the side tabs
 // which run along that axis.
-module cap_usbc_hole_cut(roof_t, hole_d, axis, radius, offset) {
-    r = sqrt(radius * radius + offset * offset);
+// center = true: the hole goes on the cap axis instead (control plug --
+// replaces the shaft bore).
+module cap_usbc_hole_cut(roof_t, hole_d, axis, radius, offset, center = false) {
+    r = center ? 0 : sqrt(radius * radius + offset * offset);
     s = offset < 0 ? -1 : 1;
     pos = (axis == "x") ? [0, s * r] : [s * r, 0];
     translate([pos[0], pos[1], -p_eps()])
@@ -1037,6 +1079,9 @@ module control_cap(disk_od       = p_cap_disk_d(),
                    etch_line_d     = 0.2,
                    usbc_hole       = false, // USB-C port hole, on the button circle, between the buttons
                    usbc_hole_d     = 12,
+                   usbc_center     = false, // true: USB-C hole on the cap axis (control plug)
+                   button_holes    = true,  // false: no button holes (control plug)
+                   axle_bore       = true,  // false: no shaft bore and no O-ring gland (control plug)
                    fn            = undef) {
     bc = band_count == undef ? p_seal_groove_count() : band_count;
     nn = fn == undef ? p_fn_plastic() : fn;
@@ -1061,9 +1106,11 @@ module control_cap(disk_od       = p_cap_disk_d(),
         assert(abs(band_z2 - band_z1) > band_w, "control_cap: seal grooves overlap.");
     // Button holes can carry an off-axis slide (button_offset); clearance
     // checks use the true centre distance, not just the nominal radius.
+    if (axle_bore && button_holes)
     assert(axle_bore_d > 0 && button_center_dist - button_d / 2 > axle_bore_d / 2,
            "control_cap: button hole overlaps the centre axle bore -- increase button_radius/reduce button_d, or reduce button_offset.");
-    assert(button_center_dist + button_d / 2 < disk_od / 2);
+    if (button_holes)
+        assert(button_center_dist + button_d / 2 < disk_od / 2);
     assert(button_axis == "x" || button_axis == "y");
     // boss_depth = 0 -> no boss: the cavity ceiling (inner surface of the
     // roof) is flat right up to the axle bore (default since v6.5.1).
@@ -1073,7 +1120,8 @@ module control_cap(disk_od       = p_cap_disk_d(),
         assert(boss_d / 2 < button_center_dist - button_d / 2,
                "control_cap: centre boss must clear the button openings.");
     }
-    if (oring_gland) {
+    gland = oring_gland && axle_bore;
+    if (gland) {
         assert(oring_gland_od > axle_bore_d
                && (boss_depth == 0 || oring_gland_od < boss_d - 1),
                "control_cap: O-ring gland OD must sit between the bore and the boss wall.");
@@ -1112,7 +1160,15 @@ module control_cap(disk_od       = p_cap_disk_d(),
     if (etch_line)
         assert(etch_line_d > 0 && etch_line_d < roof_t,
                "control_cap: etch line depth must be positive and less than the roof thickness.");
-    if (usbc_hole) {
+    if (usbc_hole && usbc_center) {
+        assert(usbc_hole_d > 0 && usbc_hole_d < inner_top_od,
+               "control_cap: centred USB-C hole must be positive and fit inside the cavity.");
+        assert(!axle_bore,
+               "control_cap: centred USB-C hole would land on the shaft bore -- set axle_bore = false.");
+        assert(!button_holes || button_center_dist - button_d / 2 > usbc_hole_d / 2,
+               "control_cap: centred USB-C hole overlaps the button holes.");
+    }
+    if (usbc_hole && !usbc_center) {
         assert(usbc_hole_d > 0, "control_cap: USB-C hole diameter must be positive.");
         assert(button_center_dist - usbc_hole_d / 2 > boss_d / 2,
                "control_cap: USB-C hole overlaps the centre boss -- increase button_radius/button_offset or reduce the hole diameter.");
@@ -1144,21 +1200,24 @@ module control_cap(disk_od       = p_cap_disk_d(),
                               tab_wire_hole, tab_wire_hole_d, tab_wire_hole_exit_from_lip, nn);
         }
         // central bore through roof + boss
+        if (axle_bore)
         translate([0, 0, -p_eps()])
             cylinder(h = roof_t + boss_depth + 2 * p_eps(), d = axle_bore_d);
         // O-ring gland: an annular groove in the bore wall, centred oring_gland_z
         // below the cap outer face, that seats the axle rotary-seal O-ring.
-        if (oring_gland)
+        if (gland)
             translate([0, 0, oring_gland_z - oring_gland_w / 2])
                 rotate_extrude($fn = nn)
                     translate([axle_bore_d / 2 - p_eps(), 0])
                         square([oring_gland_od / 2 - axle_bore_d / 2 + p_eps(),
                                 oring_gland_w]);
-        cap_button_holes_cut(roof_t, button_d, button_axis, button_radius, button_offset);
+        if (button_holes)
+            cap_button_holes_cut(roof_t, button_d, button_axis, button_radius, button_offset);
         if (etch_line)
             cap_axis_etch_line(r_outer_true, roof_t, etch_line_w, etch_line_d, button_axis);
         if (usbc_hole)
-            cap_usbc_hole_cut(roof_t, usbc_hole_d, button_axis, button_radius, button_offset);
+            cap_usbc_hole_cut(roof_t, usbc_hole_d, button_axis, button_radius, button_offset,
+                              usbc_center);
     }
 
     echo("CAP: disk / insert dia / total height = ",
@@ -1169,7 +1228,7 @@ module control_cap(disk_od       = p_cap_disk_d(),
          ", off-axis offset ", button_offset, " (same direction, not mirrored) -> true centre dist ",
          button_center_dist, " mm, ", 2 * button_radius,
          " mm centre-to-centre along the axis, ", 2 * button_center_dist, " mm true straight-line.");
-    if (oring_gland)
+    if (gland)
         echo("CAP: axle O-ring gland -- bore ", axle_bore_d, " -> groove OD ",
              oring_gland_od, " x ", oring_gland_w, " wide, centred ", oring_gland_z,
              " mm below the outer face. Seals a ", p_axle_oring_cs(),
@@ -1191,10 +1250,84 @@ module control_cap(disk_od       = p_cap_disk_d(),
              " mm groove on the cavity ceiling, spanning the full ", 2 * r_outer_true,
              " mm cavity diameter along the ", button_axis,
              " axis -- passes through the centre bore and both button centres.");
-    if (usbc_hole)
+    if (usbc_hole && usbc_center)
+        echo("CAP: USB-C hole -- ", usbc_hole_d, " mm dia, centred on the cap axis (no shaft bore).");
+    if (usbc_hole && !usbc_center)
         echo("CAP: USB-C hole -- ", usbc_hole_d,
              " mm dia, on the button circle (r=", button_center_dist,
              " mm), centred on the SHORT arc between the two button holes.");
+}
+
+// The MASTER control cap: the production cap with its side tabs ("legs"),
+// wire channels, offset buttons, USB-C hole, etch line and single band
+// groove, all from the p_cap_*() contract in params.scad. Used by the
+// standalone cap wrapper (which overrides from its customizer), the full
+// turtle (control container top end) and anything else that needs "the"
+// cap. Same local frame as control_cap(): outer face on Z = 0, insert +Z.
+module control_cap_master(disk_od          = p_cap_disk_d(),
+                          roof_t           = p_cap_roof_t(),
+                          boss_d           = p_cap_boss_d(),
+                          boss_depth       = p_cap_boss_depth(),
+                          insert_len       = p_cap_insert_len(),
+                          insert_od        = p_insert_shaft_d(),
+                          insert_wall_t    = p_cap_insert_wall_t(),
+                          chamfer_h        = p_cap_entry_chamfer_h(),
+                          chamfer_delta    = p_cap_entry_chamfer_delta(),
+                          axle_bore_d      = p_cap_axle_bore_d(),
+                          button_d         = p_cap_button_d(),
+                          button_axis      = p_button_axis(),
+                          button_center_r  = p_cap_button_center_r(),
+                          button_offset    = p_cap_button_offset(),
+                          band_enable      = true,
+                          band_count       = p_cap_band_count(),
+                          band_z1          = p_cap_band_z(),
+                          band_w           = p_cap_band_w(),
+                          band_depth       = p_cap_band_depth(),
+                          oring_gland      = true,
+                          oring_gland_od   = p_cap_oring_gland_od(),
+                          oring_gland_w    = p_cap_oring_gland_w(),
+                          oring_gland_z    = p_cap_oring_gland_from_face(),
+                          side_tabs        = true,
+                          tab_width        = p_cap_tab_width(),
+                          tab_wall_inset   = p_cap_tab_wall_inset(),
+                          tab_overhang     = p_cap_tab_overhang(),
+                          tab_fillet       = p_cap_tab_fillet(),
+                          tab_taper_gain   = p_cap_tab_taper_gain(),
+                          tab_taper_start  = p_cap_tab_taper_start(),
+                          tab_side_offset  = p_cap_tab_side_offset(),
+                          tab_wire_hole    = true,
+                          tab_wire_hole_d  = p_cap_tab_wire_hole_d(),
+                          tab_wire_exit    = p_cap_tab_wire_exit(),
+                          etch_line        = true,
+                          etch_line_w      = 0.6,
+                          etch_line_d      = 0.2,
+                          usbc_hole        = true,
+                          usbc_hole_d      = p_cap_usbc_d(),
+                          fn               = undef) {
+    // on-axis component of the button position, so the TRUE radius stays
+    // button_center_r whatever the offset (23.2 / 6 -> 22.41)
+    axis_r = sqrt(button_center_r * button_center_r - button_offset * button_offset);
+    control_cap(disk_od = disk_od, roof_t = roof_t,
+                boss_d = boss_d, boss_depth = boss_depth,
+                insert_len = insert_len, insert_od = insert_od,
+                insert_wall_t = insert_wall_t,
+                chamfer_h = chamfer_h, chamfer_delta = chamfer_delta,
+                axle_bore_d = axle_bore_d,
+                button_d = button_d, button_axis = button_axis,
+                button_radius = axis_r, button_offset = button_offset,
+                band_enable = band_enable, band_count = band_count,
+                band_z1 = band_z1, band_w = band_w, band_depth = band_depth,
+                oring_gland = oring_gland, oring_gland_od = oring_gland_od,
+                oring_gland_w = oring_gland_w, oring_gland_z = oring_gland_z,
+                side_tabs = side_tabs, tab_width_p = tab_width,
+                tab_wall_inset_p = tab_wall_inset, tab_overhang_p = tab_overhang,
+                tab_fillet_p = tab_fillet, tab_taper_gain_p = tab_taper_gain,
+                tab_taper_start_p = tab_taper_start, tab_side_offset_p = tab_side_offset,
+                tab_wire_hole = tab_wire_hole, tab_wire_hole_d = tab_wire_hole_d,
+                tab_wire_hole_exit_from_lip = tab_wire_exit,
+                etch_line = etch_line, etch_line_w = etch_line_w, etch_line_d = etch_line_d,
+                usbc_hole = usbc_hole, usbc_hole_d = usbc_hole_d,
+                fn = fn);
 }
 // [bundle] end   <control_cap.scad>
 // [bundle] begin use <control_cage.scad>
