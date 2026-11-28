@@ -1,4 +1,4 @@
-"""Back Fin (rear-fin + bottle-holder shafts + solar-panel holder) object.
+"""Back Fin (rear-fin + bottle-holder shafts + solar-panel holders) object.
 
 Geometry and validation are ported from the standalone reference script
 generator/back_fin_generator.py, which remains the source of truth for the
@@ -32,6 +32,7 @@ from common import (
     _polygon,
     _label,
     DXF_CUT_LAYER,
+    DXF_MARK_LAYER,
     _dxf_setup,
     _dxf_rect,
     _dxf_circle,
@@ -61,6 +62,9 @@ from back_fin_generator import (
     default_shaft_hole_from_front as _bf_default_shaft_hole_from_front,
     default_shaft_width as _bf_default_shaft_width,
     lock_from_clamp as _bf_lock_from_clamp,
+    front_hole_y as _bf_front_hole_y,
+    SOLAR_M3_CLEAR_D, SOLAR_M3_PILOT_D, SOLAR_M3_CBORE_D, SOLAR_M3_CBORE_DEPTH,
+    front_screw_len as _bf_front_screw_len,
 )
 
 
@@ -68,6 +72,7 @@ PART_QUANTITIES = {
     "Rear Fin": 1,
     "Bottle Holder Shaft": 2,
     "Solar Panel Holder": 1,
+    "Front Solar Holder": 1,
 }
 
 
@@ -153,6 +158,14 @@ class BackFinDerived:
     shaft_hole_from_front: float
     # turtle_body v7.0.0: centred collar-lock hole, nearer the shaft front.
     shaft_lock_hole_from_front: float
+    # turtle_body v7.3.0 front solar holder (rf_front_holder_*()): same board
+    # as the red holder, flush under the panel's front edge; its bottom notch
+    # straddles the upper shaft. Two M3 holes drilled DOWN from its top edge
+    # (counterbored) into pilots through both shafts.
+    front_notch_width: float
+    front_notch_depth: float
+    front_hole_y: float            # +- across the shaft centreline
+    front_pilot_from_front: float  # pilot centre, from the shaft front edge
 
 
 def _shaft_holes(inputs, d) -> Tuple[Tuple[float, float], Tuple[float, float]]:
@@ -246,6 +259,10 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         )
     )
 
+    # Front solar holder (turtle_body v7.3.0): its front face is flush with
+    # the panel's front edge, panel_x0 = notch_x0 + t - panel height.
+    front_holder_cx = fin_solar_notch_x0 + t - inputs.solar_panel_height + t / 2
+
     return BackFinDerived(
         fin_width=fin_width,
         fin_height=fin_height,
@@ -273,6 +290,10 @@ def derive_dimensions(inputs: BackFinInputs) -> BackFinDerived:
         shaft_hole_from_front=shaft_hole_from_front,
         shaft_lock_hole_from_front=shaft_hole_from_front - _bf_lock_from_clamp(
             {"taper_height": inputs.taper_height}),
+        front_notch_width=inputs.shaft_width + inputs.solar_slot_clearance,
+        front_notch_depth=t + inputs.solar_slot_clearance / 2,
+        front_hole_y=_bf_front_hole_y(inputs.shaft_width),
+        front_pilot_from_front=front_holder_cx - shaft_front_x,
     )
 
 
@@ -337,6 +358,15 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
             and d.shaft_front_x + d.shaft_hole_from_front + inputs.shaft_hole_diameter / 2 < 0,
             "The shaft hole must sit inside the forward, unjointed part of the shaft.",
         ),
+        (
+            d.front_pilot_from_front - t / 2 > d.shaft_hole_from_front + 17
+            and d.front_pilot_from_front + t / 2 < d.shaft_notch_u0,
+            "The solar panel is too long or too short for its front holder to sit on the shaft between the Ecojoiner and the fin.",
+        ),
+        (d.front_notch_width + 2 * d.solar_chamfer < d.solar_holder_length,
+         "Solar panel width is too narrow for the front holder's shaft notch."),
+        (d.front_hole_y + SOLAR_M3_CBORE_D / 2 < inputs.shaft_width / 2 and SOLAR_M3_CBORE_D < t,
+         "The front holder's M3 screws don't fit this shaft or board."),
     ]
     for ok, message in checks:
         if not ok:
@@ -345,6 +375,7 @@ def validate_inputs(inputs: BackFinInputs) -> List[str]:
         ("rear fin", d.fin_width, d.fin_height),
         ("bottle holder shaft", inputs.shaft_width, d.shaft_length),
         ("solar panel holder", d.solar_holder_length, d.solar_holder_height),
+        ("front solar holder", d.solar_holder_length, d.solar_holder_height),
     ])
     if not errors and not _ruler(inputs, d)["zero_tick_present"]:
         errors.append("The requested stock leaves no room for the fin ruler zero; adjust board width or thickness.")
@@ -391,8 +422,31 @@ def _fin_outline(d: BackFinDerived):
     return [(0, d.fin_diagonal_rise), (d.fin_diagonal_run, 0), (d.fin_width, 0), (d.fin_width, d.fin_height), (0, d.fin_height)]
 
 
+def _shaft_pilots(inputs, d):
+    """The two M3 pilot centres for the front solar holder (shaft-local u, v)."""
+    c = inputs.shaft_width / 2
+    return [(d.front_pilot_from_front, c - d.front_hole_y), (d.front_pilot_from_front, c + d.front_hole_y)]
+
+
+def _front_notch(d: BackFinDerived):
+    return ((d.solar_holder_length - d.front_notch_width) / 2, 0.0, d.front_notch_width, d.front_notch_depth)
+
+
+def _front_edge_holes(d: BackFinDerived):
+    """Edge-drilled holes as (x, y_bottom, y_top) lines in the holder's face
+    plane: Ø3.2 from the top edge down to the notch roof."""
+    mid = d.solar_holder_length / 2
+    return [(mid + s * d.front_hole_y, d.front_notch_depth, d.solar_holder_height) for s in (-1, 1)]
+
+
+def _front_hole_note(inputs) -> str:
+    return (f"Drill 2x Ø{SOLAR_M3_CLEAR_D:g} DOWN from the top edge (centre of the board), "
+            f"Ø{SOLAR_M3_CBORE_D:g} x {SOLAR_M3_CBORE_DEPTH:g} counterbore; "
+            f"M3x{_bf_front_screw_len(inputs.wood_thickness):g} into the shaft")
+
+
 def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set: bool = True) -> None:
-    """Write a 1:1 SVG cutting file for the fin's 4 parts.
+    """Write a 1:1 SVG cutting file for the fin's 5 parts.
 
     full_set=True draws all physical quantities (Rear Fin x1, Bottle Holder
     Shaft x2, Solar Panel Holder x1). full_set=False draws one of each,
@@ -418,6 +472,8 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
         out += _rect(0, 0, d.shaft_length, inputs.shaft_width)
         for hu, hv in _shaft_holes(inputs, d):
             out += _circle(hu, hv, inputs.shaft_hole_diameter)
+        for pu, pv in _shaft_pilots(inputs, d):
+            out += _circle(pu, pv, SOLAR_M3_PILOT_D)
         out += _rect(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height)
         out += _label(0, -3, name)
         out += "  </g>\n"
@@ -433,16 +489,35 @@ def write_svg(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
         out += "  </g>\n"
         return out
 
+    def front_group(y, name):
+        out = f'  <g id="{name.lower().replace(" ", "_")}" transform="translate({margin:.3f} {y:.3f})">\n'
+        # Drawn bottom-up like the fin (notch on the bottom edge).
+        out += f'<g transform="translate(0 {d.solar_holder_height:.6f}) scale(1 -1)">\n'
+        out += _rect(0, 0, d.solar_holder_length, d.solar_holder_height)
+        out += _polygon([(0, 0), (d.solar_chamfer, 0), (0, d.solar_chamfer)])
+        out += _polygon([(d.solar_holder_length, 0), (d.solar_holder_length - d.solar_chamfer, 0), (d.solar_holder_length, d.solar_chamfer)])
+        out += _rect(*_front_notch(d))
+        # Edge-drilled M3 holes: MARK (dashed) only, not a cut.
+        for hx, y0, y1 in _front_edge_holes(d):
+            out += _rect(hx - SOLAR_M3_CLEAR_D / 2, y0, SOLAR_M3_CLEAR_D, y1 - y0, "mark")
+        out += '</g>\n'
+        out += _label(0, -3, name)
+        out += _label(0, d.solar_holder_height + 6, _front_hole_note(inputs))
+        out += "  </g>\n"
+        return out
+
     rows = []
     if full_set:
         rows.append((d.fin_height, lambda y: fin_group(y, "Rear Fin")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft 1")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft 2")))
         rows.append((d.solar_holder_height, lambda y: solar_group(y, "Solar Panel Holder")))
+        rows.append((d.solar_holder_height + 6, lambda y: front_group(y, "Front Solar Holder")))
     else:
         rows.append((d.fin_height, lambda y: fin_group(y, "Rear Fin")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft x2")))
         rows.append((d.solar_holder_height, lambda y: solar_group(y, "Solar Panel Holder")))
+        rows.append((d.solar_holder_height + 6, lambda y: front_group(y, "Front Solar Holder")))
 
     height = margin + sum(h + gap for h, _ in rows)
 
@@ -486,6 +561,8 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
         _dxf_rect(msp, 0, y, d.shaft_length, inputs.shaft_width, DXF_CUT_LAYER)
         for hu, hv in _shaft_holes(inputs, d):
             _dxf_circle(msp, hu, y + hv, inputs.shaft_hole_diameter, DXF_CUT_LAYER)
+        for pu, pv in _shaft_pilots(inputs, d):
+            _dxf_circle(msp, pu, y + pv, SOLAR_M3_PILOT_D, DXF_CUT_LAYER)
         _dxf_rect(msp, d.shaft_notch_u0, y + d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
@@ -496,16 +573,29 @@ def write_dxf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, full_set:
         _dxf_rect(msp, (d.solar_holder_length - d.solar_slot_width) / 2, y, d.solar_slot_width, d.solar_slot_depth + inputs.solar_slot_clearance / 2, DXF_CUT_LAYER)
         _dxf_label(msp, 0, y - 3, name)
 
+    def front_group(y, name):
+        L, H, ch = d.solar_holder_length, d.solar_holder_height, d.solar_chamfer
+        nx, _, nw, nh = _front_notch(d)
+        # One closed outline: chamfered bottom corners, notch up from the bottom.
+        _dxf_polygon(msp, [(ch, y), (nx, y), (nx, y + nh), (nx + nw, y + nh), (nx + nw, y),
+                           (L - ch, y), (L, y + ch), (L, y + H), (0, y + H), (0, y + ch)], DXF_CUT_LAYER)
+        for hx, y0, y1 in _front_edge_holes(d):
+            _dxf_rect(msp, hx - SOLAR_M3_CLEAR_D / 2, y + y0, SOLAR_M3_CLEAR_D, y1 - y0, DXF_MARK_LAYER)
+        _dxf_label(msp, 0, y - 3, name)
+        _dxf_label(msp, 0, y + H + 3, _front_hole_note(inputs))
+
     rows = []
     if full_set:
         rows.append((d.fin_height, lambda y: fin_group(y, "Rear Fin")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft 1")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft 2")))
         rows.append((d.solar_holder_height, lambda y: solar_group(y, "Solar Panel Holder")))
+        rows.append((d.solar_holder_height + 6, lambda y: front_group(y, "Front Solar Holder")))
     else:
         rows.append((d.fin_height, lambda y: fin_group(y, "Rear Fin")))
         rows.append((inputs.shaft_width, lambda y: shaft_group(y, "Bottle Holder Shaft x2")))
         rows.append((d.solar_holder_height, lambda y: solar_group(y, "Solar Panel Holder")))
+        rows.append((d.solar_holder_height + 6, lambda y: front_group(y, "Front Solar Holder")))
 
     y = margin
     for row_h, draw in rows:
@@ -575,6 +665,12 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
             f"{_ceil_mm(lock_x)}mm",
             {"ext1": (0, inputs.shaft_width), "ext2": (lock_x, inputs.shaft_width), "rotate_label": True},
         ),
+        # Front solar holder M3 pilots (v7.3.0), measured from the front edge.
+        (
+            (0, inputs.shaft_width + 22), (d.front_pilot_from_front, inputs.shaft_width + 22),
+            f"{_ceil_mm(d.front_pilot_from_front)}mm",
+            {"ext1": (0, inputs.shaft_width), "ext2": (d.front_pilot_from_front, inputs.shaft_width), "rotate_label": True},
+        ),
         # How far the rear half-lap notch reaches in from the back edge.
         (
             (n_u0, -6), (d.shaft_length, -6),
@@ -594,6 +690,8 @@ def _shaft_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
     labels = [
         ((hole_x, hole_y - side), _tx("clamp {d}", d=hole_text)),
         ((lock_x, hole_y - side), _tx("lock {d}", d=hole_text)),
+        ((d.front_pilot_from_front - 12, hole_y),
+         _tx("2x M3 pilot {d}", d=f"⌀{SOLAR_M3_PILOT_D:g}")),
         ((n_u0 + n_w / 2, n_v0 + n_h / 2), _tx("{v}mm wide", v=_ceil_mm(n_h))),
     ]
     return dims, labels
@@ -709,8 +807,36 @@ def _solar_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
     return dims, labels
 
 
+def _front_annotations(inputs: BackFinInputs, d: BackFinDerived, _tx=_EN):
+    nx, _, nw, nh = _front_notch(d)
+    L, H = d.solar_holder_length, d.solar_holder_height
+    dims = [
+        # Notch depth, up from the bottom edge.
+        (
+            (nx + nw + 4, 0), (nx + nw + 4, nh),
+            _tx("{v}mm deep", v=_ceil_mm(nh)),
+            {"ext1": (nx + nw, 0), "ext2": (nx + nw, nh), "rotate_label": True},
+        ),
+        # Where the (centred) notch starts, in from the holder's end.
+        ((0, -7), (nx, -7), f"{_ceil_mm(nx)}mm", {"ext1": (0, 0), "ext2": (nx, 0)}),
+    ]
+    labels = [
+        ((nx + nw / 2, min(nh, 14) / 2), _tx("{v}mm wide", v=_ceil_mm(nw))),
+    ]
+    hidden = [((hx, y0), (hx, y1)) for hx, y0, y1 in _front_edge_holes(d)]
+    # Edge-drilled holes can't be shown as cuts; written under the drawing.
+    notes = [
+        _tx("2x {d} drilled DOWN from the top edge,", d=f"⌀{SOLAR_M3_CLEAR_D:g}"),
+        _tx("{v}mm either side of centre,", v=_ceil_mm(d.front_hole_y)),
+        _tx("counterbore {d} x {v}mm deep.", d=f"⌀{SOLAR_M3_CBORE_D:g}", v=f"{SOLAR_M3_CBORE_DEPTH:g}"),
+        _tx("M3 x {v} screws into the shaft.", v=f"{_bf_front_screw_len(inputs.wood_thickness):g}"),
+        _tx("Panel front corners: M3 into the legs."),
+    ]
+    return dims, labels, hidden, notes
+
+
 def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir: Optional[Path] = None) -> None:
-    """One-page Letter portrait carpenter reference for the fin's 4 parts.
+    """One-page Letter portrait carpenter reference for the fin's 5 parts.
 
     The Bottle Holder Shaft and Solar Panel Holder are long, thin parts, so
     they're rotated 90 degrees for this reference drawing (their SVG/DXF
@@ -745,9 +871,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     # shared top line rather than a shared baseline, since the smallest
     # part (the solar panel holder, rightmost) then leaves open space at
     # the bottom of its own column for the input/derived-dimension boxes.
-    c.setFont(body_font, 7)
-    c.drawString(margin, title_y - 29,
-                 _tx("Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts."))
+    # No ruler on the reference sheet (the engraving stays in the SVG/DXF/SCAD
+    # exports); it only cluttered the fin drawing.
 
     draw_left = margin
     draw_right = page_w - margin
@@ -767,6 +892,7 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
     shaft_dims, shaft_labels = _shaft_annotations(inputs, d, _tx)
     fin_dims, fin_labels = _fin_annotations(inputs, d, _tx)
     solar_dims, solar_labels = _solar_annotations(inputs, d, _tx)
+    front_dims, front_labels, front_hidden, front_notes = _front_annotations(inputs, d, _tx)
 
     parts_raw = [
         {
@@ -781,7 +907,8 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "notches": [
                 _rect_open(d.shaft_notch_u0, d.shaft_notch_v0, d.shaft_notch_width, d.shaft_notch_height, "right")[0],
             ],
-            "circles": [(hu, hv, inputs.shaft_hole_diameter) for hu, hv in _shaft_holes(inputs, d)],
+            "circles": [(hu, hv, inputs.shaft_hole_diameter) for hu, hv in _shaft_holes(inputs, d)]
+                       + [(pu, pv, SOLAR_M3_PILOT_D) for pu, pv in _shaft_pilots(inputs, d)],
             "dims": shaft_dims,
             "labels": shaft_labels,
         },
@@ -815,6 +942,24 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "dims": solar_dims,
             "labels": solar_labels,
         },
+        {
+            # v7.3.0: stacked under the Solar Panel Holder, in the same column.
+            "name": _tx("Front Solar Holder"),
+            "stack": True,
+            "w_mm": d.solar_holder_length,
+            "h_mm": d.solar_holder_height,
+            "rotate": True,
+            "edges": [
+                (p1, p2, [_rect_open(*_front_notch(d), "bottom")[1]] if gaps else [])
+                for p1, p2, gaps in _solar_edges_with_gaps(inputs, d)
+            ],
+            "notches": [_rect_open(*_front_notch(d), "bottom")[0]],
+            "circles": [],
+            "hidden": front_hidden,
+            "notes": front_notes,
+            "dims": front_dims,
+            "labels": front_labels,
+        },
     ]
 
     def prepare(part):
@@ -839,91 +984,118 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
             "edges": [(r(p1), r(p2), [(r(g1), r(g2)) for g1, g2 in gaps]) for p1, p2, gaps in part["edges"]],
             "notches": [[r(p) for p in wall] for wall in part["notches"]],
             "circles": [(*r((cx, cy)), dia) for cx, cy, dia in part["circles"]],
+            "hidden": [(r(p1), r(p2)) for p1, p2 in part.get("hidden", [])],
             "dims": [r_dim(p1, p2, text, kwargs) for p1, p2, text, kwargs in part["dims"]],
             "labels": [(r(p), text) for p, text in part["labels"]],
         }
 
     parts = [prepare(p) for p in parts_raw]
-    # Scale is chosen so the tallest part (by how much of avail_h its own
-    # height would need) fills the full available height - the bottle
-    # holder shaft, in practice - rather than being capped by whichever
-    # part is widest, which left every part far short of the page's full
-    # vertical space. Columns are then sized to each part's actual drawn
-    # width at that scale (see the layout loop below) instead of fixed
-    # equal thirds, since the 3 parts are no longer assumed to fit the same
-    # column width. A proportional-shrink fallback guards the (unusual)
-    # case where that would overflow the page's total width.
-    scale = min(avail_h / p["eff_h"] for p in parts)
-    total_w = sum(p["eff_w"] for p in parts) * scale + 3 * (col_left_pad + col_right_pad) + 2 * col_gap
-    avail_total_w = draw_right - draw_left
-    if total_w > avail_total_w:
-        fixed_overhead = 3 * (col_left_pad + col_right_pad) + 2 * col_gap
-        scale = (avail_total_w - fixed_overhead) / sum(p["eff_w"] for p in parts)
 
-    solar_col_w = None
-    cursor = draw_left
+    # Columns: a part flagged "stack" shares the previous part's column and
+    # hangs below it (the two solar holders, v7.3.0). The input/derived boxes
+    # sit in the fin's column, under the fin, which leaves room for both.
+    columns: List[List[dict]] = []
     for part in parts:
+        if part.get("stack") and columns:
+            columns[-1].append(part)
+        else:
+            columns.append([part])
+    stack_gap = 34          # below one part's width dimension, above the next title
+    notes_h = 7 * 6.5       # room for a stacked part's notes lines
+
+    def col_h_needed(col, sc):
+        h = sum(p["eff_h"] for p in col) * sc
+        h += (len(col) - 1) * (stack_gap + dim_line_reserve + 20)
+        h += sum(len(p.get("notes", [])) for p in col) * 6.5
+        return h
+
+    # Scale: the tallest column fills the available height (the shaft, in
+    # practice); a proportional-shrink fallback guards page width.
+    scale = min(
+        (avail_h - (col_h_needed(col, 0))) / sum(p["eff_h"] for p in col)
+        for col in columns
+    )
+    n_cols = len(columns)
+    fixed_overhead = n_cols * (col_left_pad + col_right_pad) + (n_cols - 1) * col_gap
+    avail_total_w = draw_right - draw_left
+    if sum(max(p["eff_w"] for p in col) for col in columns) * scale + fixed_overhead > avail_total_w:
+        scale = (avail_total_w - fixed_overhead) / sum(max(p["eff_w"] for p in col) for col in columns)
+
+    fin_col = None
+    cursor = draw_left
+    for col in columns:
         cx0 = cursor
         ox = cx0 + col_left_pad
-        oy = diagram_top - part["eff_h"] * scale
-        col_w = part["eff_w"] * scale + col_left_pad + col_right_pad
+        col_w = max(p["eff_w"] for p in col) * scale + col_left_pad + col_right_pad
+        top = draw_top
+        for part in col:
+            oy = top - 20 - part["eff_h"] * scale
 
-        c.setFont(title_font, 9)
-        c.setFillColor(colors.HexColor("#222222"))
-        c.drawString(ox, draw_top - 10, part["name"])
+            c.setFont(title_font, 9)
+            c.setFillColor(colors.HexColor("#222222"))
+            c.drawString(ox, top - 10, part["name"])
 
-        _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
+            _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
 
-        if part["name"] == _tx("Rear Fin"):
-            fin_rulers.draw_pdf(c, "rear", inputs, d, ox, oy, scale)
-        for wall in part["notches"]:
-            _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
-        for cx, cy, dia in part["circles"]:
-            r = (dia / 2) * scale
-            c.setStrokeColor(colors.HexColor("#999999"))
-            c.setLineWidth(0.5)
-            c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
+            for wall in part["notches"]:
+                _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
+            for cx, cy, dia in part["circles"]:
+                r = (dia / 2) * scale
+                c.setStrokeColor(colors.HexColor("#999999"))
+                c.setLineWidth(0.5)
+                c.circle(ox + cx * scale, oy + cy * scale, r, stroke=1, fill=0)
+            # Hidden (edge-drilled) holes: dashed.
+            if part.get("hidden"):
+                c.setStrokeColor(colors.HexColor("#777777"))
+                c.setLineWidth(0.5)
+                c.setDash(2, 1.5)
+                for (x1, y1), (x2, y2) in part["hidden"]:
+                    c.line(ox + x1 * scale, oy + y1 * scale, ox + x2 * scale, oy + y2 * scale)
+                c.setDash()
 
-        # Overall width: label BELOW its line (offset), so it can't collide
-        # with a part's own bottom-edge callout just above (e.g. the fin's
-        # flat-run dimension).
-        _draw_dimension_line(
-            c, ox, oy - 16, ox + part["eff_w"] * scale, oy - 16,
-            f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5, offset=-15,
-        )
-        _draw_dimension_line(
-            c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
-            f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
-        )
-
-        # Slot/cut/hole callouts - see _shaft_annotations()/_fin_annotations()/
-        # _solar_annotations() for what each part contributes.
-        for p1, p2, text, kwargs in part["dims"]:
-            line_kwargs = {**kwargs}
-            if "ext1" in line_kwargs:
-                ex, ey = line_kwargs["ext1"]
-                line_kwargs["ext1"] = (ox + ex * scale, oy + ey * scale)
-            if "ext2" in line_kwargs:
-                ex, ey = line_kwargs["ext2"]
-                line_kwargs["ext2"] = (ox + ex * scale, oy + ey * scale)
+            # Overall width: label BELOW its line (offset), so it can't collide
+            # with a part's own bottom-edge callout just above (e.g. the fin's
+            # flat-run dimension).
             _draw_dimension_line(
-                c, ox + p1[0] * scale, oy + p1[1] * scale, ox + p2[0] * scale, oy + p2[1] * scale,
-                text, font=body_font, size=5.5, **line_kwargs,
+                c, ox, oy - 16, ox + part["eff_w"] * scale, oy - 16,
+                f"{_ceil_mm(part['eff_w'])}mm", font=body_font, size=6.5, offset=-15,
             )
-        for p, text in part["labels"]:
-            c.setFont(symbol_font if "⌀" in text else body_font, 5.5)
-            c.setFillColor(colors.HexColor("#333333"))
-            c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
+            _draw_dimension_line(
+                c, ox - 10, oy, ox - 10, oy + part["eff_h"] * scale,
+                f"{_ceil_mm(part['eff_h'])}mm", font=body_font, size=6.5, label_side="left",
+            )
 
-        if part["name"] == _tx("Solar Panel Holder"):
-            solar_col_w = col_w
+            # Slot/cut/hole callouts - see the _*_annotations() helpers.
+            for p1, p2, text, kwargs in part["dims"]:
+                line_kwargs = {**kwargs}
+                if "ext1" in line_kwargs:
+                    ex, ey = line_kwargs["ext1"]
+                    line_kwargs["ext1"] = (ox + ex * scale, oy + ey * scale)
+                if "ext2" in line_kwargs:
+                    ex, ey = line_kwargs["ext2"]
+                    line_kwargs["ext2"] = (ox + ex * scale, oy + ey * scale)
+                _draw_dimension_line(
+                    c, ox + p1[0] * scale, oy + p1[1] * scale, ox + p2[0] * scale, oy + p2[1] * scale,
+                    text, font=body_font, size=5.5, **line_kwargs,
+                )
+            for p, text in part["labels"]:
+                c.setFont(symbol_font if "⌀" in text else body_font, 5.5)
+                c.setFillColor(colors.HexColor("#333333"))
+                c.drawCentredString(ox + p[0] * scale, oy + p[1] * scale - 2, text)
+
+            ny = oy - dim_line_reserve - 14
+            for line in part.get("notes", []):
+                c.setFont(symbol_font if "⌀" in line else body_font, 5.5)
+                c.setFillColor(colors.HexColor("#333333"))
+                c.drawString(cx0 + 4, ny, line)
+                ny -= 6.5
+
+            if part["name"] == _tx("Rear Fin"):
+                fin_col = (cx0, col_w, oy)
+            top = (ny if part.get("notes") else oy - dim_line_reserve) - stack_gap + 20
 
         cursor += col_w + col_gap
 
-    # The solar panel holder is always the smallest of the 3 parts, so its
-    # column has open space below its diagram - that's where the input and
-    # derived-dimension boxes live, stacked instead of side-by-side, anchored
-    # to the page's bottom-right corner rather than trailing the diagram.
     input_lines = [
         _tx("Wood thickness: {v}mm", v=_ceil_mm(inputs.wood_thickness)),
         _tx("Bottle diameter: {v}mm", v=_ceil_mm(inputs.bottle_diameter)),
@@ -941,11 +1113,16 @@ def write_pdf(path: Path, inputs: BackFinInputs, d: BackFinDerived, *, font_dir:
         f"Panel: {_ceil_mm(inputs.solar_panel_width)} x {_ceil_mm(inputs.solar_panel_height)} x {_ceil_mm(inputs.solar_panel_thickness)}mm",
         _tx("Clamp hole from front: {v}mm", v=_ceil_mm(d.shaft_hole_from_front)),
         _tx("Collar lock from front: {v}mm", v=_ceil_mm(d.shaft_lock_hole_from_front)),
+        _tx("Front holder pilots from front: {v}mm", v=_ceil_mm(d.front_pilot_from_front)),
     ]
-    box_gap = 10
-    box_h = 92
-    box_w = solar_col_w - col_right_pad
-    box_x = draw_right - box_w
+    # Boxes under the rear fin, in its column; stacked if there is height,
+    # otherwise side by side.
+    box_gap = 8
+    fx0, fcol_w, fin_oy = fin_col
+    room = fin_oy - 40 - draw_bottom
+    box_w = fcol_w - 8
+    box_h = min(92, (room - box_gap) / 2)
+    box_x = fx0 + 4
     derived_box_y = draw_bottom
     input_box_y = derived_box_y + box_h + box_gap
     _rounded_rect_text(c, box_x, input_box_y, box_w, box_h, _tx("Input variables"), input_lines, title_font, body_font)

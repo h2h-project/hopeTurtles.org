@@ -1,7 +1,7 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Bottom_Ballast_Fin.scad
-//  Turtle Body version 7.2.1
+//  Turtle Body version 7.3.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
@@ -423,7 +423,27 @@ function p_rear_shaft_hole_from_front() =
     p_rear_shaft_len() - p_rear_shaft_rear_x() - p_screw_side_offset()
     - p_bottle_h() + p_bottle_cap_h() + p_port_height();
 
-// ---- head fin: front fin (v5.8.0, EXPERIMENTAL; triangle since v6.3.0) ---------
+// ---- front solar holder (v7.3.0) ------------------------------------------
+// A second 3t-tall board under the panel's FRONT edge (the red crossbar
+// carries the rear edge). A notch in its bottom straddles the upper green
+// shaft; the panel's front corners screw into its top (M3, like the rear
+// corners), and two M3 screws run DOWN through its bridge into the shaft's
+// broad face, heads sunk in a counterbore so the panel still sits flat.
+// Not built or tested: M3 bite in 12 mm wood and edge-drilling a 12 mm
+// board are unverified.
+function p_solar_m3_clear_d()      = p_cage_mount_hole_d();   // 3.2 through the holder
+function p_solar_m3_pilot_d()      = p_sail_m3_pilot_d();     // 2.8 in the green shaft
+function p_solar_m3_cbore_d()      = 6.5;   // pan head 6 + 0.5
+function p_solar_m3_cbore_depth()  = 3;     // head 2 + 1 below the panel
+// M3 length: through the bridge below the counterbore (2t - counterbore,
+// ignoring the 0.1 notch clearance) + 3/4 of the shaft, rounded UP to 5 mm.
+// = 30 at t = 12 (21 through, 9 into the shaft); 40 at t = 15.
+function p_solar_front_screw_len() =
+    ceil((2.75 * p_wood_t() - p_solar_m3_cbore_depth()) / 5) * 5;
+function p_solar_front_hole_y()    = p_rear_shaft_width() / 4;   // +-15 across the shaft
+function p_solar_panel_m3_inset()  = 8;     // panel corner screw centre in from the panel side
+
+// ---- head fin: front fin (v5.8.0; triangle since v6.3.0; tested + kept v7.3.0) ---
 // The rear fin's mirror on the front (-X / physical 9 o'clock) port: two
 // flat slats above and below the front bottle bolt to the same Little John
 // M5 pairs and run the length of the bottle; a vertical triangular fin

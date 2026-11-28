@@ -174,6 +174,13 @@
   "p_rear_half_lap_engagement": 34.5,
   "p_rear_shaft_width": 60,
   "p_rear_shaft_hole_from_front": 113,
+  "p_solar_m3_clear_d": 3.2,
+  "p_solar_m3_pilot_d": 2.8,
+  "p_solar_m3_cbore_d": 6.5,
+  "p_solar_m3_cbore_depth": 3,
+  "p_solar_front_screw_len": 30,
+  "p_solar_front_hole_y": 15,
+  "p_solar_panel_m3_inset": 8,
   "p_head_fin_w": 93,
   "p_head_fin_h": 156,
   "p_head_slat_overlap": 48,
@@ -218,5 +225,5 @@
     0.26,
     0.17
   ],
-  "version": "7.2.1"
+  "version": "7.3.0"
 }

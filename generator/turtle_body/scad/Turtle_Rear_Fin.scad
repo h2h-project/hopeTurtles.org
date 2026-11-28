@@ -1,13 +1,14 @@
 // ==========================================================================
 //  GENERATED FILE -- DO NOT EDIT.
 //  Produced by build/build.py from components/Turtle_Rear_Fin.scad
-//  Turtle Body version 7.2.1
+//  Turtle Body version 7.3.0
 //  Edit lib/ and src/ instead, then run: python3 build/build.py
 // ==========================================================================
 /*
  Hope Turtle rear fin. Units: mm. License: CERN-OHL-S-2.0.
- Four wooden pieces: yellow fin, two green bottle-holder shafts, red solar
- crossbar. Panel + bottle are F5 reference only, excluded from F6/STL.
+ Five wooden pieces: yellow fin, two green bottle-holder shafts, red solar
+ crossbar (panel rear edge) and the orange-red front solar holder (panel
+ front edge, straddles the upper shaft; v7.3.0). Panel + bottle are F5 reference only, excluded from F6/STL.
  Shaft length 334. Slot openings 12.2 mm (0.2 mm TOTAL, centred).
  TB-07: green-slat mounting hole is 103 mm from the shaft front, matching
  the assembled Turtle (was a fixed 50 mm).
@@ -22,7 +23,7 @@ solar_slot_clearance = 0.2;
 exploded = 0;
 
 /* [Display] */
-part = "assembly"; // [assembly,fin,solar_holder,shaft]
+part = "assembly"; // [assembly,fin,solar_holder,front_solar_holder,shaft]
 show_solar_panel = true;   // F5 reference only, excluded from F6/STL
 show_bottle_mockup = false; // reserved
 enable_color_coding = true; // wooden parts; false = the rear fin's own shades of brown
@@ -35,7 +36,8 @@ fn = 96;
 //  Turtle Body -- rear fin + solar-panel support  (lib module)
 // --------------------------------------------------------------------------
 //  One yellow vertical fin, two green bottle-holder shafts, one red solar
-//  crossbar. In the standalone the panel + bottle are %-reference only and
+//  crossbar, plus (v7.3.0) an orange-red front solar holder under the
+//  panel's front edge, straddling the upper shaft. In the standalone the panel + bottle are %-reference only and
 //  excluded from F6/STL. See CLAUDE.md s11.
 //
 //  Shaft length = 305 + (2/3)(93-24) - 17 + 69 = 403 (v5.3.0: + the fin
@@ -437,7 +439,27 @@ function p_rear_shaft_hole_from_front() =
     p_rear_shaft_len() - p_rear_shaft_rear_x() - p_screw_side_offset()
     - p_bottle_h() + p_bottle_cap_h() + p_port_height();
 
-// ---- head fin: front fin (v5.8.0, EXPERIMENTAL; triangle since v6.3.0) ---------
+// ---- front solar holder (v7.3.0) ------------------------------------------
+// A second 3t-tall board under the panel's FRONT edge (the red crossbar
+// carries the rear edge). A notch in its bottom straddles the upper green
+// shaft; the panel's front corners screw into its top (M3, like the rear
+// corners), and two M3 screws run DOWN through its bridge into the shaft's
+// broad face, heads sunk in a counterbore so the panel still sits flat.
+// Not built or tested: M3 bite in 12 mm wood and edge-drilling a 12 mm
+// board are unverified.
+function p_solar_m3_clear_d()      = p_cage_mount_hole_d();   // 3.2 through the holder
+function p_solar_m3_pilot_d()      = p_sail_m3_pilot_d();     // 2.8 in the green shaft
+function p_solar_m3_cbore_d()      = 6.5;   // pan head 6 + 0.5
+function p_solar_m3_cbore_depth()  = 3;     // head 2 + 1 below the panel
+// M3 length: through the bridge below the counterbore (2t - counterbore,
+// ignoring the 0.1 notch clearance) + 3/4 of the shaft, rounded UP to 5 mm.
+// = 30 at t = 12 (21 through, 9 into the shaft); 40 at t = 15.
+function p_solar_front_screw_len() =
+    ceil((2.75 * p_wood_t() - p_solar_m3_cbore_depth()) / 5) * 5;
+function p_solar_front_hole_y()    = p_rear_shaft_width() / 4;   // +-15 across the shaft
+function p_solar_panel_m3_inset()  = 8;     // panel corner screw centre in from the panel side
+
+// ---- head fin: front fin (v5.8.0; triangle since v6.3.0; tested + kept v7.3.0) ---
 // The rear fin's mirror on the front (-X / physical 9 o'clock) port: two
 // flat slats above and below the front bottle bolt to the same Little John
 // M5 pairs and run the length of the bottle; a vertical triangular fin
@@ -666,6 +688,21 @@ function rf_upper_shaft_z0()   = rf_fin_height() - 3 * rf_t();
 function rf_lower_shaft_z0()   = rf_upper_shaft_z0() - p_bottle_d() - rf_t();
 function rf_solar_meet_z()     = rf_upper_shaft_z0() + rf_solar_slot_depth();
 
+// ---- front solar holder (v7.3.0) ----
+// Same 148 x 3t x t board as the red crossbar, under the panel's FRONT edge
+// (front face flush with it, as the crossbar's rear face is flush with the
+// panel's rear edge). Its bottom notch straddles the upper shaft: shaft width
+// + the fit clearance (total, centred) wide, t + clearance/2 deep, leaving a
+// 2t bridge between the shaft top and the panel.
+function rf_panel_front_x()    = rf_solar_notch_x0() + rf_t() - p_solar_panel_h();   // -142
+function rf_front_holder_x0()  = rf_panel_front_x();
+function rf_front_holder_cx()  = rf_front_holder_x0() + rf_t() / 2;                 // -136
+function rf_front_holder_notch_w(clear) = rf_shaft_width() + clear;                 // 60.2
+function rf_front_holder_notch_h(clear) = rf_t() + clear / 2;                       // 12.1
+function rf_panel_m3_y()       = p_solar_panel_w() / 2 - p_solar_panel_m3_inset();  // 66
+// distance from the shaft FRONT to the holder-screw pilots (centre)
+function rf_front_pilot_from_front() = rf_front_holder_cx() - rf_shaft_front_x();   // 198
+
 function rf_ruler_zero() = rf_lower_shaft_z0() + rf_t() + p_bottle_d()/2;
 
 module rf_assert_valid(half_lap, solar_clear, hole_from_front, hole_d) {
@@ -688,6 +725,25 @@ module rf_assert_valid(half_lap, solar_clear, hole_from_front, hole_d) {
     assert(hole_from_front - p_eco_lock_from_clamp() > hole_d / 2
            && rf_shaft_front_x() + hole_from_front + hole_d / 2 < 0,
            "rear_fin: shaft clamp + collar-lock holes must stay in the forward, unjointed portion.");
+    // front solar holder
+    assert(rf_front_holder_x0() > rf_shaft_front_x() + hole_from_front + p_screw_side_offset(),
+           "rear_fin: front solar holder must sit aft of the Little John the shaft bolts to.");
+    assert(rf_front_holder_x0() + t < rf_joint_meet_x() - half_lap / 2,
+           "rear_fin: front solar holder must sit forward of the shaft's half-lap slot.");
+    assert(rf_front_holder_notch_w(solar_clear) + 2 * rf_solar_chamfer() < rf_solar_holder_len(),
+           "rear_fin: front solar holder legs too narrow beside the shaft notch.");
+    assert(p_solar_front_hole_y() + p_solar_m3_cbore_d() / 2 < rf_shaft_width() / 2,
+           "rear_fin: front holder screws must land on the shaft.");
+    assert(p_solar_m3_cbore_d() < t,
+           "rear_fin: M3 counterbore wider than the holder board.");
+    assert(rf_panel_m3_y() > rf_front_holder_notch_w(solar_clear) / 2 + p_solar_m3_clear_d(),
+           "rear_fin: panel front-corner screws must land on the holder legs, not the notch.");
+    // M3 bite into the shaft: at least half the shaft, at least 1 mm short of its underside
+    let(into = p_solar_front_screw_len()
+               - (rf_solar_holder_h() - p_solar_m3_cbore_depth() - rf_front_holder_notch_h(solar_clear)))
+    assert(into >= t / 2 && into <= t - 1,
+           str("rear_fin: front holder M3 must bite into the shaft without exiting its underside (",
+               into, " mm in)."));
 }
 
 module rear_fin_blank(half_lap = p_fit_clearance(), solar_clear = p_fit_clearance(),
@@ -734,6 +790,13 @@ module bottle_holder_shaft(z0 = 0, half_lap = p_fit_clearance(),
         for (x = [hff, hff - p_eco_lock_from_clamp()])
             translate([rf_shaft_front_x() + x, 0, z0 - eps])
                 cylinder(d = hd, h = t + 2 * eps, $fn = 16);
+        // v7.3.0: M3 pilots for the front solar holder. Drilled through on
+        // BOTH shafts so the two stay interchangeable (only the upper one
+        // carries the holder).
+        for (y = [-1, 1])
+            translate([rf_shaft_front_x() + rf_front_pilot_from_front(),
+                       y * p_solar_front_hole_y(), z0 - eps])
+                cylinder(d = p_solar_m3_pilot_d(), h = t + 2 * eps, $fn = 16);
         translate([rf_joint_meet_x() - half_lap / 2, -(t + half_lap) / 2, z0 - eps])
             cube([rf_shaft_rear_x() - rf_joint_meet_x() + half_lap / 2 + eps,
                   t + half_lap, t + 2 * eps]);
@@ -757,6 +820,34 @@ module solar_panel_holder(solar_clear = p_fit_clearance(), fn = undef,
             }
 }
 
+// v7.3.0: holds the panel's FRONT edge. Same board as the red crossbar; its
+// bottom notch straddles the upper green shaft. Two counterbored M3
+// clearance holes run down through the 2t bridge into the shaft; the panel's
+// front-corner M3s bite into the tops of the legs.
+module front_solar_panel_holder(solar_clear = p_fit_clearance(), fn = undef,
+                                colored = true) {
+    t = rf_t(); eps = p_eps();
+    nn = fn == undef ? p_fn_wood() : fn;
+    L = rf_solar_holder_len(); H = rf_solar_holder_h(); ch = rf_solar_chamfer();
+    nw = rf_front_holder_notch_w(solar_clear); nh = rf_front_holder_notch_h(solar_clear);
+    wood_color([0.95, 0.45, 0.25], colored, p_wood_shade_rear_fin())
+        translate([rf_front_holder_x0(), 0, rf_upper_shaft_z0()]) difference() {
+            rotate([90, 0, 90]) translate([-L / 2, 0, 0])
+                linear_extrude(height = t, $fn = nn) difference() {
+                    square([L, H]);
+                    polygon([[0, 0], [ch, 0], [0, ch]]);
+                    polygon([[L, 0], [L - ch, 0], [L, ch]]);
+                    translate([(L - nw) / 2, -eps]) square([nw, nh + eps]);
+                }
+            for (y = [-1, 1]) translate([t / 2, y * p_solar_front_hole_y(), 0]) {
+                translate([0, 0, nh - eps])
+                    cylinder(d = p_solar_m3_clear_d(), h = H - nh + 2 * eps, $fn = 16);
+                translate([0, 0, H - p_solar_m3_cbore_depth()])
+                    cylinder(d = p_solar_m3_cbore_d(), h = p_solar_m3_cbore_depth() + eps, $fn = 24);
+            }
+        }
+}
+
 module rear_fin_assembly(half_lap = p_fit_clearance(), solar_clear = p_fit_clearance(),
                          exploded = 0, fn = undef, colored = true) {
     rf_assert_valid(half_lap, solar_clear,
@@ -765,10 +856,15 @@ module rear_fin_assembly(half_lap = p_fit_clearance(), solar_clear = p_fit_clear
     translate([-exploded, 0,  exploded]) bottle_holder_shaft(rf_upper_shaft_z0(), half_lap, fn = fn, colored = colored);
     translate([-exploded, 0, -exploded]) bottle_holder_shaft(rf_lower_shaft_z0(), half_lap, fn = fn, colored = colored);
     translate([ exploded, 0,  exploded]) solar_panel_holder(solar_clear, fn, colored);
+    translate([-exploded, 0, 2 * exploded]) front_solar_panel_holder(solar_clear, fn, colored);
 
     echo("REAR FIN: shaft length = ", rf_shaft_length(),
          " | hole from front (TB-07) = ", p_rear_shaft_hole_from_front(),
          " | slot opening = ", rf_t() + half_lap);
+    echo("REAR FIN: front solar holder at X = ", rf_front_holder_x0(),
+         " | notch = ", rf_front_holder_notch_w(solar_clear), " x ", rf_front_holder_notch_h(solar_clear),
+         " | M3 pilots in shaft ", rf_front_pilot_from_front(), " from front at Y = +-",
+         p_solar_front_hole_y());
 }
 // [bundle] end   <../../lib/rear_fin.scad>
 // [bundle] begin use <../../lib/params.scad>
@@ -795,6 +891,9 @@ if (part == "assembly") {
 } else if (part == "solar_holder") {
     solar_panel_holder(solar_clear = solar_slot_clearance, fn = fn,
                        colored = enable_color_coding);
+} else if (part == "front_solar_holder") {
+    front_solar_panel_holder(solar_clear = solar_slot_clearance, fn = fn,
+                             colored = enable_color_coding);
 } else if (part == "shaft") {
     bottle_holder_shaft(half_lap = half_lap_clearance, fn = fn,
                         colored = enable_color_coding);

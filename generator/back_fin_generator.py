@@ -76,6 +76,24 @@ TUNING = {
 # Ecojoiner frame this fin bolts to, not a rear-fin-specific choice.
 SCREW_SIDE_OFFSET = SCREW_SIDE_OFFSET_MM  # 17; was 25 until turtle_body v4.2.0
 
+# Front solar holder (turtle_body v7.3.0): fixed M3 hardware, not form inputs.
+SOLAR_M3_CLEAR_D = 3.2        # p_solar_m3_clear_d(): through the front holder
+SOLAR_M3_PILOT_D = 2.8        # p_solar_m3_pilot_d(): pilots in both green shafts
+SOLAR_M3_CBORE_D = 6.5        # p_solar_m3_cbore_d()
+SOLAR_M3_CBORE_DEPTH = 3.0    # p_solar_m3_cbore_depth()
+
+
+def front_screw_len(t: float) -> float:
+    """turtle_body p_solar_front_screw_len(): M3 length through the bridge
+    (2t - counterbore) + 3/4 of the shaft, rounded UP to 5 mm (30 at t 12)."""
+    return math.ceil((2.75 * t - SOLAR_M3_CBORE_DEPTH) / 5) * 5
+SOLAR_PANEL_M3_INSET = 8.0    # p_solar_panel_m3_inset(): panel corner screws in from the side
+
+
+def front_hole_y(shaft_width: float) -> float:
+    """turtle_body p_solar_front_hole_y(): holder screws at +- shaft width / 4."""
+    return shaft_width / 4
+
 
 def port_height(p: dict[str, float]) -> float:
     """Ecojoiner port height = bottle diameter + the form's fit offset."""
@@ -109,7 +127,7 @@ def default_shaft_hole_from_front(p: dict[str, float]) -> float:
 
 SCAD_BODY = r'''
 /* [Display] */
-part = "assembly"; // [assembly,fin,solar_holder,shaft]
+part = "assembly"; // [assembly,fin,solar_holder,front_solar_holder,shaft]
 show_solar_panel = true; // F5 reference only, excluded from F6/STL
 show_bottle_mockup = false; // F5 simplified envelope only
 
@@ -161,6 +179,17 @@ shaft_lock_from_clamp = (taper_height+20) - 1 - 5/2 - 17;
 shaft_lock_hole_from_front = shaft_hole_from_front - shaft_lock_from_clamp;
 solar_panel_z0 = fin_height;
 
+// turtle_body v7.3.0 front solar holder: same board as the red holder, flush
+// under the panel's FRONT edge; its bottom notch straddles the upper shaft.
+// Two counterbored M3 clearance holes go down through the 2t bridge into
+// pilots drilled through BOTH shafts (kept interchangeable).
+front_holder_x0 = solar_panel_x0;
+front_holder_cx = front_holder_x0+t/2;
+front_notch_w = shaft_width+solar_slot_clearance;
+front_notch_h = t+solar_slot_clearance/2;
+front_pilot_from_front = front_holder_cx-shaft_front_x;
+front_hole_y = shaft_width/4;
+
 assert(t>0 && bottle_height>cap_height && cap_diameter>0);
 assert(bottle_diameter>0 && fin_board_width>2*t);
 assert(solar_panel_width>0 && solar_panel_height>0 && solar_panel_thickness>0);
@@ -181,6 +210,14 @@ assert(shaft_lock_hole_from_front>shaft_hole_diameter/2
        && shaft_hole_from_front>shaft_hole_diameter/2
        && shaft_front_x+shaft_hole_from_front+shaft_hole_diameter/2<0,
        "Shaft hole must remain in the forward, unjointed portion.");
+assert(front_holder_x0>shaft_front_x+shaft_hole_from_front+17,
+       "Front solar holder must sit aft of the Little John.");
+assert(front_holder_x0+t<joint_meet_x-half_lap_clearance/2,
+       "Front solar holder must sit forward of the shaft's half-lap slot.");
+assert(front_notch_w+2*solar_chamfer<solar_holder_length,
+       "Front solar holder legs too narrow beside the shaft notch.");
+assert(front_hole_y+m3_cbore_d/2<shaft_width/2 && m3_cbore_d<t,
+       "Front holder screws must land on the shaft and fit the board.");
 assert(exploded>=0);
 
 module rear_fin_blank() {
@@ -215,6 +252,10 @@ module bottle_holder_shaft(z0=0) {
         for (hx=[shaft_hole_from_front,shaft_lock_hole_from_front])
             translate([shaft_front_x+hx,0,z0-eps])
                 cylinder(d=shaft_hole_diameter,h=t+2*eps,$fn=16);
+        // M3 pilots for the front solar holder (v7.3.0).
+        for (y=[-1,1])
+            translate([shaft_front_x+front_pilot_from_front,y*front_hole_y,z0-eps])
+                cylinder(d=m3_pilot_d,h=t+2*eps,$fn=16);
         // Open REAR slot, complementary to yellow's open FRONT slot.
         translate([joint_meet_x-half_lap_clearance/2,
                    -(t+half_lap_clearance)/2,z0-eps])
@@ -239,6 +280,28 @@ module solar_panel_holder() {
             }
 }
 
+module front_solar_panel_holder() {
+    color([0.95,0.45,0.25]) translate([front_holder_x0,0,solar_holder_z0]) difference() {
+        rotate([90,0,90]) translate([-solar_holder_length/2,0,0])
+            linear_extrude(height=t) difference() {
+                square([solar_holder_length,solar_holder_height]);
+                polygon([[0,0],[solar_chamfer,0],[0,solar_chamfer]]);
+                polygon([[solar_holder_length,0],
+                         [solar_holder_length-solar_chamfer,0],
+                         [solar_holder_length,solar_chamfer]]);
+                // Open-bottom notch straddling the upper green shaft.
+                translate([(solar_holder_length-front_notch_w)/2,-eps])
+                    square([front_notch_w,front_notch_h+eps]);
+            }
+        for (y=[-1,1]) translate([t/2,y*front_hole_y,0]) {
+            translate([0,0,front_notch_h-eps])
+                cylinder(d=m3_clear_d,h=solar_holder_height-front_notch_h+2*eps,$fn=16);
+            translate([0,0,solar_holder_height-m3_cbore_depth])
+                cylinder(d=m3_cbore_d,h=m3_cbore_depth+eps,$fn=24);
+        }
+    }
+}
+
 module solar_panel_reference() {
     color([0.05,0.16,0.4,0.65])
         translate([solar_panel_x0,-solar_panel_width/2,solar_panel_z0])
@@ -260,6 +323,7 @@ module assembly_view() {
     translate([-exploded,0,exploded]) bottle_holder_shaft(upper_shaft_z0);
     translate([-exploded,0,-exploded]) bottle_holder_shaft(lower_shaft_z0);
     translate([exploded,0,exploded]) solar_panel_holder();
+    translate([-exploded,0,2*exploded]) front_solar_panel_holder();
     if(show_solar_panel && exploded==0) %solar_panel_reference();
     if(show_bottle_mockup && exploded==0) %bottle_mockup();
 }
@@ -267,6 +331,7 @@ module assembly_view() {
 if(part=="assembly") assembly_view();
 else if(part=="fin") rear_fin();
 else if(part=="solar_holder") solar_panel_holder();
+else if(part=="front_solar_holder") front_solar_panel_holder();
 else if(part=="shaft") bottle_holder_shaft();
 else assert(false,str("Unknown part: ",part));
 
@@ -275,6 +340,7 @@ echo("Matching green/yellow nominal slot depth = ",joint_slot_depth);
 echo("Green/yellow slot opening = ",t+half_lap_clearance);
 echo("Solar joint opening / total clearance = ",t+solar_slot_clearance,solar_slot_clearance);
 echo("Rear panel width / height / thickness = ",solar_panel_width,solar_panel_height,solar_panel_thickness);
+echo("Front solar holder X / M3 pilots from shaft front / Y = +-",front_holder_x0,front_pilot_from_front,front_hole_y);
 '''
 
 
@@ -383,13 +449,19 @@ def build_scad(overrides: dict[str, float] | None = None) -> str:
     validate(p)
     lines = [f"/* Hope Turtle rear fin, turtle_body v{DESIGN_VERSION}. Units: mm. Generated by back_fin_generator.py.",
              "   Bottle/stock and panel defaults follow turtle_body lib/params.scad.",
-             "   Four wooden pieces. Panel/bottle are reference geometry only. */",
+             "   Five wooden pieces. Panel/bottle are reference geometry only. */",
              "", "/* [Foundation dimensions] */"]
     lines.extend(f"{k} = {p[k]:.12g};" for k in DEFAULTS)
     lines.extend(["", "/* [Fit and tuning] */",
                   "// Clearance means TOTAL extra slot width, centered on the mating board."])
     lines.extend(f"{k} = {p[k]:.12g};" for k in TUNING)
     lines.append(f"exploded = {p['exploded']:.12g};")
+    lines.extend(["", "/* [Hidden] */",
+                  "// Front solar holder M3 hardware (turtle_body p_solar_m3_*()).",
+                  f"m3_clear_d = {SOLAR_M3_CLEAR_D:.12g};",
+                  f"m3_pilot_d = {SOLAR_M3_PILOT_D:.12g};",
+                  f"m3_cbore_d = {SOLAR_M3_CBORE_D:.12g};",
+                  f"m3_cbore_depth = {SOLAR_M3_CBORE_DEPTH:.12g};"])
     # The website keeps its legacy rear-fin template, but the engraving
     # implementation comes verbatim from turtle_body/lib/fin_ruler.scad.
     ruler_params = """

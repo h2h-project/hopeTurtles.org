@@ -39,7 +39,8 @@ export const PART_QUANTITIES_BY_TYPE = {
   fin: [
     { key: 'rear_fin', part: 'Rear Fin', quantity: 1 },
     { key: 'bottle_holder_shaft', part: 'Bottle Holder Shaft', quantity: 2 },
-    { key: 'solar_panel_holder', part: 'Solar Panel Holder', quantity: 1 }
+    { key: 'solar_panel_holder', part: 'Solar Panel Holder', quantity: 1 },
+    { key: 'front_solar_holder', part: 'Front Solar Holder', quantity: 1 }
   ],
   ballast: [
     { key: 'ballast_bottom_board', part: 'Ballast Bottom Board', quantity: 1 },
@@ -482,7 +483,7 @@ const mapSailsFields = (body = {}) => {
   };
 };
 
-// Head Fin (EXPERIMENTAL, turtle_body v5.8.0+): the front fin and its two
+// Head Fin (turtle_body v5.8.0+; tested and kept, 2026-11-28): the front fin and its two
 // bottle-holder slats. Same bottle/board fields as the Fin Attachment minus
 // the cap diameter and solar panel - see generator/objects/head_fin.py. The
 // slats bolt against the front port's Little Johns, so like the rear fin they
@@ -556,7 +557,7 @@ const mapHeadFinFields = (body = {}) => {
       material: body.material ? String(body.material) : null,
       ecojoinerType: 'head_fin'
     },
-    notices: ['The head fin is experimental - it has not been built or sea-tested yet.']
+    notices: []
   };
 };
 

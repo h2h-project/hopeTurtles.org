@@ -2,7 +2,7 @@
 """Generate the Hope Turtle head fin (front fin) as OpenSCAD.
 
 Upstream: ../turtle_body/lib/head_fin.scad + lib/params.scad (turtle_body
-v5.8.0+, EXPERIMENTAL). Two flat slats sit above and below the front bottle,
+v5.8.0+; built and tested, kept since 2026-11-28). Two flat slats sit above and below the front bottle,
 bolt to the front port's Little John M5 holes (centred clamp + collar lock,
 turtle_body v7.0.0) exactly like the rear fin's green shafts, and half-lap into a raked vertical fin whose rear edge abuts the
 bottle base.
@@ -159,7 +159,7 @@ def build_scad(overrides: dict | None = None, part: str = "assembly") -> str:
         "half_lap_clearance": p["half_lap_clearance"],
         "part": part,
     })
-    return tbb.stamp(text, "Hope Turtle head fin (front fin) - EXPERIMENTAL", p)
+    return tbb.stamp(text, "Hope Turtle head fin (front fin)", p)
 
 
 def _positive(value: str) -> float:

@@ -109,6 +109,15 @@ def _checks(p: dict) -> list[tuple[str, str, float, float]]:
          bf_ref.dimensions({**bf, **bft})["shaft_hole_from_front"]),
         # rear-fin shaft width == John height  -- p_rear_shaft_width() (60 since v5.4.0)
         ("p_rear_shaft_width", "fin default_shaft_width(DEFAULTS)", bf_ref.default_shaft_width({**bf, **bft})),
+        # front solar holder (turtle_body v7.3.0) -- M3 hardware + screw-length rule
+        ("p_solar_m3_clear_d", "fin SOLAR_M3_CLEAR_D", bf_ref.SOLAR_M3_CLEAR_D),
+        ("p_solar_m3_pilot_d", "fin SOLAR_M3_PILOT_D", bf_ref.SOLAR_M3_PILOT_D),
+        ("p_solar_m3_cbore_d", "fin SOLAR_M3_CBORE_D", bf_ref.SOLAR_M3_CBORE_D),
+        ("p_solar_m3_cbore_depth", "fin SOLAR_M3_CBORE_DEPTH", bf_ref.SOLAR_M3_CBORE_DEPTH),
+        ("p_solar_panel_m3_inset", "fin SOLAR_PANEL_M3_INSET", bf_ref.SOLAR_PANEL_M3_INSET),
+        ("p_solar_front_screw_len", "fin front_screw_len(t)", bf_ref.front_screw_len(bf["wood_thickness"])),
+        ("p_solar_front_hole_y", "fin front_hole_y(default shaft width)",
+         bf_ref.front_hole_y(bf_ref.default_shaft_width({**bf, **bft}))),
         # ballast core slats follow the John  -- p_ballast_core_w() / p_ballast_slat_spacing()
         ("p_ballast_core_w", "ballast derive_dimensions().slat_width", bal_obj.derive_dimensions(bal_obj.BallastInputs()).slat_width),
         ("p_ballast_slat_spacing", "ballast derive_dimensions() slot centre spacing",

@@ -1,4 +1,4 @@
-"""Head Fin (front fin + two bottle-holder slats) object -- EXPERIMENTAL.
+"""Head Fin (front fin + two bottle-holder slats) object.
 
 Upstream: ../turtle_body/lib/head_fin.scad (turtle_body v5.8.0+, raked
 profile since v6.3.4). The rear fin's counterpart on the front port: two flat
@@ -202,7 +202,9 @@ def validate_inputs(inputs: HeadFinInputs) -> List[str]:
 
 
 def notices(inputs: HeadFinInputs) -> List[str]:
-    return ["The head fin is experimental - it has not been built or sea-tested yet."]
+    # The head fin has been built and tested and is now kept (2026-11-28);
+    # the old "experimental" notice is gone.
+    return []
 
 
 def make_job_slug(inputs: HeadFinInputs, derived: HeadFinDerived) -> str:
@@ -415,11 +417,8 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
     c.setFont(body_font, 9)
     c.setFillColor(colors.HexColor("#555555"))
     c.drawString(margin, title_y - 16,
-                 _tx("Reference sheet only - the SVG/DXF exports are the 1:1 cut files. Experimental: not yet sea-tested."))
-
-    c.setFont(body_font, 7)
-    c.drawString(margin, title_y - 29,
-                 _tx("Ruler: +above / -below bottle-axis zero (mm). Engrave BOTH faces 0.3 mm; ENGRAVE paths are not cuts."))
+                 _tx("Reference sheet only - the SVG/DXF exports are the 1:1 cut files."))
+    # No ruler on the reference sheet; the engraving stays in the SVG/DXF/SCAD.
 
     draw_left, draw_right = margin, page_w - margin
     draw_top = title_y - 44
@@ -489,8 +488,6 @@ def write_pdf(path: Path, inputs: HeadFinInputs, d: HeadFinDerived, *, font_dir:
         c.setFillColor(colors.HexColor("#222222"))
         c.drawString(ox, draw_top - 10, part["name"])
         _draw_edges(c, part["edges"], ox, oy, scale, stroke_color=colors.HexColor("#333333"), line_width=0.8)
-        if part["name"] == _tx("Head Fin"):
-            fin_rulers.draw_pdf(c, "head", inputs, d, ox, oy, scale)
         for wall in part["notches"]:
             _draw_open_path(c, wall, ox, oy, scale, stroke_color=colors.HexColor("#999999"), line_width=0.5)
         for cx, cy, dia in part["circles"]:
